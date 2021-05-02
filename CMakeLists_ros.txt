@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.5)
+project(TBOT03)
+
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+# if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+#   add_compile_options(-Wall -Wextra -Wpedantic)
+# endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(gazebo_ros_pkgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(turtlebot3 REQUIRED)
+
+find_package (Threads)
+
+include_directories(../rapidjson/include ../AlignmentC ../AlignmentRepaC ../AlignmentActive ../TBOT03)
+
+link_directories(../AlignmentC_build ../AlignmentRepaC_build ../AlignmentActive_build)
+
+link_libraries(libAlignmentActive.a libAlignmentRepaC.a libAlignmentC.a)
+
+set(dependencies "geometry_msgs" "nav_msgs" "rclcpp" "sensor_msgs" "tf2")
+
+add_executable(actor actor.cpp dev.cpp)
+ament_target_dependencies(actor ${dependencies} Threads)
+install(TARGETS actor DESTINATION lib/${PROJECT_NAME})
+
+add_executable(commander commander.cpp dev.cpp)
+ament_target_dependencies(commander ${dependencies} Threads)
+install(TARGETS commander DESTINATION lib/${PROJECT_NAME})
+
+add_executable(main main.cpp dev.cpp)
+ament_target_dependencies(main ${dependencies} Threads)
+install(TARGETS main DESTINATION lib/${PROJECT_NAME})
+
+# Macro for ament package
+ament_package()
+
