@@ -184,8 +184,8 @@ gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env001.model -s libgazebo_ros_
 In a separate shell,
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
-
-ros2 run TBOT03 controller data.bin 250
+echo '{}' > actor.json
+ros2 run TBOT03 actor
 
 ```
 Press play in `gazebo` and the turtlebot3 will start moving.
