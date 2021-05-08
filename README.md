@@ -213,7 +213,21 @@ Now let us investigate various turtlebot *models* and controllers.
 
 ### Actor node
 
+TBOT03 use the change in pose rather than linear or angular speed. So for forward motion have a change in postion of 0.5m i.e. 4m lidar range / 8 valency. For turn a change in orientation of 30 deg with update rate of 5ms (odom is 3.3ms), i.e. 360/30 = 12 regional models in level 1. Forwards take 3000ms, turns 30ms. Then wait 220ms for the lidar before stop state. Add a wait state before the stop state. Run at a higher real_time_factor.
 
+TBOT03 measure successful transition actions
+
+TBOT03 we can model configuration space clustering by making a slice tree for each dimension and then inducing. The resultant configuration model slices are the clusters. Of course this is just the same as having the odometry as substrate instead of LiDAR. No doubt we could have a very good slice topology in that case. We can compare models by rel ent so could compare the substrate induced model to the configuration induced model (with same threshold) to get a measure of the quality of the slice topology. Then can run the model without odometry knowing whether it's slice topology was better or worse than some other substrate induced model.
+
+TBOT03 NB 202103081030 - essentially, we can measure the quality induced model's slice topology by inducing a model of the configuration space from the odometry, and then the clusterivity of the slice topology is the negative label entropy wrt the induced slice where the label is the configuration model slice (partition variable). The connectivity of the slice topology is the label entropy wrt the motor action where the label is the induced slice. Of course, in many cases a configuration model is infeasible. TBOT03 is also complicated by the goal depending on room. Relative entropy of motor actions between nearest and not nearest - configuration space is too large. Can compute the total motor relative entropy for each model for each goal as a comparison for the slice topology.So we should add this as a comment to the README, rather than spend much more time 'solving' the maze problem - we possibly could add orientation or odometry or dynamics, but we might still have wormholes or loops due to collision avoidance, jumping over doorways in one step, probabilistic motor actions, and so on. I think to navigate using a slice topology with these motor actions would require wide doorways and plenty of paths.
+
+TBOT02 does not know the grammar of room navigation. We of course have high level models of paths, obstructions, doorways, escalators, etc. We look around to get our bearings when we walk into an unfamiliar room. TBOT02 has none of this. It is trapped in the present instant and so needs a large history and model for every location in the house.
+
+TBOT02 constrain each slice so that it spans a reasonable physical space ie the distance between events is a few metres. Doorways provide a potential barrier if sometimes the TBOT02 jumps across so have neighbours in same direction with differing steps. Slice topology necessarily poor because the slices are too large we need complete sets for each room. With vision and relative goals it would be better. Rather than crossing with room we need to cross with local region to keep the slices very small but with a good set of transitions. Add orientation/room to substrate instead of crossing slice topologies. Avoids the slices from becoming too small.
+
+TBOT02 a lot of the problem, especially in small rooms, is that we are looking at actions and not requests. TBOT03 motor actions will be carefully sycnhronised with the senses. Ideally we would have a slice per act and vice-versa i.e. isomorphism. 
+
+TBOT03 we are no longer interested in model likelihood, but assume that the inducer is always reasonably good. Interested in the temporal relationships between slices  or components of the model.
 
 <a name = "Conclusion"></a>
 
