@@ -231,6 +231,7 @@ TBOT03 we are no longer interested in model likelihood, but assume that the indu
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
 
+TBOT03 control is like a duck paddling requires individual strokes experiences increasing resistance
 
 
 <a name = "Conclusion"></a>
