@@ -229,6 +229,10 @@ TBOT02 a lot of the problem, especially in small rooms, is that we are looking a
 
 TBOT03 we are no longer interested in model likelihood, but assume that the inducer is always reasonably good. Interested in the temporal relationships between slices  or components of the model.
 
+TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
+
+
+
 <a name = "Conclusion"></a>
 
 ### Conclusion
