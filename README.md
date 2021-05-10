@@ -60,6 +60,8 @@ The `main` executable has various modes,
 cd ../TBOT03_ws
 ln -s ../TBOT03_build/main main
 
+ ./main
+
 ```
 <a name = "controller"></a>
 
