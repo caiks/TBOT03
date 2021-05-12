@@ -89,18 +89,17 @@ public:
 	std::size_t _mode4TransistionCount;
 	
 private:
-	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _cmd_vel_pub;
+	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
 
-	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr _scan_sub;
-	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr _odom_sub;
-	rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _goal_sub;
+	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr _subscriptionScan;
+	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr _subscriptionOdom;
+	rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _subscriptionGoal;
 
-	rclcpp::TimerBase::SharedPtr _update_timer;
+	rclcpp::TimerBase::SharedPtr _timerUpdate;
 	
-	void update_callback();
-	void update_cmd_vel(double linear, double angular);
-	void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
-	void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
-	void goal_callback(const std_msgs::msg::String::SharedPtr msg);
+	void callbackUpdate();
+	void callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+	void callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg);
+	void callbackGoal(const std_msgs::msg::String::SharedPtr msg);
 };
 #endif // ACTOR_H

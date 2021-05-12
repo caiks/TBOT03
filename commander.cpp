@@ -79,7 +79,7 @@ void Commander::command_callback()
 {
 	if (_pose_updated && _scan_updated)
 	{	
-		auto xx = recordListsHistoryRepa_4(8, RecordList{ _record });
+		auto xx = recordListsHistoryRepa(8, RecordList{ _record });
 		auto ur = std::move(std::get<1>(xx));
 		auto hr = std::move(std::get<2>(xx));
 		auto& vvi = ur->mapVarSize();

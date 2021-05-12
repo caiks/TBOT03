@@ -101,7 +101,7 @@ void run_act(Actor& actor)
 			{
 				std::unique_ptr<HistoryRepa> hr;
 				{
-					SystemHistoryRepaTuple xx = recordListsHistoryRepa_4(8, RecordList{ actor._record });	
+					SystemHistoryRepaTuple xx = recordListsHistoryRepa(8, RecordList{ actor._record });	
 					hr = std::move(std::get<2>(xx));
 				}
 				actor._eventId++;
@@ -1175,7 +1175,7 @@ Actor::Actor(const std::string& args_filename)
 	{
 		std::unique_ptr<HistoryRepa> hr;
 		{
-			SystemHistoryRepaTuple xx = recordListsHistoryRepa_4(8, RecordList{ Record() });	
+			SystemHistoryRepaTuple xx = recordListsHistoryRepa(8, RecordList{ Record() });	
 			_uu = std::move(std::get<0>(xx));
 			_ur = std::move(std::get<1>(xx));
 			hr = std::move(std::get<2>(xx));
@@ -1727,16 +1727,16 @@ Actor::Actor(const std::string& args_filename)
 	}
 				
 	{
-	_cmd_vel_pub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", rclcpp::QoS(rclcpp::KeepLast(10)));
+	_publisherCmdVel = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", rclcpp::QoS(rclcpp::KeepLast(10)));
 	
-	_scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan>(
-		"scan", rclcpp::SensorDataQoS(), std::bind(&Actor::scan_callback, this, std::placeholders::_1));
-	_odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(
-		"odom", rclcpp::QoS(rclcpp::KeepLast(10)), std::bind(&Actor::odom_callback, this, std::placeholders::_1));
-	_goal_sub = this->create_subscription<std_msgs::msg::String>(
-		"goal", 10, std::bind(&Actor::goal_callback, this, std::placeholders::_1));
+	_subscriptionScan = this->create_subscription<sensor_msgs::msg::LaserScan>(
+		"scan", rclcpp::SensorDataQoS(), std::bind(&Actor::callbackScan, this, std::placeholders::_1));
+	_subscriptionOdom = this->create_subscription<nav_msgs::msg::Odometry>(
+		"odom", rclcpp::QoS(rclcpp::KeepLast(10)), std::bind(&Actor::callbackOdom, this, std::placeholders::_1));
+	_subscriptionGoal = this->create_subscription<std_msgs::msg::String>(
+		"goal", 10, std::bind(&Actor::callbackGoal, this, std::placeholders::_1));
 
-	_update_timer = this->create_wall_timer(updateInterval, std::bind(&Actor::update_callback, this));
+	_timerUpdate = this->create_wall_timer(updateInterval, std::bind(&Actor::callbackUpdate, this));
 	}
 
 	RCLCPP_INFO(this->get_logger(), "TBOT03 actor node has been initialised");
@@ -1786,7 +1786,7 @@ Actor::~Actor()
 	RCLCPP_INFO(this->get_logger(), "TBOT03 actor node has been terminated");
 }
 
-void Actor::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
 	if (!_crashed)
 	{
@@ -1817,7 +1817,7 @@ void Actor::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
 
 }
 
-void Actor::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+void Actor::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
 	uint16_t scan_angle[3] = {0, 30, 330};
 
@@ -1839,20 +1839,20 @@ void Actor::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 	_scan_updated = true;
 }
 
-void Actor::update_cmd_vel(double linear, double angular)
-{
-	geometry_msgs::msg::Twist cmd_vel;
-	cmd_vel.linear.x  = linear;
-	cmd_vel.angular.z = angular;
+// void Actor::update_cmd_vel(double linear, double angular)
+// {
+	// geometry_msgs::msg::Twist cmd_vel;
+	// cmd_vel.linear.x  = linear;
+	// cmd_vel.angular.z = angular;
 
-	_cmd_vel_pub->publish(cmd_vel);
+	// _publisherCmdVel->publish(cmd_vel);
 
-	_record.action_linear = cmd_vel.linear.x;
-	_record.action_angular = cmd_vel.angular.z;
-	_update_updated = true;
-}
+	// _record.action_linear = cmd_vel.linear.x;
+	// _record.action_angular = cmd_vel.angular.z;
+	// _update_updated = true;
+// }
 
-void Actor::update_callback()
+void Actor::callbackUpdate()
 {
 	static uint8_t turtlebot3_state_num = 0;
 	double escape_range = 30.0 * DEG2RAD;
@@ -1929,7 +1929,7 @@ void Actor::update_callback()
 			_turn_request = "";
 			break;
 		}
-		update_cmd_vel(LINEAR_VELOCITY, 0.0);
+		// update_cmd_vel(LINEAR_VELOCITY, 0.0);
 		turtlebot3_state_num = GET_TB3_DIRECTION;
 		break;
 
@@ -1947,7 +1947,9 @@ void Actor::update_callback()
 		if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
 			turtlebot3_state_num = GET_TB3_DIRECTION;
 		else
-			update_cmd_vel(0.0, -1 * ANGULAR_VELOCITY);
+		{
+			// update_cmd_vel(0.0, -1 * ANGULAR_VELOCITY);
+		}
 		break;
 
 	case TB3_LEFT_TURN:
@@ -1964,7 +1966,9 @@ void Actor::update_callback()
 		if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
 			turtlebot3_state_num = GET_TB3_DIRECTION;
 		else
-			update_cmd_vel(0.0, ANGULAR_VELOCITY);
+		{
+			// update_cmd_vel(0.0, ANGULAR_VELOCITY);
+		}
 		break;
 
 	default:
@@ -1973,7 +1977,7 @@ void Actor::update_callback()
 	}
 }
 
-void Actor::goal_callback(const std_msgs::msg::String::SharedPtr msg)
+void Actor::callbackGoal(const std_msgs::msg::String::SharedPtr msg)
 {
 	_goal = msg->data;
 	std::ostringstream str; 
