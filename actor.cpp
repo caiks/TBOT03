@@ -1038,7 +1038,10 @@ Actor::Actor(const std::string& args_filename)
 	auto add = pairHistogramsAdd_u;
 	auto single = histogramSingleton_u;		
 
+	actor_this = this;
 	_terminate = false;
+	_status = START;
+	_startTimestamp = Clock::now();
 			
 	js::Document args;
 	{
@@ -1135,8 +1138,6 @@ Actor::Actor(const std::string& args_filename)
 		_induceParameters.mult = ARGS_INT_DEF(induceParameters.mult,1);
 		_induceParameters.seed = ARGS_INT_DEF(induceParameters.seed,5);		
 	}
-
-	actor_this = this;
 		
 	EVAL(_goal);
 	EVAL(_struct);
@@ -1765,7 +1766,8 @@ void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 		if (msg->pose.pose.position.z >= 0.02)
 		{
 			_status = CRASH;
-			RCLCPP_INFO(this->get_logger(), "Crashed");		
+			_statusTimestamp = Clock::now();
+			LOG "actor\tCRASH\ttime " << ((Sec)(_statusTimestamp - _startTimestamp)).count() << "s" UNLOG			
 		}
 	}
 	if (_status != CRASH)
@@ -1819,6 +1821,34 @@ void Actor::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
 void Actor::callbackUpdate()
 {
+	if (_status == CRASH || _status == STOP)
+		return;
+	bool statusChanged = false;
+	if (_statusTimestamp == TimePoint())
+	{
+		_status = START;
+		_statusTimestamp = Clock::now();
+		statusChanged = true;
+	}
+	if (_updateLogging && statusChanged)
+	{
+		string statusString;
+		switch(_status)
+		{
+			case START   : statusString = "START";    break;
+			case WAIT_ODOM   : statusString = "WAIT_ODOM";    break;
+			case WAIT_SCAN   : statusString = "WAIT_SCAN";    break;
+			case AHEAD   : statusString = "AHEAD";    break;
+			case LEFT   : statusString = "LEFT";    break;
+			case RIGHT   : statusString = "RIGHT";    break;
+			case STOP   : statusString = "STOP";    break;
+			case CRASH   : statusString = "CRASH";    break;
+			default   : statusString = "UNDEFINED";    break;
+		}
+		LOG "actor\t" << statusString << "\ttime " << ((Sec)(_statusTimestamp - _startTimestamp)).count() << "s" UNLOG	
+	}	
+				
+
 	// static uint8_t turtlebot3_state_num = 0;
 	// double escape_range = 30.0 * DEG2RAD;
 	// double check_forward_dist = 0.7;
