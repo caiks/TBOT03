@@ -16,6 +16,7 @@
 #include <set>
 #include <unordered_set>
 #include <vector>
+#include <array>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -25,22 +26,22 @@
 #include <ctime>
 #include <string>
 
+using Sec = std::chrono::duration<double>;
+using Clock = std::chrono::high_resolution_clock;
+using TimePoint = std::chrono::time_point<Clock>;
+
 namespace TBOT03
 {
 	struct Record
 	{
 		Record() {
-			id = 0;
-			ts = 0.0;
-			for (std::size_t i = 0; i < 7; i++)
-				sensor_pose[i] = 0.0;
-			for (std::size_t i = 0; i < 360; i++)
-				sensor_scan[i] = 0.0;
+			x = 0.0;
+			y = 0.0;
+			yaw = 0.0;
 		}
-		std::size_t id;
-		double ts;
-		double sensor_pose[7];
-		double sensor_scan[360];
+		double x;
+		double y;
+		double yaw;
 	};
 	typedef std::vector<Record> RecordList;
 
@@ -52,7 +53,7 @@ namespace TBOT03
 
 	typedef std::tuple<std::unique_ptr<Alignment::System>, std::unique_ptr<Alignment::SystemRepa>, std::unique_ptr<Alignment::HistoryRepa>> SystemHistoryRepaTuple;
 
-	SystemHistoryRepaTuple recordListsHistoryRepa(int, const RecordList&);
+	SystemHistoryRepaTuple posesScansHistoryRepa(int, const std::array<double,7>&, const std::array<double,360>&);
 }
 
 std::ostream& operator<<(std::ostream& out, const TBOT03::Record&);

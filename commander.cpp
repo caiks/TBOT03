@@ -29,18 +29,15 @@ Commander::Commander(const std::string& room_initial, std::chrono::milliseconds 
 		
 	_counts.push_back(0);
 	_running = running;
-			
-	_pose_updated = false;
-	_scan_updated = false;
-	
-	_goal_pub = this->create_publisher<std_msgs::msg::String>("goal", rclcpp::QoS(rclcpp::KeepLast(10)));
+				
+	_publisherGoal = this->create_publisher<std_msgs::msg::String>("goal", rclcpp::QoS(rclcpp::KeepLast(10)));
 
-	_scan_sub = this->create_subscription<sensor_msgs::msg::LaserScan>(
-		"scan", rclcpp::SensorDataQoS(), std::bind(&Commander::scan_callback, this, std::placeholders::_1));
-	_odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(
-		"odom", rclcpp::QoS(rclcpp::KeepLast(10)), std::bind(&Commander::odom_callback, this, std::placeholders::_1));
+	_subscriptionScan = this->create_subscription<sensor_msgs::msg::LaserScan>(
+		"scan", rclcpp::SensorDataQoS(), std::bind(&Commander::callbackScan, this, std::placeholders::_1));
+	_subscriptionOdom = this->create_subscription<nav_msgs::msg::Odometry>(
+		"odom", rclcpp::QoS(rclcpp::KeepLast(10)), std::bind(&Commander::callbackOdom, this, std::placeholders::_1));
 		
-	_command_timer = this->create_wall_timer(command_interval, std::bind(&Commander::command_callback, this));
+	_timerCommand = this->create_wall_timer(command_interval, std::bind(&Commander::callbackCommand, this));
 
 	EVAL(room_initial);
 	RCLCPP_INFO(this->get_logger(), "TBOT03 commander node has been initialised");
@@ -51,35 +48,35 @@ Commander::~Commander()
 	RCLCPP_INFO(this->get_logger(), "TBOT03 commander node has been terminated");
 }
 
-void Commander::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+void Commander::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-	_record.sensor_pose[0] = msg->pose.pose.position.x;
-	_record.sensor_pose[1] = msg->pose.pose.position.y;
-	_record.sensor_pose[2] = msg->pose.pose.position.z;
-	_record.sensor_pose[3] = msg->pose.pose.orientation.x;
-	_record.sensor_pose[4] = msg->pose.pose.orientation.y;
-	_record.sensor_pose[5] = msg->pose.pose.orientation.z;
-	_record.sensor_pose[6] = msg->pose.pose.orientation.w;
-	_pose_updated = true;		
+	_pose[0] = msg->pose.pose.position.x;
+	_pose[1] = msg->pose.pose.position.y;
+	_pose[2] = msg->pose.pose.position.z;
+	_pose[3] = msg->pose.pose.orientation.x;
+	_pose[4] = msg->pose.pose.orientation.y;
+	_pose[5] = msg->pose.pose.orientation.z;
+	_pose[6] = msg->pose.pose.orientation.w;	
+	_poseTimestamp = Clock::now();
 }
 
-void Commander::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+void Commander::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
-	for (std::size_t i = 0; i < 360; i++)
+	for (std::size_t i = 0; i < _scan.size(); i++)
 	{
 		if (std::isinf(msg->ranges.at(i)))
-			_record.sensor_scan[i] = msg->range_max;
+			_scan[i] = msg->range_max;
 		else
-			_record.sensor_scan[i] = msg->ranges.at(i);
+			_scan[i] = msg->ranges.at(i);
 	}
-	_scan_updated = true;
+	_scanTimestamp = Clock::now();
 }
 
-void Commander::command_callback()
+void Commander::callbackCommand()
 {
-	if (_pose_updated && _scan_updated)
+	if (_poseTimestamp != TimePoint() && _scanTimestamp != TimePoint())
 	{	
-		auto xx = recordListsHistoryRepa(8, RecordList{ _record });
+		auto xx = posesScansHistoryRepa(8, _pose, _scan);
 		auto ur = std::move(std::get<1>(xx));
 		auto hr = std::move(std::get<2>(xx));
 		auto& vvi = ur->mapVarSize();
@@ -123,7 +120,7 @@ void Commander::command_callback()
 			// EVAL(_locations[_room]);
 			std_msgs::msg::String msg;
 			msg.data = _locations[_room];
-			_goal_pub->publish(msg);
+			_publisherGoal->publish(msg);
 			std::ostringstream str; 
 			str << "goal: " << msg.data 
 				<< "\tn: " << n << "\tmean: " << mean << "\tstd dev: " << sqrt(variance) << "\tstd err: " << sqrt(variance/n);

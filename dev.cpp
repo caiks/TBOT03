@@ -9,12 +9,9 @@ using namespace std;
 
 void TBOT03::recordsPersistent(Record& r, std::ostream& out)
 {
-	out.write(reinterpret_cast<char*>(&r.id), sizeof(std::size_t));
-	out.write(reinterpret_cast<char*>(&r.ts), sizeof(double));
-	for (std::size_t i = 0; i < 7; i++)
-		out.write(reinterpret_cast<char*>(&r.sensor_pose[i]), sizeof(double));
-	for (std::size_t i = 0; i < 360; i++)
-		out.write(reinterpret_cast<char*>(&r.sensor_scan[i]), sizeof(double));
+	out.write(reinterpret_cast<char*>(&r.x), sizeof(double));
+	out.write(reinterpret_cast<char*>(&r.y), sizeof(double));
+	out.write(reinterpret_cast<char*>(&r.yaw), sizeof(double));
 }
 
 void TBOT03::recordListsPersistent(RecordList& rr, std::ostream& out)
@@ -29,14 +26,11 @@ std::unique_ptr<RecordList> TBOT03::persistentsRecordList(std::istream& in)
 	while (true)
 	{
 		Record r;
-		in.read(reinterpret_cast<char*>(&r.id), sizeof(std::size_t));
+		in.read(reinterpret_cast<char*>(&r.x), sizeof(double));
 		if (in.eof())
 			break;
-		in.read(reinterpret_cast<char*>(&r.ts), sizeof(double));
-		for (std::size_t i = 0; i < 7; i++)
-			in.read(reinterpret_cast<char*>(&r.sensor_pose[i]), sizeof(double));
-		for (std::size_t i = 0; i < 360; i++)
-			in.read(reinterpret_cast<char*>(&r.sensor_scan[i]), sizeof(double));
+		in.read(reinterpret_cast<char*>(&r.y), sizeof(double));
+		in.read(reinterpret_cast<char*>(&r.yaw), sizeof(double));
 		rr->push_back(r);
 	}
 	return rr;
@@ -44,13 +38,7 @@ std::unique_ptr<RecordList> TBOT03::persistentsRecordList(std::istream& in)
 
 std::ostream& operator<<(std::ostream& out, const Record& r)
 {
-	out << "(" << r.id << "," << r.ts << ",(";
-	for (std::size_t i = 0; i < 7; i++)
-		out << (i ? "," : "") << r.sensor_pose[i];
-	out << "),(";
-	for (std::size_t i = 0; i < 360; i++)
-		out << (i ? "," : "") << r.sensor_scan[i];
-	out << "))";
+	out << "(" << r.x << "," << r.y << "," << r.yaw << ")";
 	return out;
 }
 
@@ -67,14 +55,11 @@ std::ostream& operator<<(std::ostream& out, std::istream& in)
 	while (true)
 	{
 		Record r;
-		in.read(reinterpret_cast<char*>(&r.id), sizeof(std::size_t));
+		in.read(reinterpret_cast<char*>(&r.x), sizeof(double));
 		if (in.eof())
 			break;
-		in.read(reinterpret_cast<char*>(&r.ts), sizeof(double));
-		for (std::size_t i = 0; i < 7; i++)
-			in.read(reinterpret_cast<char*>(&r.sensor_pose[i]), sizeof(double));
-		for (std::size_t i = 0; i < 360; i++)
-			in.read(reinterpret_cast<char*>(&r.sensor_scan[i]), sizeof(double));
+		in.read(reinterpret_cast<char*>(&r.y), sizeof(double));
+		in.read(reinterpret_cast<char*>(&r.yaw), sizeof(double));
 		out << r << std::endl;
 	}
 	return out;
@@ -83,12 +68,12 @@ std::ostream& operator<<(std::ostream& out, std::istream& in)
 typedef std::pair<double, double> Coord;
 typedef std::pair<Coord, Coord> CoordP;
 
-SystemHistoryRepaTuple TBOT03::recordListsHistoryRepa(int d, const RecordList& qq)
+SystemHistoryRepaTuple TBOT03::posesScansHistoryRepa(int d, const std::array<double,7>& pose, const std::array<double,360>& scan)
 {
 	auto lluu = listsSystem_u;
 
 	std::size_t n = 360 + 3;
-	std::size_t z = qq.size();
+	std::size_t z = 1;
 	ValSet buckets;
 	for (int i = 0; i < d; i++)
 		buckets.insert(Value(i));
@@ -137,34 +122,29 @@ SystemHistoryRepaTuple TBOT03::recordListsHistoryRepa(int d, const RecordList& q
 	sh[n - 2] = states.size();
 	sh[n - 1] = locations.size();
 	double f = (double)d / 4.0;
-	for (size_t j = 0; j < z; j++)
+	for (size_t i = 0; i < n - 3; i++)
+		rr[i] = (unsigned char)(scan[i] * f);
+	rr[n - 3] = 0;
+	rr[n - 2] = 0;
+	double x = pose[0];
+	double y = pose[1];
+	size_t k = 0;
+	while (k < doors.size())
 	{
-		size_t jn = j*n;
-		auto& r = qq[j];
-		for (size_t i = 0; i < n - 3; i++)
-			rr[jn + i] = (unsigned char)(r.sensor_scan[i] * f);
-		rr[jn + n - 3] = 0;
-		rr[jn + n - 2] = 0;
-		double x = r.sensor_pose[0];
-		double y = r.sensor_pose[1];
-		size_t k = 0;
-		while (k < doors.size())
-		{
-			if ((doors[k].first - x)*(doors[k].first - x) + (doors[k].second - y)*(doors[k].second - y) <= 0.25)
-				break;
-			k++;
-		}
-		while (k >= doors.size() && k < doors.size() + rooms.size())
-		{
-			auto room = rooms[k - doors.size()];
-			if (room.first.first <= x && x <= room.second.first && room.first.second <= y && y <= room.second.second)
-				break;
-			k++;
-		}
-		if (k >= doors.size() + rooms.size())
-			k = 9;
-		rr[jn + n - 1] = (unsigned char)k;
+		if ((doors[k].first - x)*(doors[k].first - x) + (doors[k].second - y)*(doors[k].second - y) <= 0.25)
+			break;
+		k++;
 	}
+	while (k >= doors.size() && k < doors.size() + rooms.size())
+	{
+		auto room = rooms[k - doors.size()];
+		if (room.first.first <= x && x <= room.second.first && room.first.second <= y && y <= room.second.second)
+			break;
+		k++;
+	}
+	if (k >= doors.size() + rooms.size())
+		k = 9;
+	rr[n - 1] = (unsigned char)k;
 	hr->transpose();
 	return SystemHistoryRepaTuple(move(uu), move(ur), move(hr));
 }

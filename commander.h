@@ -21,24 +21,25 @@ public:
 	~Commander();
 
 private:
-	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _goal_pub;
+	rclcpp::Publisher<std_msgs::msg::String>::SharedPtr _publisherGoal;
 
-	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr _scan_sub;
-	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr _odom_sub;
+	rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr _subscriptionScan;
+	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr _subscriptionOdom;
 
-	rclcpp::TimerBase::SharedPtr _command_timer;
+	rclcpp::TimerBase::SharedPtr _timerCommand;
 
 	std::vector<std::string> _locations;
 	std::size_t _room;
 	std::vector<std::size_t> _counts;
 	std::size_t _running;
 
-	TBOT03::Record _record;
-	bool _pose_updated;
-	bool _scan_updated;
+	std::array<double,7> _pose;
+	TimePoint _poseTimestamp;
+	std::array<double,360> _scan;
+	TimePoint _scanTimestamp;
 
-	void command_callback();
-	void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
-	void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
+	void callbackCommand();
+	void callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg);
+	void callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg);
 };
 #endif // COMMANDER_H

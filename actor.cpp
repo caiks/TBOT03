@@ -22,27 +22,12 @@ namespace js = rapidjson;
 #define ARGS_BOOL_DEF(x,y) args.HasMember(#x) && args[#x].IsBool() ? args[#x].GetBool() : y
 #define ARGS_BOOL(x) ARGS_BOOL_DEF(x,false)
 
-typedef std::chrono::duration<double> sec;
-typedef std::chrono::high_resolution_clock clk;
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
 #define DEG2RAD (M_PI / 180.0)
 #define RAD2DEG (180.0 / M_PI)
-
-#define CENTER 0
-#define LEFT   1
-#define RIGHT  2
-
-#define LINEAR_VELOCITY  0.3
-#define ANGULAR_VELOCITY 1.5
-
-#define GET_TB3_DIRECTION 0
-#define TB3_DRIVE_FORWARD 1
-#define TB3_RIGHT_TURN	2
-#define TB3_LEFT_TURN	 3
 
 Actor* actor_this = 0;
 
@@ -93,7 +78,7 @@ void run_act(Actor& actor)
 {
 	while (!actor._terminate)
 	{
-		auto mark = clk::now();
+		auto mark = Clock::now();
 		if (!actor._crashed 
 			&& actor._pose_updated && actor._scan_updated && actor._update_updated 
 			&& actor._system)
@@ -101,7 +86,7 @@ void run_act(Actor& actor)
 			{
 				std::unique_ptr<HistoryRepa> hr;
 				{
-					SystemHistoryRepaTuple xx = recordListsHistoryRepa(8, RecordList{ actor._record });	
+					SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, actor._pose, actor._scan);
 					hr = std::move(std::get<2>(xx));
 				}
 				actor._eventId++;
@@ -133,7 +118,7 @@ void run_act(Actor& actor)
 				}
 				if (actor._actLogging)
 				{
-					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((sec)(clk::now() - mark)).count() << "s" UNLOG								
+					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 				}		
 			}	
 			if (actor._struct=="struct001" && actor._mode=="mode001")
@@ -160,7 +145,7 @@ void run_act(Actor& actor)
 				auto& activeA = *actor._level2.front();
 				if (!activeA.terminate)	
 				{			
-					auto mark = clk::now();
+					auto mark = Clock::now();
 					std::lock_guard<std::mutex> guard(activeA.mutex);
 					ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
 					std::size_t historyEventA = ok ? (activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1) : 0;
@@ -371,7 +356,7 @@ void run_act(Actor& actor)
 					if (ok && actor._modeLogging)
 					{
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((sec)(clk::now() - mark)).count() << "s" UNLOG								
+						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 					}
 				}		
 			}
@@ -381,7 +366,7 @@ void run_act(Actor& actor)
 				auto& activeA = *actor._level2.front();
 				if (!activeA.terminate)	
 				{			
-					auto mark = clk::now();
+					auto mark = Clock::now();
 					std::lock_guard<std::mutex> guard(activeA.mutex);
 					ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
 					if (ok)
@@ -602,7 +587,7 @@ void run_act(Actor& actor)
 					if (ok && actor._modeLogging)
 					{
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((sec)(clk::now() - mark)).count() << "s" UNLOG								
+						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 					}
 				}		
 			}
@@ -612,7 +597,7 @@ void run_act(Actor& actor)
 				auto& activeA = *actor._level2.front();
 				if (!activeA.terminate)	
 				{			
-					auto mark = clk::now();
+					auto mark = Clock::now();
 					std::lock_guard<std::mutex> guard(activeA.mutex);
 					ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
 					if (ok)
@@ -762,7 +747,7 @@ void run_act(Actor& actor)
 					if (ok && actor._modeLogging)
 					{
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((sec)(clk::now() - mark)).count() << "s" UNLOG								
+						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 					}
 				}		
 			}
@@ -772,7 +757,7 @@ void run_act(Actor& actor)
 				auto& activeA = *actor._level2.front();
 				if (!activeA.terminate)	
 				{			
-					auto mark = clk::now();
+					auto mark = Clock::now();
 					std::lock_guard<std::mutex> guard(activeA.mutex);
 					ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
 					if (ok)
@@ -1028,19 +1013,19 @@ void run_act(Actor& actor)
 					if (ok && actor._modeLogging)
 					{
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((sec)(clk::now() - mark)).count() << "s" UNLOG								
+						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 					}
 				}		
 			}
 		}
-		auto t = clk::now() - mark;
+		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
 		{
 			std::this_thread::sleep_for(actor._actInterval-t);
 		}
 		else if (actor._actWarning)		
 		{
-			LOG "actor warning\ttime " << ((sec)(clk::now() - mark)).count() << "s" UNLOG
+			LOG "actor warning\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG
 		}		
 	}
 };
@@ -1175,7 +1160,7 @@ Actor::Actor(const std::string& args_filename)
 	{
 		std::unique_ptr<HistoryRepa> hr;
 		{
-			SystemHistoryRepaTuple xx = recordListsHistoryRepa(8, RecordList{ Record() });	
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, _pose, _scan);	
 			_uu = std::move(std::get<0>(xx));
 			_ur = std::move(std::get<1>(xx));
 			hr = std::move(std::get<2>(xx));
@@ -1788,55 +1773,49 @@ Actor::~Actor()
 
 void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 {
-	if (!_crashed)
+	if (_status != CRASH)
 	{
-		tf2::Quaternion q(
-			msg->pose.pose.orientation.x,
-			msg->pose.pose.orientation.y,
-			msg->pose.pose.orientation.z,
-			msg->pose.pose.orientation.w);
-		tf2::Matrix3x3 m(q);
-		double roll, pitch, yaw;
-		m.getRPY(roll, pitch, yaw);
-		_robot_pose = yaw;
-
-		_record.sensor_pose[0] = msg->pose.pose.position.x;
-		_record.sensor_pose[1] = msg->pose.pose.position.y;
-		_record.sensor_pose[2] = msg->pose.pose.position.z;
-		_record.sensor_pose[3] = msg->pose.pose.orientation.x;
-		_record.sensor_pose[4] = msg->pose.pose.orientation.y;
-		_record.sensor_pose[5] = msg->pose.pose.orientation.z;
-		_record.sensor_pose[6] = msg->pose.pose.orientation.w;
-		_pose_updated = true;
 		if (msg->pose.pose.position.z >= 0.02)
 		{
-			_crashed = true;
+			_status = CRASH;
 			RCLCPP_INFO(this->get_logger(), "Crashed");		
-		}			
+		}
 	}
-
+	if (_status != CRASH)
+	{	
+		if (_poseTimestamp != TimePoint())
+		{
+			_poseTimestampPrevious = _poseTimestamp;
+			_posePrevious = _pose;
+		}
+		_pose[0] = msg->pose.pose.position.x;
+		_pose[1] = msg->pose.pose.position.y;
+		_pose[2] = msg->pose.pose.position.z;
+		_pose[3] = msg->pose.pose.orientation.x;
+		_pose[4] = msg->pose.pose.orientation.y;
+		_pose[5] = msg->pose.pose.orientation.z;
+		_pose[6] = msg->pose.pose.orientation.w;
+		_poseTimestamp = Clock::now();
+	}
 }
 
 void Actor::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 {
-	uint16_t scan_angle[3] = {0, 30, 330};
-
-	for (int num = 0; num < 3; num++)
+	if (_status != CRASH)
 	{
-		if (std::isinf(msg->ranges.at(scan_angle[num])))
-			_scan_data[num] = msg->range_max;
-		else
-			_scan_data[num] = msg->ranges.at(scan_angle[num]);
+		if (_scanTimestamp != TimePoint())
+		{
+			_scanTimestampPrevious = _scanTimestamp;
+		}
+		for (std::size_t i = 0; i < _scan.size(); i++)
+		{
+			if (std::isinf(msg->ranges.at(i)))
+				_scan[i] = msg->range_max;
+			else
+				_scan[i] = msg->ranges.at(i);
+		}
+		_scanTimestamp = Clock::now();
 	}
-
-	for (std::size_t i = 0; i < 360; i++)
-	{
-		if (std::isinf(msg->ranges.at(i)))
-			_record.sensor_scan[i] = msg->range_max;
-		else
-			_record.sensor_scan[i] = msg->ranges.at(i);
-	}
-	_scan_updated = true;
 }
 
 // void Actor::update_cmd_vel(double linear, double angular)
@@ -1854,127 +1833,127 @@ void Actor::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
 void Actor::callbackUpdate()
 {
-	static uint8_t turtlebot3_state_num = 0;
-	double escape_range = 30.0 * DEG2RAD;
-	double check_forward_dist = 0.7;
-	double check_side_dist = 0.6;
+	// static uint8_t turtlebot3_state_num = 0;
+	// double escape_range = 30.0 * DEG2RAD;
+	// double check_forward_dist = 0.7;
+	// double check_side_dist = 0.6;
 
-	if (_crashed)
-		return;
+	// if (_crashed)
+		// return;
 		
-	if (_turn_request == "" && _bias_factor > 0 && (rand() % _bias_factor) == 0)
-	{
-		_bias_right = !_bias_right;
-		if (_updateLogging)
-		{
-			RCLCPP_INFO(this->get_logger(), "Random bias: '%s'", _bias_right ? "right" : "left");
-		}
-	}
+	// if (_turn_request == "" && _bias_factor > 0 && (rand() % _bias_factor) == 0)
+	// {
+		// _bias_right = !_bias_right;
+		// if (_updateLogging)
+		// {
+			// RCLCPP_INFO(this->get_logger(), "Random bias: '%s'", _bias_right ? "right" : "left");
+		// }
+	// }
 	
-	switch (turtlebot3_state_num)
-	{
-	case GET_TB3_DIRECTION:
-		if (_scan_data[CENTER] > check_forward_dist)
-		{
-			if (_bias_right && _scan_data[LEFT] < check_side_dist)
-			{
-				_prev_robot_pose = _robot_pose;
-				turtlebot3_state_num = TB3_RIGHT_TURN;
-			}
-			else if (_scan_data[RIGHT] < check_side_dist)
-			{
-				_prev_robot_pose = _robot_pose;
-				turtlebot3_state_num = TB3_LEFT_TURN;
-			}
-			else if (_scan_data[LEFT] < check_side_dist)
-			{
-				_prev_robot_pose = _robot_pose;
-				turtlebot3_state_num = TB3_RIGHT_TURN;
-			}
-			else
-			{
-				turtlebot3_state_num = TB3_DRIVE_FORWARD;
-			}
-		}
+	// switch (turtlebot3_state_num)
+	// {
+	// case GET_TB3_DIRECTION:
+		// if (_scan_data[CENTER] > check_forward_dist)
+		// {
+			// if (_bias_right && _scan_data[LEFT] < check_side_dist)
+			// {
+				// _prev_robot_pose = _robot_pose;
+				// turtlebot3_state_num = TB3_RIGHT_TURN;
+			// }
+			// else if (_scan_data[RIGHT] < check_side_dist)
+			// {
+				// _prev_robot_pose = _robot_pose;
+				// turtlebot3_state_num = TB3_LEFT_TURN;
+			// }
+			// else if (_scan_data[LEFT] < check_side_dist)
+			// {
+				// _prev_robot_pose = _robot_pose;
+				// turtlebot3_state_num = TB3_RIGHT_TURN;
+			// }
+			// else
+			// {
+				// turtlebot3_state_num = TB3_DRIVE_FORWARD;
+			// }
+		// }
 
-		if (_scan_data[CENTER] < check_forward_dist)
-		{
-			_prev_robot_pose = _robot_pose;
-			turtlebot3_state_num = _bias_right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
-		}
-		break;
+		// if (_scan_data[CENTER] < check_forward_dist)
+		// {
+			// _prev_robot_pose = _robot_pose;
+			// turtlebot3_state_num = _bias_right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
+		// }
+		// break;
 
-	case TB3_DRIVE_FORWARD:
-		if (_turn_factor > 0 && (rand() % _turn_factor) == 0)
-		{
-			_prev_robot_pose = _robot_pose;
-			bool right = (rand() % 2) == 0;
-			turtlebot3_state_num = right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
-			if (_updateLogging)
-			{
-				RCLCPP_INFO(this->get_logger(), "Random turn: '%s'", right ? "right" : "left");
-			}
-			break;
-		}
-		if (_turn_request != "")
-		{
-			_prev_robot_pose = _robot_pose;
-			bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
-			turtlebot3_state_num = right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
-			if (_updateLogging)
-			{
+	// case TB3_DRIVE_FORWARD:
+		// if (_turn_factor > 0 && (rand() % _turn_factor) == 0)
+		// {
+			// _prev_robot_pose = _robot_pose;
+			// bool right = (rand() % 2) == 0;
+			// turtlebot3_state_num = right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
+			// if (_updateLogging)
+			// {
+				// RCLCPP_INFO(this->get_logger(), "Random turn: '%s'", right ? "right" : "left");
+			// }
+			// break;
+		// }
+		// if (_turn_request != "")
+		// {
+			// _prev_robot_pose = _robot_pose;
+			// bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
+			// turtlebot3_state_num = right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
+			// if (_updateLogging)
+			// {
 				
-				RCLCPP_INFO(this->get_logger(), "Executing turn request: '%s'", right ? "right" : "left");
-			}
-			_turn_request = "";
-			break;
-		}
-		// update_cmd_vel(LINEAR_VELOCITY, 0.0);
-		turtlebot3_state_num = GET_TB3_DIRECTION;
-		break;
+				// RCLCPP_INFO(this->get_logger(), "Executing turn request: '%s'", right ? "right" : "left");
+			// }
+			// _turn_request = "";
+			// break;
+		// }
+		// // update_cmd_vel(LINEAR_VELOCITY, 0.0);
+		// turtlebot3_state_num = GET_TB3_DIRECTION;
+		// break;
 
-	case TB3_RIGHT_TURN:
-		if (_turn_request != "")
-		{
-			bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
-			if (_updateLogging)
-			{
+	// case TB3_RIGHT_TURN:
+		// if (_turn_request != "")
+		// {
+			// bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
+			// if (_updateLogging)
+			// {
 				
-				RCLCPP_INFO(this->get_logger(), "Ignoring turn request: '%s'", right ? "right" : "left");
-			}
-			_turn_request = "";
-		}
-		if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
-			turtlebot3_state_num = GET_TB3_DIRECTION;
-		else
-		{
-			// update_cmd_vel(0.0, -1 * ANGULAR_VELOCITY);
-		}
-		break;
+				// RCLCPP_INFO(this->get_logger(), "Ignoring turn request: '%s'", right ? "right" : "left");
+			// }
+			// _turn_request = "";
+		// }
+		// if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
+			// turtlebot3_state_num = GET_TB3_DIRECTION;
+		// else
+		// {
+			// // update_cmd_vel(0.0, -1 * ANGULAR_VELOCITY);
+		// }
+		// break;
 
-	case TB3_LEFT_TURN:
-		if (_turn_request != "")
-		{
-			bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
-			if (_updateLogging)
-			{
+	// case TB3_LEFT_TURN:
+		// if (_turn_request != "")
+		// {
+			// bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
+			// if (_updateLogging)
+			// {
 				
-				RCLCPP_INFO(this->get_logger(), "Ignoring turn request: '%s'", right ? "right" : "left");
-			}
-			_turn_request = "";
-		}
-		if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
-			turtlebot3_state_num = GET_TB3_DIRECTION;
-		else
-		{
-			// update_cmd_vel(0.0, ANGULAR_VELOCITY);
-		}
-		break;
+				// RCLCPP_INFO(this->get_logger(), "Ignoring turn request: '%s'", right ? "right" : "left");
+			// }
+			// _turn_request = "";
+		// }
+		// if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
+			// turtlebot3_state_num = GET_TB3_DIRECTION;
+		// else
+		// {
+			// // update_cmd_vel(0.0, ANGULAR_VELOCITY);
+		// }
+		// break;
 
-	default:
-		turtlebot3_state_num = GET_TB3_DIRECTION;
-		break;
-	}
+	// default:
+		// turtlebot3_state_num = GET_TB3_DIRECTION;
+		// break;
+	// }
 }
 
 void Actor::callbackGoal(const std_msgs::msg::String::SharedPtr msg)

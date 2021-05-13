@@ -16,8 +16,19 @@ public:
 	~Actor();
 	
 	bool _terminate;
+	
+	enum Status {START, WAIT_ODOM, WAIT_SCAN, AHEAD, LEFT, RIGHT, STOP, CRASH} _status;
 
-	TBOT03::Record _record;
+	std::array<double,7> _posePrevious;
+	std::array<double,7> _pose;
+	TimePoint _poseTimestampPrevious;
+	TimePoint _poseTimestamp;
+	std::array<double,360> _scan;
+	TimePoint _scanTimestampPrevious;
+	TimePoint _scanTimestamp;
+	
+	TBOT03::RecordList _records;
+	
 	bool _updateLogging;
 	bool _pose_updated;
 	bool _scan_updated;
