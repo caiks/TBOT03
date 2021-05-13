@@ -60,7 +60,7 @@ void run_induce(Actor& actor, Active& active, std::chrono::milliseconds induceIn
 {
 	while (!actor._terminate && !active.terminate)
 	{
-		if (actor._pose_updated && actor._scan_updated && actor._update_updated && actor._eventId >= induceThresholdInitial)
+		if (actor._poseTimestamp != TimePoint() && actor._scanTimestamp != TimePoint() && actor._eventId >= induceThresholdInitial)
 			active.induce(actor._induceParametersLevel1);
 		std::this_thread::sleep_for(std::chrono::milliseconds(induceInterval));
 	}	
@@ -79,8 +79,8 @@ void run_act(Actor& actor)
 	while (!actor._terminate)
 	{
 		auto mark = Clock::now();
-		if (!actor._crashed 
-			&& actor._pose_updated && actor._scan_updated && actor._update_updated 
+		if (actor._status != actor.CRASH
+			&& actor._poseTimestamp != TimePoint() && actor._scanTimestamp != TimePoint()  
 			&& actor._system)
 		{
 			{
@@ -341,23 +341,23 @@ void run_act(Actor& actor)
 									action = turn_right;	
 							}	
 							// locking here? TODO
-							if (action == turn_left)
-							{
-								actor._turn_request = "left";
-								actor._bias_right = false;
-							}
-							else if (action == turn_right)
-							{
-								actor._turn_request = "right";
-								actor._bias_right = true;
-							}					
+							// if (action == turn_left)
+							// {
+								// actor._turn_request = "left";
+								// actor._bias_right = false;
+							// }
+							// else if (action == turn_right)
+							// {
+								// actor._turn_request = "right";
+								// actor._bias_right = true;
+							// }					
 						}
 					}
-					if (ok && actor._modeLogging)
-					{
-						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
-					}
+					// if (ok && actor._modeLogging)
+					// {
+						// std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						// LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
+					// }
 				}		
 			}
 			else if (actor._struct=="struct001" && actor._mode=="mode002")
@@ -572,23 +572,23 @@ void run_act(Actor& actor)
 									action = turn_right;	
 							}	
 							// locking here? TODO
-							if (action == turn_left)
-							{
-								actor._turn_request = "left";
-								actor._bias_right = false;
-							}
-							else if (action == turn_right)
-							{
-								actor._turn_request = "right";
-								actor._bias_right = true;
-							}					
+							// if (action == turn_left)
+							// {
+								// actor._turn_request = "left";
+								// actor._bias_right = false;
+							// }
+							// else if (action == turn_right)
+							// {
+								// actor._turn_request = "right";
+								// actor._bias_right = true;
+							// }					
 						}
 					}
-					if (ok && actor._modeLogging)
-					{
-						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
-					}
+					// if (ok && actor._modeLogging)
+					// {
+						// std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						// LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
+					// }
 				}		
 			}
 			else if (actor._struct=="struct001" && actor._mode=="mode003")
@@ -726,29 +726,29 @@ void run_act(Actor& actor)
 							}
 							else
 							{
-								if (actionsCount[turn_left] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_left] > actionsCount[turn_right])
-									action = turn_left;
-								else if (actionsCount[turn_right] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_right] > actionsCount[turn_left])
-									action = turn_right;	
+								// if (actionsCount[turn_left] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_left] > actionsCount[turn_right])
+									// action = turn_left;
+								// else if (actionsCount[turn_right] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_right] > actionsCount[turn_left])
+									// action = turn_right;	
 							}	
 							// locking here? TODO
-							if (action == turn_left)
-							{
-								actor._turn_request = "left";
-								actor._bias_right = false;
-							}
-							else if (action == turn_right)
-							{
-								actor._turn_request = "right";
-								actor._bias_right = true;
-							}					
+							// if (action == turn_left)
+							// {
+								// actor._turn_request = "left";
+								// actor._bias_right = false;
+							// }
+							// else if (action == turn_right)
+							// {
+								// actor._turn_request = "right";
+								// actor._bias_right = true;
+							// }					
 						}
 					}
-					if (ok && actor._modeLogging)
-					{
-						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
-					}
+					// if (ok && actor._modeLogging)
+					// {
+						// std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						// LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
+					// }
 				}		
 			}
 			else if (actor._struct=="struct001" && actor._mode=="mode004")
@@ -991,30 +991,30 @@ void run_act(Actor& actor)
 								}
 								else
 								{
-									if (actionsCount[turn_left] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_left] > actionsCount[turn_right])
-										action = turn_left;
-									else if (actionsCount[turn_right] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_right] > actionsCount[turn_left])
-										action = turn_right;	
+									// if (actionsCount[turn_left] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_left] > actionsCount[turn_right])
+										// action = turn_left;
+									// else if (actionsCount[turn_right] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_right] > actionsCount[turn_left])
+										// action = turn_right;	
 								}	
 								// locking here? TODO
-								if (action == turn_left)
-								{
-									actor._turn_request = "left";
-									actor._bias_right = false;
-								}
-								else if (action == turn_right)
-								{
-									actor._turn_request = "right";
-									actor._bias_right = true;
-								}					
+								// if (action == turn_left)
+								// {
+									// actor._turn_request = "left";
+									// actor._bias_right = false;
+								// }
+								// else if (action == turn_right)
+								// {
+									// actor._turn_request = "right";
+									// actor._bias_right = true;
+								// }					
 							}							
 						}
 					}
-					if (ok && actor._modeLogging)
-					{
-						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
-					}
+					// if (ok && actor._modeLogging)
+					// {
+						// std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						// LOG activeA.name << "\t" << actor._mode << "\trequest: " << actor._turn_request << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
+					// }
 				}		
 			}
 		}
@@ -1061,27 +1061,14 @@ Actor::Actor(const std::string& args_filename)
 		}
 	}
 
-	_scan_data[0] = 0.0;
-	_scan_data[1] = 0.0;
-	_scan_data[2] = 0.0;
-	_robot_pose = 0.0;
-	_prev_robot_pose = 0.0;
-	_pose_updated = false;
-	_scan_updated = false;
-	_update_updated = false;
-	_turn_request = "";
 	_updateLogging = ARGS_BOOL(logging_update);
 	_actLogging = ARGS_BOOL(logging_action);
 	_actWarning = ARGS_BOOL(warning_action);
 	std::chrono::milliseconds updateInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(update_interval,10));
 	std::chrono::milliseconds biasInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(bias_interval,0));
 	std::chrono::milliseconds turnInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(turn_interval,0));
-	_bias_right = true;
-	_bias_factor = biasInterval.count() / updateInterval.count();
-	_turn_factor = turnInterval.count() / updateInterval.count();
 	_eventId = 0;
 	_actInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(act_interval,250));
-	_acts_per_turn = ARGS_INT_DEF(acts_per_turn,20);
 	_goal = ARGS_STRING_DEF(goal_initial,"room5");
 	_struct = ARGS_STRING(structure);
 	_model = ARGS_STRING(model);
@@ -1828,7 +1815,6 @@ void Actor::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
 	// _record.action_linear = cmd_vel.linear.x;
 	// _record.action_angular = cmd_vel.angular.z;
-	// _update_updated = true;
 // }
 
 void Actor::callbackUpdate()

@@ -18,6 +18,7 @@ public:
 	bool _terminate;
 	
 	enum Status {START, WAIT_ODOM, WAIT_SCAN, AHEAD, LEFT, RIGHT, STOP, CRASH} _status;
+	TimePoint _statusTimestamp;
 
 	std::array<double,7> _posePrevious;
 	std::array<double,7> _pose;
@@ -30,21 +31,6 @@ public:
 	TBOT03::RecordList _records;
 	
 	bool _updateLogging;
-	bool _pose_updated;
-	bool _scan_updated;
-	bool _update_updated;
-	bool _crashed;
-	
-	double _robot_pose;
-	double _prev_robot_pose;
-	double _scan_data[3];
-
-	bool _bias_right;
-	int _bias_factor;
-	int _turn_factor;
-	int _acts_per_turn;
-	
-	std::string _turn_request;
 	
 	bool _actLogging;
 	bool _actWarning;
