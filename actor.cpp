@@ -1068,6 +1068,10 @@ Actor::Actor(const std::string& args_filename)
 	_actLogging = ARGS_BOOL(logging_action);
 	_actWarning = ARGS_BOOL(warning_action);
 	std::chrono::milliseconds updateInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(update_interval,10));
+	_linearMaximum = ARGS_DOUBLE_DEF(linear,0.5);
+	_linearVelocity = ARGS_DOUBLE_DEF(linear_velocity,0.3);
+	_angularMaximum = ARGS_DOUBLE_DEF(angular, 30.0);
+	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
 	std::chrono::milliseconds biasInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(bias_interval,0));
 	std::chrono::milliseconds turnInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(turn_interval,0));
 	_eventId = 0;
@@ -1830,6 +1834,130 @@ void Actor::callbackUpdate()
 		_statusTimestamp = Clock::now();
 		statusChanged = true;
 	}
+	if (_status == WAIT_ODOM 
+		&& _poseTimestamp != TimePoint() 
+		&& _pose == _posePrevious)
+	{
+		_poseStop = _pose;
+		_status = WAIT_SCAN;
+		_statusTimestamp = Clock::now();
+		statusChanged = true;
+	}
+	if (_status == WAIT_SCAN 
+		&& _poseTimestampPrevious != TimePoint() 
+		&& _scanTimestamp > _poseTimestampPrevious)
+	{
+		_status = STOP;
+		_statusTimestamp = Clock::now();
+		statusChanged = true;
+	}
+	if (_status == AHEAD)
+	{
+		double x1 = _poseStop[0];
+		double y1 = _poseStop[1];
+		double x2 = _pose[0];
+		double y2 = _pose[1];
+		auto distance = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+		if (distance >= _linearMaximum)
+		{
+			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
+			_status = STOP;
+			_statusTimestamp = Clock::now();
+			statusChanged = true;			
+		}
+		else
+		{
+			geometry_msgs::msg::Twist twist;
+			twist.linear.x  = _linearVelocity;
+			_publisherCmdVel->publish(twist);		
+		}
+	}	
+	else if (_status == LEFT)
+	{
+		double yaw1 = 0.0;		
+		{
+			tf2::Quaternion q(
+				_poseStop[3],
+				_poseStop[4],
+				_poseStop[5],
+				_poseStop[6]);
+			tf2::Matrix3x3 m(q);
+			double roll, pitch;
+			m.getRPY(roll, pitch, yaw1);	
+			yaw1 *= RAD2DEG;
+		}
+		double yaw2 = 0.0;		
+		{
+			tf2::Quaternion q(
+				_pose[3],
+				_pose[4],
+				_pose[5],
+				_pose[6]);
+			tf2::Matrix3x3 m(q);
+			double roll, pitch;
+			m.getRPY(roll, pitch, yaw2);
+			yaw2 *= RAD2DEG;			
+		}
+		auto angle = yaw2 >= yaw1 ? yaw2 - yaw1 : yaw1 - yaw2;
+		if (angle >= 180.0)
+			angle = 360.0 - angle;
+		if (angle >= _angularMaximum)
+		{
+			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
+			_status = STOP;
+			_statusTimestamp = Clock::now();
+			statusChanged = true;			
+		}
+		else
+		{
+			geometry_msgs::msg::Twist twist;
+			twist.angular.z  = _angularVelocity;
+			_publisherCmdVel->publish(twist);		
+		}
+	}	
+	else if (_status == RIGHT)
+	{
+		double yaw1 = 0.0;		
+		{
+			tf2::Quaternion q(
+				_poseStop[3],
+				_poseStop[4],
+				_poseStop[5],
+				_poseStop[6]);
+			tf2::Matrix3x3 m(q);
+			double roll, pitch;
+			m.getRPY(roll, pitch, yaw1);	
+			yaw1 *= RAD2DEG;
+		}
+		double yaw2 = 0.0;		
+		{
+			tf2::Quaternion q(
+				_pose[3],
+				_pose[4],
+				_pose[5],
+				_pose[6]);
+			tf2::Matrix3x3 m(q);
+			double roll, pitch;
+			m.getRPY(roll, pitch, yaw2);
+			yaw2 *= RAD2DEG;			
+		}
+		auto angle = yaw2 >= yaw1 ? yaw2 - yaw1 : yaw1 - yaw2;
+		if (angle >= 180.0)
+			angle = 360.0 - angle;
+		if (angle >= _angularMaximum)
+		{
+			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
+			_status = STOP;
+			_statusTimestamp = Clock::now();
+			statusChanged = true;			
+		}
+		else
+		{
+			geometry_msgs::msg::Twist twist;
+			twist.angular.z  = -1.0 * _angularVelocity;
+			_publisherCmdVel->publish(twist);		
+		}
+	}	
 	if (_updateLogging && statusChanged)
 	{
 		string statusString;

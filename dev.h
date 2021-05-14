@@ -25,6 +25,7 @@
 #include <chrono>
 #include <ctime>
 #include <string>
+#include <cmath>
 
 using Sec = std::chrono::duration<double>;
 using Clock = std::chrono::high_resolution_clock;
