@@ -17,9 +17,9 @@ public:
 	
 	bool _terminate;
 	
-	enum Status {START, WAIT_ODOM, WAIT_SCAN, AHEAD, LEFT, RIGHT, STOP, CRASH} _status;
+	enum Status {START, WAIT_ODOM, WAIT_SCAN, AHEAD, LEFT, RIGHT, STOP, CRASH};
+	Status _status;
 	TimePoint _statusTimestamp;
-	TimePoint _startTimestamp;
 
 	std::array<double,7> _posePrevious;
 	std::array<double,7> _pose;
@@ -35,6 +35,7 @@ public:
 	std::array<double,360> _scan;
 	TimePoint _scanTimestampPrevious;
 	TimePoint _scanTimestamp;
+	Status _actionPrevious;
 	
 	TBOT03::RecordList _records;
 	
@@ -50,8 +51,6 @@ public:
 	std::string _mode;
 	
 	std::string _goal;
-
-	std::map<std::string, std::map<std::string,std::string>> _goalsLocationsNext;
 	
 	std::shared_ptr<Alignment::ActiveSystem> _system;
 	std::shared_ptr<Alignment::ActiveEventsRepa> _events;

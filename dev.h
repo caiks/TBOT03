@@ -40,6 +40,11 @@ namespace TBOT03
 			y = 0.0;
 			yaw = 0.0;
 		}
+		Record(double x1, double y1, double yaw1) {
+			x = x1;
+			y = y1;
+			yaw = yaw1;
+		}
 		double x;
 		double y;
 		double yaw;
