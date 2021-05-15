@@ -1068,8 +1068,10 @@ Actor::Actor(const std::string& args_filename)
 	_actLogging = ARGS_BOOL(logging_action);
 	_actWarning = ARGS_BOOL(warning_action);
 	std::chrono::milliseconds updateInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(update_interval,10));
+	_linearStopMaximum = ARGS_DOUBLE_DEF(linear,0.02);
 	_linearMaximum = ARGS_DOUBLE_DEF(linear,0.5);
 	_linearVelocity = ARGS_DOUBLE_DEF(linear_velocity,0.3);
+	_angularStopMaximum = ARGS_DOUBLE_DEF(angular, 1.0);
 	_angularMaximum = ARGS_DOUBLE_DEF(angular, 30.0);
 	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
 	std::chrono::milliseconds biasInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(bias_interval,0));
@@ -1811,37 +1813,96 @@ void Actor::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 	}
 }
 
-// void Actor::update_cmd_vel(double linear, double angular)
-// {
-	// geometry_msgs::msg::Twist cmd_vel;
-	// cmd_vel.linear.x  = linear;
-	// cmd_vel.angular.z = angular;
-
-	// _publisherCmdVel->publish(cmd_vel);
-
-	// _record.action_linear = cmd_vel.linear.x;
-	// _record.action_angular = cmd_vel.angular.z;
-// }
-
 void Actor::callbackUpdate()
 {
 	if (_status == CRASH || _status == STOP)
 		return;
-	bool statusChanged = false;
-	if (_statusTimestamp == TimePoint())
+	if (_statusTimestamp == TimePoint()
+		&& _poseTimestamp != TimePoint()
+		&& _scanTimestamp != TimePoint())
 	{
+		double x2 = _pose[0];
+		double y2 = _pose[1];
+		double yaw2 = 0.0;
+		{			
+			tf2::Quaternion q(
+				_pose[3],
+				_pose[4],
+				_pose[5],
+				_pose[6]);
+			tf2::Matrix3x3 m(q);
+			double roll, pitch;
+			m.getRPY(roll, pitch, yaw2);
+			yaw2 *= RAD2DEG;			
+		}			
 		_status = START;
 		_statusTimestamp = Clock::now();
-		statusChanged = true;
+		if (_updateLogging)
+		{
+			LOG "actor\t" << "START" << "\ttime " << std::setprecision(3) << ((Sec)(_statusTimestamp - _startTimestamp)).count() << std::fixed << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
+		}	
 	}
 	if (_status == WAIT_ODOM 
-		&& _poseTimestamp != TimePoint() 
-		&& _pose == _posePrevious)
+		&& _poseTimestampPrevious != TimePoint()
+		&& _poseTimestamp != TimePoint())
 	{
-		_poseStop = _pose;
-		_status = WAIT_SCAN;
-		_statusTimestamp = Clock::now();
-		statusChanged = true;
+		double distance = 0.0;
+		double x2 = 0.0;
+		double y2 = 0.0;
+		{
+			double x1 = _posePrevious[0];
+			double y1 = _posePrevious[1];
+			x2 = _pose[0];
+			y2 = _pose[1];
+			distance = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));			
+		}
+		double angle = 0.0;
+		double yaw2 = 0.0;
+		{			
+			double yaw1 = 0.0;		
+			{
+				tf2::Quaternion q(
+					_posePrevious[3],
+					_posePrevious[4],
+					_posePrevious[5],
+					_posePrevious[6]);
+				tf2::Matrix3x3 m(q);
+				double roll, pitch;
+				m.getRPY(roll, pitch, yaw1);	
+				yaw1 *= RAD2DEG;
+			}
+			yaw2 = 0.0;		
+			{
+				tf2::Quaternion q(
+					_pose[3],
+					_pose[4],
+					_pose[5],
+					_pose[6]);
+				tf2::Matrix3x3 m(q);
+				double roll, pitch;
+				m.getRPY(roll, pitch, yaw2);
+				yaw2 *= RAD2DEG;			
+			}
+			angle = yaw2 - yaw1;
+			if (angle >= 180.0)
+				angle -= 360.0;
+			else if (angle <= -180.0)
+				angle += 360.0;
+		}
+		if (distance <= _linearStopMaximum && std::fabs(angle) <= _angularStopMaximum)
+		{
+			_poseStop = _pose;
+			_status = WAIT_SCAN;
+			_statusTimestamp = Clock::now();
+			if (_updateLogging)
+			{
+				LOG "actor\t" << "WAIT_SCAN" << "\ttime " << std::setprecision(3) << ((Sec)(_statusTimestamp - _startTimestamp)).count() << std::fixed << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
+			}			
+		}
+		else
+		{
+			_publisherCmdVel->publish(geometry_msgs::msg::Twist());			
+		}
 	}
 	if (_status == WAIT_SCAN 
 		&& _poseTimestampPrevious != TimePoint() 
@@ -1849,21 +1910,30 @@ void Actor::callbackUpdate()
 	{
 		_status = STOP;
 		_statusTimestamp = Clock::now();
-		statusChanged = true;
+		if (_updateLogging)
+		{
+			LOG "actor\t" << "STOP" << "\ttime " << std::setprecision(3) << ((Sec)(_statusTimestamp - _startTimestamp)).count() << std::fixed << "s" UNLOG	
+		}	
 	}
 	if (_status == AHEAD)
 	{
-		double x1 = _poseStop[0];
-		double y1 = _poseStop[1];
-		double x2 = _pose[0];
-		double y2 = _pose[1];
-		auto distance = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+		double distance = 0.0;
+		{
+			double x1 = _poseStop[0];
+			double y1 = _poseStop[1];
+			double x2 = _pose[0];
+			double y2 = _pose[1];
+			distance = std::sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));			
+		}
 		if (distance >= _linearMaximum)
 		{
 			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
-			_status = STOP;
+			_status = WAIT_ODOM;
 			_statusTimestamp = Clock::now();
-			statusChanged = true;			
+			if (_updateLogging)
+			{
+				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::setprecision(3) << ((Sec)(_statusTimestamp - _startTimestamp)).count() << std::fixed << "s" << "\tdistance: " << distance UNLOG	
+			}			
 		}
 		else
 		{
@@ -1874,39 +1944,47 @@ void Actor::callbackUpdate()
 	}	
 	else if (_status == LEFT)
 	{
-		double yaw1 = 0.0;		
-		{
-			tf2::Quaternion q(
-				_poseStop[3],
-				_poseStop[4],
-				_poseStop[5],
-				_poseStop[6]);
-			tf2::Matrix3x3 m(q);
-			double roll, pitch;
-			m.getRPY(roll, pitch, yaw1);	
-			yaw1 *= RAD2DEG;
+		double angle = 0.0;
+		{			
+			double yaw1 = 0.0;		
+			{
+				tf2::Quaternion q(
+					_poseStop[3],
+					_poseStop[4],
+					_poseStop[5],
+					_poseStop[6]);
+				tf2::Matrix3x3 m(q);
+				double roll, pitch;
+				m.getRPY(roll, pitch, yaw1);	
+				yaw1 *= RAD2DEG;
+			}
+			double yaw2 = 0.0;		
+			{
+				tf2::Quaternion q(
+					_pose[3],
+					_pose[4],
+					_pose[5],
+					_pose[6]);
+				tf2::Matrix3x3 m(q);
+				double roll, pitch;
+				m.getRPY(roll, pitch, yaw2);
+				yaw2 *= RAD2DEG;			
+			}
+			angle = yaw2 - yaw1;
+			if (angle >= 180.0)
+				angle -= 360.0;
+			else if (angle <= -180.0)
+				angle += 360.0;
 		}
-		double yaw2 = 0.0;		
-		{
-			tf2::Quaternion q(
-				_pose[3],
-				_pose[4],
-				_pose[5],
-				_pose[6]);
-			tf2::Matrix3x3 m(q);
-			double roll, pitch;
-			m.getRPY(roll, pitch, yaw2);
-			yaw2 *= RAD2DEG;			
-		}
-		auto angle = yaw2 >= yaw1 ? yaw2 - yaw1 : yaw1 - yaw2;
-		if (angle >= 180.0)
-			angle = 360.0 - angle;
 		if (angle >= _angularMaximum)
 		{
 			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
-			_status = STOP;
+			_status = WAIT_ODOM;
 			_statusTimestamp = Clock::now();
-			statusChanged = true;			
+			if (_updateLogging)
+			{
+				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::setprecision(3) << ((Sec)(_statusTimestamp - _startTimestamp)).count() << std::fixed << "s" << "\tangle: " << angle UNLOG	
+			}			
 		}
 		else
 		{
@@ -1917,39 +1995,47 @@ void Actor::callbackUpdate()
 	}	
 	else if (_status == RIGHT)
 	{
-		double yaw1 = 0.0;		
-		{
-			tf2::Quaternion q(
-				_poseStop[3],
-				_poseStop[4],
-				_poseStop[5],
-				_poseStop[6]);
-			tf2::Matrix3x3 m(q);
-			double roll, pitch;
-			m.getRPY(roll, pitch, yaw1);	
-			yaw1 *= RAD2DEG;
+		double angle = 0.0;
+		{			
+			double yaw1 = 0.0;		
+			{
+				tf2::Quaternion q(
+					_poseStop[3],
+					_poseStop[4],
+					_poseStop[5],
+					_poseStop[6]);
+				tf2::Matrix3x3 m(q);
+				double roll, pitch;
+				m.getRPY(roll, pitch, yaw1);	
+				yaw1 *= RAD2DEG;
+			}
+			double yaw2 = 0.0;		
+			{
+				tf2::Quaternion q(
+					_pose[3],
+					_pose[4],
+					_pose[5],
+					_pose[6]);
+				tf2::Matrix3x3 m(q);
+				double roll, pitch;
+				m.getRPY(roll, pitch, yaw2);
+				yaw2 *= RAD2DEG;			
+			}
+			angle = yaw2 - yaw1;
+			if (angle >= 180.0)
+				angle -= 360.0;
+			else if (angle <= -180.0)
+				angle += 360.0;
 		}
-		double yaw2 = 0.0;		
-		{
-			tf2::Quaternion q(
-				_pose[3],
-				_pose[4],
-				_pose[5],
-				_pose[6]);
-			tf2::Matrix3x3 m(q);
-			double roll, pitch;
-			m.getRPY(roll, pitch, yaw2);
-			yaw2 *= RAD2DEG;			
-		}
-		auto angle = yaw2 >= yaw1 ? yaw2 - yaw1 : yaw1 - yaw2;
-		if (angle >= 180.0)
-			angle = 360.0 - angle;
-		if (angle >= _angularMaximum)
+		if (angle <= -_angularMaximum)
 		{
 			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
-			_status = STOP;
+			_status = WAIT_ODOM;
 			_statusTimestamp = Clock::now();
-			statusChanged = true;			
+			if (_updateLogging)
+			{
+				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::setprecision(3) << ((Sec)(_statusTimestamp - _startTimestamp)).count() << std::fixed << "s" << "\tangle: " << angle UNLOG	
+			}		
 		}
 		else
 		{
@@ -1958,154 +2044,12 @@ void Actor::callbackUpdate()
 			_publisherCmdVel->publish(twist);		
 		}
 	}	
-	if (_updateLogging && statusChanged)
-	{
-		string statusString;
-		switch(_status)
-		{
-			case START   : statusString = "START";    break;
-			case WAIT_ODOM   : statusString = "WAIT_ODOM";    break;
-			case WAIT_SCAN   : statusString = "WAIT_SCAN";    break;
-			case AHEAD   : statusString = "AHEAD";    break;
-			case LEFT   : statusString = "LEFT";    break;
-			case RIGHT   : statusString = "RIGHT";    break;
-			case STOP   : statusString = "STOP";    break;
-			case CRASH   : statusString = "CRASH";    break;
-			default   : statusString = "UNDEFINED";    break;
-		}
-		LOG "actor\t" << statusString << "\ttime " << ((Sec)(_statusTimestamp - _startTimestamp)).count() << "s" UNLOG	
-	}	
-				
-
-	// static uint8_t turtlebot3_state_num = 0;
-	// double escape_range = 30.0 * DEG2RAD;
-	// double check_forward_dist = 0.7;
-	// double check_side_dist = 0.6;
-
-	// if (_crashed)
-		// return;
-		
-	// if (_turn_request == "" && _bias_factor > 0 && (rand() % _bias_factor) == 0)
-	// {
-		// _bias_right = !_bias_right;
-		// if (_updateLogging)
-		// {
-			// RCLCPP_INFO(this->get_logger(), "Random bias: '%s'", _bias_right ? "right" : "left");
-		// }
-	// }
-	
-	// switch (turtlebot3_state_num)
-	// {
-	// case GET_TB3_DIRECTION:
-		// if (_scan_data[CENTER] > check_forward_dist)
-		// {
-			// if (_bias_right && _scan_data[LEFT] < check_side_dist)
-			// {
-				// _prev_robot_pose = _robot_pose;
-				// turtlebot3_state_num = TB3_RIGHT_TURN;
-			// }
-			// else if (_scan_data[RIGHT] < check_side_dist)
-			// {
-				// _prev_robot_pose = _robot_pose;
-				// turtlebot3_state_num = TB3_LEFT_TURN;
-			// }
-			// else if (_scan_data[LEFT] < check_side_dist)
-			// {
-				// _prev_robot_pose = _robot_pose;
-				// turtlebot3_state_num = TB3_RIGHT_TURN;
-			// }
-			// else
-			// {
-				// turtlebot3_state_num = TB3_DRIVE_FORWARD;
-			// }
-		// }
-
-		// if (_scan_data[CENTER] < check_forward_dist)
-		// {
-			// _prev_robot_pose = _robot_pose;
-			// turtlebot3_state_num = _bias_right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
-		// }
-		// break;
-
-	// case TB3_DRIVE_FORWARD:
-		// if (_turn_factor > 0 && (rand() % _turn_factor) == 0)
-		// {
-			// _prev_robot_pose = _robot_pose;
-			// bool right = (rand() % 2) == 0;
-			// turtlebot3_state_num = right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
-			// if (_updateLogging)
-			// {
-				// RCLCPP_INFO(this->get_logger(), "Random turn: '%s'", right ? "right" : "left");
-			// }
-			// break;
-		// }
-		// if (_turn_request != "")
-		// {
-			// _prev_robot_pose = _robot_pose;
-			// bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
-			// turtlebot3_state_num = right ? TB3_RIGHT_TURN : TB3_LEFT_TURN;
-			// if (_updateLogging)
-			// {
-				
-				// RCLCPP_INFO(this->get_logger(), "Executing turn request: '%s'", right ? "right" : "left");
-			// }
-			// _turn_request = "";
-			// break;
-		// }
-		// // update_cmd_vel(LINEAR_VELOCITY, 0.0);
-		// turtlebot3_state_num = GET_TB3_DIRECTION;
-		// break;
-
-	// case TB3_RIGHT_TURN:
-		// if (_turn_request != "")
-		// {
-			// bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
-			// if (_updateLogging)
-			// {
-				
-				// RCLCPP_INFO(this->get_logger(), "Ignoring turn request: '%s'", right ? "right" : "left");
-			// }
-			// _turn_request = "";
-		// }
-		// if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
-			// turtlebot3_state_num = GET_TB3_DIRECTION;
-		// else
-		// {
-			// // update_cmd_vel(0.0, -1 * ANGULAR_VELOCITY);
-		// }
-		// break;
-
-	// case TB3_LEFT_TURN:
-		// if (_turn_request != "")
-		// {
-			// bool right = _turn_request[0] == 'r' || _turn_request[0] == 'R';
-			// if (_updateLogging)
-			// {
-				
-				// RCLCPP_INFO(this->get_logger(), "Ignoring turn request: '%s'", right ? "right" : "left");
-			// }
-			// _turn_request = "";
-		// }
-		// if (fabs(_prev_robot_pose - _robot_pose) >= escape_range)
-			// turtlebot3_state_num = GET_TB3_DIRECTION;
-		// else
-		// {
-			// // update_cmd_vel(0.0, ANGULAR_VELOCITY);
-		// }
-		// break;
-
-	// default:
-		// turtlebot3_state_num = GET_TB3_DIRECTION;
-		// break;
-	// }
 }
 
 void Actor::callbackGoal(const std_msgs::msg::String::SharedPtr msg)
 {
 	_goal = msg->data;
-	std::ostringstream str; 
-	str << "Received goal: " << msg->data;
-	RCLCPP_INFO(this->get_logger(), str.str());
+	LOG "actor\tgoal:" << _goal UNLOG	
 }
 
 int main(int argc, char** argv)

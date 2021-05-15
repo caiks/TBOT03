@@ -26,8 +26,10 @@ public:
 	TimePoint _poseTimestampPrevious;
 	TimePoint _poseTimestamp;
 	std::array<double,7> _poseStop;
+	double _linearStopMaximum;
 	double _linearMaximum;
 	double _linearVelocity;
+	double _angularStopMaximum;
 	double _angularMaximum;
 	double _angularVelocity;
 	std::array<double,360> _scan;
