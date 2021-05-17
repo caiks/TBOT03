@@ -109,8 +109,8 @@ void run_act(Actor& actor)
 					m.getRPY(roll, pitch, yaw2);
 					yaw2 *= RAD2DEG;			
 				}	
-				actor._records.push_back(Record(x2,y2,yaw2));				
-				actor._eventId = actor._records.size() - 1;
+				actor._records->push_back(Record(x2,y2,yaw2));				
+				actor._eventId = actor._records->size() - 1;
 				actor._events->mapIdEvent[actor._eventId] = HistoryRepaPtrSizePair(std::move(hr),actor._events->references);			
 				{		
 					std::vector<std::thread> threadsLevel;
@@ -175,14 +175,18 @@ Actor::Actor(const std::string& args_filename)
 		}
 		catch (const std::exception& e) 
 		{
-			RCLCPP_INFO(this->get_logger(), "TBOT03 actor node failed to open arguments file");	
+			LOG "actor\terror: failed to open arguments file " << args_filename UNLOG
 			return;
 		}	
 		if (!args.IsObject())
 		{
-			RCLCPP_INFO(this->get_logger(), "TBOT03 actor node failed to read arguments file");	
+			LOG "actor\terror: failed to read arguments file " << args_filename UNLOG
 			return;
 		}
+	}
+	else
+	{
+		args.Parse("{}");
 	}
 
 	_updateLogging = ARGS_BOOL(logging_update);
@@ -254,6 +258,33 @@ Actor::Actor(const std::string& args_filename)
 	EVAL(_model);
 	EVAL(_mode);
 	
+	if (modelInitial.size())
+	{
+		try
+		{
+			std::ifstream in(modelInitial + ".rec", std::ios::binary);
+			if (in.is_open())
+			{
+				_records = std::move(persistentsRecordList(in));
+				in.close();
+			}
+			else
+			{
+				LOG "actor\terror: failed to open records file" << modelInitial + ".rec" UNLOG
+				return;
+			}
+		}
+		catch (const exception&)
+		{
+			LOG "actor\terror: failed to read records file" << modelInitial + ".rec" UNLOG
+			return;
+		}
+	}
+	else 		
+	{
+		_records = std::make_shared<RecordList>();
+		_records->reserve(activeSize);
+	}
 	if (_struct=="struct001" || _struct=="struct002")
 	{
 		std::unique_ptr<HistoryRepa> hr;
@@ -281,7 +312,7 @@ Actor::Actor(const std::string& args_filename)
 				activeA.logging = true;
 				if (!activeA.load(ppio))
 				{
-					RCLCPP_INFO(this->get_logger(), "TBOT03 actor node failed to load model");					
+					LOG "actor\terror: failed to load model" << ppio.filename UNLOG				
 					_system.reset();
 					return;
 				}								
@@ -365,6 +396,7 @@ Actor::Actor(const std::string& args_filename)
 			activeA.log = actor_log;
 			activeA.layerer_log = layerer_actor_log;
 			activeA.system = _system;
+			activeA.continousIs = true;
 			if (modelInitial.size())
 			{
 				ActiveIOParameters ppio;
@@ -372,7 +404,7 @@ Actor::Actor(const std::string& args_filename)
 				activeA.logging = true;
 				if (!activeA.load(ppio))
 				{
-					RCLCPP_INFO(this->get_logger(), "TBOT03 actor node failed to load model");					
+					LOG "actor\terror: failed to load model " << ppio.filename UNLOG				
 					_system.reset();
 					return;
 				}								
@@ -488,6 +520,7 @@ Actor::Actor(const std::string& args_filename)
 				activeA.log = actor_log;
 				activeA.layerer_log = layerer_actor_log;
 				activeA.system = _system;
+				activeA.continousIs = true;
 				if (modelInitial.size() && structInitial != "struct001")
 				{
 					ActiveIOParameters ppio;
@@ -495,7 +528,7 @@ Actor::Actor(const std::string& args_filename)
 					activeA.logging = true;
 					if (!activeA.load(ppio))
 					{
-						RCLCPP_INFO(this->get_logger(), "TBOT03 actor node failed to load model");					
+						LOG "actor\terror: failed to load model" << ppio.filename UNLOG
 						_system.reset();
 						return;
 					}								
@@ -604,12 +637,24 @@ Actor::Actor(const std::string& args_filename)
 	_timerUpdate = this->create_wall_timer(updateInterval, std::bind(&Actor::callbackUpdate, this));
 	}
 
-	RCLCPP_INFO(this->get_logger(), "TBOT03 actor node has been initialised");
+	LOG "actor\tstatus: initialised" UNLOG
 }
 
 Actor::~Actor()
 {
 	_terminate = true;
+	{
+		try
+		{
+			std::ofstream out(_model + ".rec", std::ios::binary);
+			recordListsPersistent(*_records, out); 
+			out.close();
+		}
+		catch (const exception&)
+		{
+			LOG "actor\terror: failed to write records file" <<_model + ".rec" UNLOG
+		}			
+	}
 	if (_system && (_struct=="struct001" || _struct=="struct002"))
 	{
 		for (auto activeA : _level1)
@@ -648,8 +693,8 @@ Actor::~Actor()
 		for (auto& t : _threads)
 			t.join();	
 	}
-	RCLCPP_INFO(this->get_logger(), "TBOT03 actor node has been terminated");
-}
+	LOG "actor\tstatus: terminated" UNLOG
+	}
 
 void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 {

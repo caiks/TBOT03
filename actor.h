@@ -37,7 +37,7 @@ public:
 	TimePoint _scanTimestamp;
 	Status _actionPrevious;
 	
-	TBOT03::RecordList _records;
+	std::shared_ptr<TBOT03::RecordList> _records;
 	
 	bool _updateLogging;
 	
