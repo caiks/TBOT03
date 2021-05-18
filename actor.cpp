@@ -142,6 +142,22 @@ void run_act(Actor& actor)
 					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 				}		
 			}	
+			// {
+				// actor._status = Actor::AHEAD;
+				// if (actor._updateLogging)
+				// {
+					// LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				// }			
+				// actor._statusTimestamp = Clock::now();			
+			// }
+			{
+				actor._status = Actor::LEFT;
+				if (actor._updateLogging)
+				{
+					LOG "actor\t" << "LEFT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
@@ -199,6 +215,7 @@ Actor::Actor(const std::string& args_filename)
 	_angularStopMaximum = ARGS_DOUBLE_DEF(angular, 1.0);
 	_angularMaximum = ARGS_DOUBLE_DEF(angular, 30.0);
 	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
+	_records = std::make_shared<RecordList>();
 	_eventId = 0;
 	_actInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(act_interval,10));
 	_actionPrevious = AHEAD;
@@ -218,6 +235,7 @@ Actor::Actor(const std::string& args_filename)
 	bool level2Logging = ARGS_BOOL(logging_level2);
 	bool level2Summary = ARGS_BOOL(summary_level2);
 	std::size_t activeSize = ARGS_INT_DEF(activeSize,1000000);
+	_records->reserve(activeSize);
 	std::size_t induceThreshold = ARGS_INT_DEF(induceThreshold,100);
 	std::size_t induceThresholdInitial = ARGS_INT_DEF(induceThresholdInitial,1000);
 	std::chrono::milliseconds induceInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(induce_interval,10));	
@@ -253,12 +271,12 @@ Actor::Actor(const std::string& args_filename)
 		_induceParameters.seed = ARGS_INT_DEF(induceParameters.seed,5);		
 	}
 		
-	EVAL(_goal);
-	EVAL(_struct);
-	EVAL(_model);
-	EVAL(_mode);
+	// EVAL(_goal);
+	// EVAL(_struct);
+	// EVAL(_model);
+	// EVAL(_mode);
 	
-	if (modelInitial.size())
+	if (_model.size() && modelInitial.size())
 	{
 		try
 		{
@@ -266,6 +284,7 @@ Actor::Actor(const std::string& args_filename)
 			if (in.is_open())
 			{
 				_records = std::move(persistentsRecordList(in));
+				_records->push_back(Record());
 				in.close();
 			}
 			else
@@ -280,11 +299,7 @@ Actor::Actor(const std::string& args_filename)
 			return;
 		}
 	}
-	else 		
-	{
-		_records = std::make_shared<RecordList>();
-		_records->reserve(activeSize);
-	}
+
 	if (_struct=="struct001" || _struct=="struct002")
 	{
 		std::unique_ptr<HistoryRepa> hr;
@@ -637,12 +652,13 @@ Actor::Actor(const std::string& args_filename)
 	_timerUpdate = this->create_wall_timer(updateInterval, std::bind(&Actor::callbackUpdate, this));
 	}
 
-	LOG "actor\tstatus: initialised" UNLOG
+	LOG "actor\tSTART" UNLOG
 }
 
 Actor::~Actor()
 {
 	_terminate = true;
+	if (_model.size())
 	{
 		try
 		{
@@ -693,7 +709,7 @@ Actor::~Actor()
 		for (auto& t : _threads)
 			t.join();	
 	}
-	LOG "actor\tstatus: terminated" UNLOG
+	LOG "actor\tTERMINATE" UNLOG
 	}
 
 void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
@@ -752,26 +768,33 @@ void Actor::callbackUpdate()
 		&& _poseTimestamp != TimePoint()
 		&& _scanTimestamp != TimePoint())
 	{
-		double x2 = _pose[0];
-		double y2 = _pose[1];
-		double yaw2 = 0.0;
-		{			
-			tf2::Quaternion q(
-				_pose[3],
-				_pose[4],
-				_pose[5],
-				_pose[6]);
-			tf2::Matrix3x3 m(q);
-			double roll, pitch;
-			m.getRPY(roll, pitch, yaw2);
-			yaw2 *= RAD2DEG;			
-		}			
-		_status = STOP;
+		// double x2 = _pose[0];
+		// double y2 = _pose[1];
+		// double yaw2 = 0.0;
+		// {			
+			// tf2::Quaternion q(
+				// _pose[3],
+				// _pose[4],
+				// _pose[5],
+				// _pose[6]);
+			// tf2::Matrix3x3 m(q);
+			// double roll, pitch;
+			// m.getRPY(roll, pitch, yaw2);
+			// yaw2 *= RAD2DEG;			
+		// }			
+		// _status = STOP;
+		// if (_updateLogging)
+		// {
+			// LOG "actor\t" << "STOP" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
+		// }	
+		// _statusTimestamp = Clock::now();
+		
+		_status = WAIT_ODOM;
 		if (_updateLogging)
 		{
-			LOG "actor\t" << "STOP" << "\ttime " << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::fixed << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
+			LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tdistance: " << 0.0 UNLOG	
 		}	
-		_statusTimestamp = Clock::now();
+		_statusTimestamp = Clock::now();		
 	}
 	if (_status == WAIT_ODOM 
 		&& _poseTimestampPrevious != TimePoint()
@@ -826,7 +849,7 @@ void Actor::callbackUpdate()
 			_status = WAIT_SCAN;
 			if (_updateLogging)
 			{
-				LOG "actor\t" << "WAIT_SCAN" << "\ttime " << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::fixed << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
+				LOG "actor\t" << "WAIT_SCAN" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
 			}			
 			_statusTimestamp = Clock::now();
 		}
@@ -842,7 +865,7 @@ void Actor::callbackUpdate()
 		_status = STOP;
 		if (_updateLogging)
 		{
-			LOG "actor\t" << "STOP" << "\ttime " << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::fixed << "s" UNLOG	
+			LOG "actor\t" << "STOP" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
 		}	
 		_statusTimestamp = Clock::now();
 	}
@@ -862,7 +885,7 @@ void Actor::callbackUpdate()
 			_status = WAIT_ODOM;
 			if (_updateLogging)
 			{
-				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::fixed << "s" << "\tdistance: " << distance UNLOG	
+				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tdistance: " << distance UNLOG	
 			}			
 			_statusTimestamp = Clock::now();
 		}
@@ -913,7 +936,7 @@ void Actor::callbackUpdate()
 			_status = WAIT_ODOM;
 			if (_updateLogging)
 			{
-				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::fixed << "s" << "\tangle: " << angle UNLOG	
+				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tangle: " << angle UNLOG	
 			}			
 			_statusTimestamp = Clock::now();
 		}
@@ -964,7 +987,7 @@ void Actor::callbackUpdate()
 			_status = WAIT_ODOM;
 			if (_updateLogging)
 			{
-				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::fixed << "s" << "\tangle: " << angle UNLOG	
+				LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tangle: " << angle UNLOG	
 			}		
 			_statusTimestamp = Clock::now();
 		}
