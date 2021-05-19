@@ -142,21 +142,31 @@ void run_act(Actor& actor)
 					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 				}		
 			}	
-			// {
-				// actor._status = Actor::AHEAD;
-				// if (actor._updateLogging)
+			{			
 				// {
-					// LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
-				// }			
-				// actor._statusTimestamp = Clock::now();			
-			// }
-			{
-				actor._status = Actor::LEFT;
-				if (actor._updateLogging)
-				{
-					LOG "actor\t" << "LEFT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
-				}			
-				actor._statusTimestamp = Clock::now();			
+					// actor._status = Actor::AHEAD;
+					// if (actor._updateLogging)
+					// {
+						// LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+					// }			
+					// actor._statusTimestamp = Clock::now();			
+				// }
+				// {
+					// actor._status = Actor::LEFT;
+					// if (actor._updateLogging)
+					// {
+						// LOG "actor\t" << "LEFT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+					// }			
+					// actor._statusTimestamp = Clock::now();			
+				// }
+				// {
+					// actor._status = Actor::RIGHT;
+					// if (actor._updateLogging)
+					// {
+						// LOG "actor\t" << "RIGHT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+					// }			
+					// actor._statusTimestamp = Clock::now();			
+				// }
 			}
 		}
 		auto t = Clock::now() - mark;
@@ -209,11 +219,11 @@ Actor::Actor(const std::string& args_filename)
 	_actLogging = ARGS_BOOL(logging_action);
 	_actWarning = ARGS_BOOL(warning_action);
 	std::chrono::milliseconds updateInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(update_interval,10));
-	_linearStopMaximum = ARGS_DOUBLE_DEF(linear,0.02);
-	_linearMaximum = ARGS_DOUBLE_DEF(linear,0.5);
+	_linearStopMaximum = ARGS_DOUBLE_DEF(linear_stop,0.02);
+	_linearMaximum = ARGS_DOUBLE_DEF(linear_maximum,0.5);
 	_linearVelocity = ARGS_DOUBLE_DEF(linear_velocity,0.3);
-	_angularStopMaximum = ARGS_DOUBLE_DEF(angular, 1.0);
-	_angularMaximum = ARGS_DOUBLE_DEF(angular, 30.0);
+	_angularStopMaximum = ARGS_DOUBLE_DEF(angular_stop, 1.0);
+	_angularMaximum = ARGS_DOUBLE_DEF(angular_maximum, 30.0);
 	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
 	_records = std::make_shared<RecordList>();
 	_eventId = 0;
@@ -768,31 +778,10 @@ void Actor::callbackUpdate()
 		&& _poseTimestamp != TimePoint()
 		&& _scanTimestamp != TimePoint())
 	{
-		// double x2 = _pose[0];
-		// double y2 = _pose[1];
-		// double yaw2 = 0.0;
-		// {			
-			// tf2::Quaternion q(
-				// _pose[3],
-				// _pose[4],
-				// _pose[5],
-				// _pose[6]);
-			// tf2::Matrix3x3 m(q);
-			// double roll, pitch;
-			// m.getRPY(roll, pitch, yaw2);
-			// yaw2 *= RAD2DEG;			
-		// }			
-		// _status = STOP;
-		// if (_updateLogging)
-		// {
-			// LOG "actor\t" << "STOP" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tx: " << x2 << "\ty: " << y2 << "\tyaw: " << yaw2 UNLOG	
-		// }	
-		// _statusTimestamp = Clock::now();
-		
 		_status = WAIT_ODOM;
 		if (_updateLogging)
 		{
-			LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" << "\tdistance: " << 0.0 UNLOG	
+			LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - _statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
 		}	
 		_statusTimestamp = Clock::now();		
 	}
@@ -943,7 +932,7 @@ void Actor::callbackUpdate()
 		else
 		{
 			geometry_msgs::msg::Twist twist;
-			twist.angular.z  = _angularVelocity;
+			twist.angular.z  = _angularVelocity * DEG2RAD;
 			_publisherCmdVel->publish(twist);		
 		}
 	}	
@@ -981,7 +970,7 @@ void Actor::callbackUpdate()
 			else if (angle <= -180.0)
 				angle += 360.0;
 		}
-		if (angle <= -_angularMaximum)
+		if (angle <= -1.0 * _angularMaximum)
 		{
 			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
 			_status = WAIT_ODOM;
@@ -994,7 +983,7 @@ void Actor::callbackUpdate()
 		else
 		{
 			geometry_msgs::msg::Twist twist;
-			twist.angular.z  = -1.0 * _angularVelocity;
+			twist.angular.z  = -1.0 * _angularVelocity * DEG2RAD;
 			_publisherCmdVel->publish(twist);		
 		}
 	}	
