@@ -179,6 +179,36 @@ void run_act(Actor& actor)
 				}			
 				actor._statusTimestamp = Clock::now();			
 			}
+			else if (actor._mode=="mode005")
+			{
+				// turn randomly chosen from distribution
+				actor._status = Actor::AHEAD;
+				{
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distribution)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
@@ -265,6 +295,16 @@ Actor::Actor(const std::string& args_filename)
 	bool induceNot = ARGS_BOOL(no_induce);
 	_mode = ARGS_STRING_DEF(mode, "mode001");	
 	_modeLogging = ARGS_BOOL(mode_logging);	
+	_distribution[LEFT] = ARGS_DOUBLE(distribution_LEFT);
+	_distribution[AHEAD] = ARGS_DOUBLE(distribution_AHEAD);
+	_distribution[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
+	{
+		double norm = 0.0;
+		for (auto& p : _distribution)
+			norm += p.second;	
+		for (auto& p : _distribution)
+			_distribution[p.first] /= norm;	
+	}
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
@@ -861,7 +901,8 @@ void Actor::callbackUpdate()
 	}
 	if (_status == WAIT_SCAN 
 		&& _poseTimestampPrevious != TimePoint() 
-		&& _scanTimestamp > _poseTimestampPrevious)
+		&& _scanTimestampPrevious != TimePoint() 
+		&& _scanTimestampPrevious > _poseTimestampPrevious)
 	{
 		_status = STOP;
 		if (_updateLogging)

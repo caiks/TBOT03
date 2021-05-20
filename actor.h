@@ -68,29 +68,7 @@ public:
 	std::shared_ptr<Alignment::SystemRepa> _ur;
 	
 	bool _modeLogging;	
-	double _mode1DiscountRate;	
-	double _mode1Turnaway;	
-	bool _mode1Probabilistic;	
-	bool _mode1Shortest;	
-	bool _mode1ExpectedPV;	
-	bool _mode1Repulsive;	
-	bool _mode1GuessLocation;	
-	bool _modeProbabilistic;	
-	std::unordered_map<std::size_t, Alignment::SizeSet> _mode3SlicesSliceSetNext;
-	std::unordered_map<std::size_t, std::size_t> _mode3SlicesLocation;
-	bool _modeMultipleTransition;	
-	bool _mode4Caching;
-	bool _mode4Stepwise;
-	std::unordered_map<std::size_t, Alignment::SizeSet> _mode4SlicesSliceSetNext;
-	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _mode4locationsSlicesStepCount;
-	int _mode4Lag;
-	std::set<std::size_t> _mode4Neighbours;
-	std::set<std::size_t> _mode4NeighbourLeasts;
-	std::size_t _mode4SliceLocA;
-	std::size_t _mode4TransistionSuccessCount;
-	std::size_t _mode4TransistionNullCount;
-	double _mode4TransistionExpectedSuccessCount;
-	std::size_t _mode4TransistionCount;
+	std::map<Status, double> _distribution;
 	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
