@@ -143,14 +143,14 @@ void run_act(Actor& actor)
 				}		
 			}	
 			{			
-				// {
-					// actor._status = Actor::AHEAD;
-					// if (actor._updateLogging)
-					// {
-						// LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
-					// }			
-					// actor._statusTimestamp = Clock::now();			
-				// }
+				{
+					actor._status = Actor::AHEAD;
+					if (actor._updateLogging)
+					{
+						LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+					}			
+					actor._statusTimestamp = Clock::now();			
+				}
 				// {
 					// actor._status = Actor::LEFT;
 					// if (actor._updateLogging)
@@ -223,7 +223,7 @@ Actor::Actor(const std::string& args_filename)
 	_linearMaximum = ARGS_DOUBLE_DEF(linear_maximum,0.5);
 	_linearVelocity = ARGS_DOUBLE_DEF(linear_velocity,0.3);
 	_angularStopMaximum = ARGS_DOUBLE_DEF(angular_stop, 1.0);
-	_angularMaximum = ARGS_DOUBLE_DEF(angular_maximum, 30.0);
+	_angularMaximum = ARGS_DOUBLE_DEF(angular_maximum, 30.0 - 7.0);
 	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
 	_records = std::make_shared<RecordList>();
 	_eventId = 0;
@@ -675,6 +675,7 @@ Actor::~Actor()
 			std::ofstream out(_model + ".rec", std::ios::binary);
 			recordListsPersistent(*_records, out); 
 			out.close();
+			LOG "actor\tdump\tfile name:" << _model + ".rec" UNLOG
 		}
 		catch (const exception&)
 		{
