@@ -169,6 +169,16 @@ void run_act(Actor& actor)
 				}			
 				actor._statusTimestamp = Clock::now();			
 			}
+			else if (actor._mode=="mode004")
+			{
+				std::this_thread::sleep_for((std::chrono::milliseconds)250);
+				actor._status = Actor::WAIT_ODOM;
+				if (actor._updateLogging)
+				{
+					LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
