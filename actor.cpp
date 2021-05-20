@@ -142,31 +142,32 @@ void run_act(Actor& actor)
 					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 				}		
 			}	
-			{			
+			if (actor._mode=="mode001")
+			{
+				actor._status = Actor::AHEAD;
+				if (actor._updateLogging)
 				{
-					actor._status = Actor::AHEAD;
-					if (actor._updateLogging)
-					{
-						LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
-					}			
-					actor._statusTimestamp = Clock::now();			
-				}
-				// {
-					// actor._status = Actor::LEFT;
-					// if (actor._updateLogging)
-					// {
-						// LOG "actor\t" << "LEFT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
-					// }			
-					// actor._statusTimestamp = Clock::now();			
-				// }
-				// {
-					// actor._status = Actor::RIGHT;
-					// if (actor._updateLogging)
-					// {
-						// LOG "actor\t" << "RIGHT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
-					// }			
-					// actor._statusTimestamp = Clock::now();			
-				// }
+					LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
+			else if (actor._mode=="mode002")
+			{
+				actor._status = Actor::LEFT;
+				if (actor._updateLogging)
+				{
+					LOG "actor\t" << "LEFT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
+			else if (actor._mode=="mode003")
+			{
+				actor._status = Actor::RIGHT;
+				if (actor._updateLogging)
+				{
+					LOG "actor\t" << "RIGHT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
 			}
 		}
 		auto t = Clock::now() - mark;
