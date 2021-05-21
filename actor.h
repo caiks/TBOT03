@@ -19,6 +19,7 @@ public:
 	
 	enum Status {START, WAIT_ODOM, WAIT_SCAN, AHEAD, LEFT, RIGHT, STOP, CRASH};
 	Status _status;
+	TimePoint _startTimestamp;
 	TimePoint _statusTimestamp;
 
 	std::array<double,7> _posePrevious;
@@ -26,6 +27,7 @@ public:
 	TimePoint _poseTimestampPrevious;
 	TimePoint _poseTimestamp;
 	std::array<double,7> _poseStop;
+	TimePoint _poseStopTimestamp;
 	double _linearStopMaximum;
 	double _linearMaximum;
 	double _linearVelocity;

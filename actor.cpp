@@ -12,6 +12,8 @@ using namespace std::chrono_literals;
 namespace js = rapidjson;
 
 #define EVAL(x) { std::ostringstream str; str << #x << ": " << (x); RCLCPP_INFO(actor_this->get_logger(), str.str());}
+#define EVALTIME(x) { std::ostringstream str; str << #x << ": " << std::fixed << std::setprecision(3) << ((Sec)(x - actor_this->_startTimestamp)).count() << std::defaultfloat << "s"; RCLCPP_INFO(actor_this->get_logger(), str.str());}
+#define EVALDATETIME(x) { const std::time_t t_c = std::chrono::system_clock::to_time_t(x); std::ostringstream str; str << #x << ": " << std::put_time(std::localtime(&t_c), "%F %T"); RCLCPP_INFO(actor_this->get_logger(), str.str());}
 
 #define ARGS_STRING_DEF(x,y) args.HasMember(#x) && args[#x].IsString() ? args[#x].GetString() : y
 #define ARGS_STRING(x) ARGS_STRING_DEF(x,"")
@@ -228,6 +230,7 @@ Actor::Actor(const std::string& args_filename)
 	actor_this = this;
 	_terminate = false;
 	_status = START;
+	_startTimestamp = Clock::now();
 	_statusTimestamp = Clock::now();
 			
 	js::Document args;
@@ -887,6 +890,7 @@ void Actor::callbackUpdate()
 		if (distance <= _linearStopMaximum && std::fabs(angle) <= _angularStopMaximum)
 		{
 			_poseStop = _pose;
+			_poseStopTimestamp = _poseTimestampPrevious;
 			_status = WAIT_SCAN;
 			if (_updateLogging)
 			{
@@ -900,9 +904,9 @@ void Actor::callbackUpdate()
 		}
 	}
 	if (_status == WAIT_SCAN 
-		&& _poseTimestampPrevious != TimePoint() 
+		&& _poseStopTimestamp != TimePoint() 
 		&& _scanTimestampPrevious != TimePoint() 
-		&& _scanTimestampPrevious > _poseTimestampPrevious)
+		&& _scanTimestampPrevious > _poseStopTimestamp)
 	{
 		_status = STOP;
 		if (_updateLogging)
