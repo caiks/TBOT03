@@ -412,9 +412,9 @@ Actor::Actor(const std::string& args_filename)
 	_mode = ARGS_STRING_DEF(mode, "mode001");	
 	_modeLogging = ARGS_BOOL(mode_logging);	
 	srand(ARGS_INT_DEF(mode_seed,7));
-	_distribution[LEFT] = ARGS_DOUBLE(distribution_LEFT);
-	_distribution[AHEAD] = ARGS_DOUBLE(distribution_AHEAD);
-	_distribution[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
+	_distribution[LEFT] = ARGS_DOUBLE_DEF(distribution_LEFT,1.0);
+	_distribution[AHEAD] = ARGS_DOUBLE_DEF(distribution_AHEAD,5.0);
+	_distribution[RIGHT] = ARGS_DOUBLE_DEF(distribution_RIGHT,1.0);
 	{
 		double norm = 0.0;
 		for (auto& p : _distribution)
@@ -422,8 +422,8 @@ Actor::Actor(const std::string& args_filename)
 		for (auto& p : _distribution)
 			_distribution[p.first] /= norm;	
 	}
-	_distributionTurn[LEFT] = ARGS_DOUBLE(distribution_LEFT);
-	_distributionTurn[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
+	_distributionTurn[LEFT] = ARGS_DOUBLE_DEF(distribution_LEFT,1.0);
+	_distributionTurn[RIGHT] = ARGS_DOUBLE_DEF(distribution_RIGHT,1.0);
 	{
 		double norm = 0.0;
 		for (auto& p : _distributionTurn)
@@ -909,7 +909,7 @@ void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 		if (msg->pose.pose.position.z >= 0.02)
 		{
 			_status = CRASH;
-			LOG "actor\tCRASH\ttime " << ((Sec)(Clock::now() - _statusTimestamp)).count() << "s" UNLOG			
+			LOG "actor\tCRASH\ttime " << ((Sec)(Clock::now() - _startTimestamp)).count() << "s" UNLOG			
 			_statusTimestamp = Clock::now();
 		}
 	}
