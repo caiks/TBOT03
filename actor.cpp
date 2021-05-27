@@ -298,6 +298,7 @@ Actor::Actor(const std::string& args_filename)
 	bool induceNot = ARGS_BOOL(no_induce);
 	_mode = ARGS_STRING_DEF(mode, "mode001");	
 	_modeLogging = ARGS_BOOL(mode_logging);	
+	srand(ARGS_INT_DEF(mode_seed,7));
 	_distribution[LEFT] = ARGS_DOUBLE(distribution_LEFT);
 	_distribution[AHEAD] = ARGS_DOUBLE(distribution_AHEAD);
 	_distribution[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
