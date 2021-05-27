@@ -81,7 +81,9 @@ void run_act(Actor& actor)
 	while (!actor._terminate)
 	{
 		auto mark = Clock::now();
-		if (actor._status == actor.STOP && actor._system)
+		if (actor._status == Actor::STOP 
+			&& actor._actionPrevious != Actor::STOP 
+			&& actor._system)
 		{
 			{
 				std::unique_ptr<HistoryRepa> hr;
@@ -139,6 +141,7 @@ void run_act(Actor& actor)
 					for (auto& t : threadsLevel)
 						t.join();			
 				}
+				actor._actionPrevious = Actor::STOP;
 				if (actor._actLogging)
 				{
 					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
@@ -147,6 +150,7 @@ void run_act(Actor& actor)
 			if (actor._mode=="mode001")
 			{
 				actor._status = Actor::AHEAD;
+				actor._actionPrevious = actor._status;
 				if (actor._updateLogging)
 				{
 					LOG "actor\t" << "AHEAD" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
@@ -156,6 +160,7 @@ void run_act(Actor& actor)
 			else if (actor._mode=="mode002")
 			{
 				actor._status = Actor::LEFT;
+				actor._actionPrevious = actor._status;
 				if (actor._updateLogging)
 				{
 					LOG "actor\t" << "LEFT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
@@ -165,6 +170,7 @@ void run_act(Actor& actor)
 			else if (actor._mode=="mode003")
 			{
 				actor._status = Actor::RIGHT;
+				actor._actionPrevious = actor._status;
 				if (actor._updateLogging)
 				{
 					LOG "actor\t" << "RIGHT" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
@@ -198,6 +204,7 @@ void run_act(Actor& actor)
 						}
 					}						
 				}
+				actor._actionPrevious = actor._status;
 				if (actor._updateLogging)
 				{
 					string statusString;
@@ -206,6 +213,48 @@ void run_act(Actor& actor)
 						case Actor::AHEAD   : statusString = "AHEAD";    break;
 						case Actor::LEFT   : statusString = "LEFT";    break;
 						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
+			else if (actor._mode=="mode006")
+			{
+				// turn randomly chosen from distribution with collision avoidance
+				actor._status = Actor::AHEAD;
+				{
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distribution)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}
+				actor._actionPrevious = actor._status;
+				if (actor._status == Actor::AHEAD)
+				{
+					for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+						if (actor._scan[i%360] <= actor._collisionRange)
+						{
+							actor._status = Actor::WAIT_ODOM;
+							break;					
+						}					
+				}
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+						case Actor::WAIT_ODOM   : statusString = "WAIT_ODOM";    break;
+						default   : statusString = "UNDEFINED";    break;
 					}
 					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
 				}			
@@ -302,6 +351,8 @@ Actor::Actor(const std::string& args_filename)
 	_distribution[LEFT] = ARGS_DOUBLE(distribution_LEFT);
 	_distribution[AHEAD] = ARGS_DOUBLE(distribution_AHEAD);
 	_distribution[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
+	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 0.7);
+	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 10);
 	{
 		double norm = 0.0;
 		for (auto& p : _distribution)

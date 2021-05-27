@@ -71,6 +71,8 @@ public:
 	
 	bool _modeLogging;	
 	std::map<Status, double> _distribution;
+	double _collisionRange;
+	std::size_t _collisionFOV;
 	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
