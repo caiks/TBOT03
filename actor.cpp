@@ -260,7 +260,70 @@ void run_act(Actor& actor)
 				}			
 				actor._statusTimestamp = Clock::now();			
 			}
+			else if (actor._mode=="mode007")
+			{
+				// turn randomly chosen from distribution with collision avoidance
+				// handle case of blocked ahead and blocked to the sides
+				actor._status = Actor::AHEAD;
+				{
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distribution)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}
+				bool blockedAhead = false;
+				if (actor._status == Actor::AHEAD)
+				{
+					for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+						if (actor._scan[i%360] <= actor._collisionRange)
+						{
+							blockedAhead = true;
+							break;					
+						}					
+				}
+				bool blockedLeft = actor._scan[(int)actor._angularMaximum] <= actor._collisionRange;
+				bool blockedRight = actor._scan[360-(int)actor._angularMaximum] <= actor._collisionRange;
+				if (blockedAhead && blockedLeft && !blockedRight)
+					actor._status = Actor::RIGHT;
+				else if (blockedAhead && !blockedLeft && blockedRight)
+					actor._status = Actor::LEFT;
+				else if (blockedAhead)
+				{
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distributionTurn)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}				
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
+
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
 		{
@@ -316,7 +379,8 @@ Actor::Actor(const std::string& args_filename)
 	_linearMaximum = ARGS_DOUBLE_DEF(linear_maximum,0.5);
 	_linearVelocity = ARGS_DOUBLE_DEF(linear_velocity,0.3);
 	_angularStopMaximum = ARGS_DOUBLE_DEF(angular_stop, 1.0);
-	_angularMaximum = ARGS_DOUBLE_DEF(angular_maximum, 30.0 - 7.0);
+	_angularMaximum = ARGS_DOUBLE_DEF(angular_maximum, 30.0);
+	_angularMaximumLag = ARGS_DOUBLE_DEF(angular_maximum_lag, 7.0);
 	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
 	_records = std::make_shared<RecordList>();
 	_eventId = 0;
@@ -351,8 +415,6 @@ Actor::Actor(const std::string& args_filename)
 	_distribution[LEFT] = ARGS_DOUBLE(distribution_LEFT);
 	_distribution[AHEAD] = ARGS_DOUBLE(distribution_AHEAD);
 	_distribution[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
-	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 0.7);
-	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 10);
 	{
 		double norm = 0.0;
 		for (auto& p : _distribution)
@@ -360,6 +422,17 @@ Actor::Actor(const std::string& args_filename)
 		for (auto& p : _distribution)
 			_distribution[p.first] /= norm;	
 	}
+	_distributionTurn[LEFT] = ARGS_DOUBLE(distribution_LEFT);
+	_distributionTurn[RIGHT] = ARGS_DOUBLE(distribution_RIGHT);
+	{
+		double norm = 0.0;
+		for (auto& p : _distributionTurn)
+			norm += p.second;	
+		for (auto& p : _distributionTurn)
+			_distributionTurn[p.first] /= norm;	
+	}
+	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 0.7);
+	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 15);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
@@ -1028,7 +1101,7 @@ void Actor::callbackUpdate()
 			else if (angle <= -180.0)
 				angle += 360.0;
 		}
-		if (angle >= _angularMaximum)
+		if (angle >= (_angularMaximum - _angularMaximumLag))
 		{
 			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
 			_status = WAIT_ODOM;
@@ -1079,7 +1152,7 @@ void Actor::callbackUpdate()
 			else if (angle <= -180.0)
 				angle += 360.0;
 		}
-		if (angle <= -1.0 * _angularMaximum)
+		if (angle <= -1.0 * (_angularMaximum - _angularMaximumLag))
 		{
 			_publisherCmdVel->publish(geometry_msgs::msg::Twist());
 			_status = WAIT_ODOM;

@@ -33,6 +33,7 @@ public:
 	double _linearVelocity;
 	double _angularStopMaximum;
 	double _angularMaximum;
+	double _angularMaximumLag;
 	double _angularVelocity;
 	std::array<double,360> _scan;
 	TimePoint _scanTimestampPrevious;
@@ -71,6 +72,7 @@ public:
 	
 	bool _modeLogging;	
 	std::map<Status, double> _distribution;
+	std::map<Status, double> _distributionTurn;
 	double _collisionRange;
 	std::size_t _collisionFOV;
 	
