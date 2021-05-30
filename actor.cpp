@@ -375,13 +375,13 @@ Actor::Actor(const std::string& args_filename)
 	_actLogging = ARGS_BOOL(logging_action);
 	_actWarning = ARGS_BOOL(warning_action);
 	std::chrono::milliseconds updateInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(update_interval,10));
-	_linearStopMaximum = ARGS_DOUBLE_DEF(linear_stop,0.02);
+	_linearStopMaximum = ARGS_DOUBLE_DEF(linear_stop,0.005);
 	_linearMaximum = ARGS_DOUBLE_DEF(linear_maximum,0.5);
 	_linearVelocity = ARGS_DOUBLE_DEF(linear_velocity,0.3);
-	_angularStopMaximum = ARGS_DOUBLE_DEF(angular_stop, 1.0);
+	_angularStopMaximum = ARGS_DOUBLE_DEF(angular_stop, 0.1);
 	_angularMaximum = ARGS_DOUBLE_DEF(angular_maximum, 30.0);
 	_angularMaximumLag = ARGS_DOUBLE_DEF(angular_maximum_lag, 7.0);
-	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 1.5 * RAD2DEG);
+	_angularVelocity = ARGS_DOUBLE_DEF(angular_velocity, 40.0);
 	_records = std::make_shared<RecordList>();
 	_eventId = 0;
 	_actInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(act_interval,10));
@@ -431,8 +431,8 @@ Actor::Actor(const std::string& args_filename)
 		for (auto& p : _distributionTurn)
 			_distributionTurn[p.first] /= norm;	
 	}
-	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 0.7);
-	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 15);
+	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 1.0);
+	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 20);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
