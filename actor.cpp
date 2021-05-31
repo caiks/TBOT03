@@ -58,12 +58,12 @@ void layerer_actor_log(const std::string& str)
 	return;
 };
 	
-void run_induce(Actor& actor, Active& active, std::chrono::milliseconds induceInterval, std::size_t induceThresholdInitial)
+void run_induce(Actor& actor, Active& active, ActiveInduceParameters& param, std::size_t induceThresholdInitial, std::chrono::milliseconds induceInterval)
 {
 	while (!actor._terminate && !active.terminate)
 	{
 		if (actor._poseTimestamp != TimePoint() && actor._scanTimestamp != TimePoint() && actor._eventId >= induceThresholdInitial)
-			active.induce(actor._induceParametersLevel1);
+			active.induce(param);
 		std::this_thread::sleep_for(std::chrono::milliseconds(induceInterval));
 	}	
 	return;
@@ -592,7 +592,7 @@ Actor::Actor(const std::string& args_filename)
 				LOG activeA.name << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG				
 			}
 			if (!induceNot)
-				_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), induceIntervalLevel1, induceThresholdInitialLevel1));
+				_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), std::ref(_induceParametersLevel1), induceThresholdInitialLevel1, induceIntervalLevel1));
 		}	
 		{
 			_level2.push_back(std::make_shared<Active>());
@@ -695,7 +695,7 @@ Actor::Actor(const std::string& args_filename)
 				LOG activeA.name << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG				
 			}			
 			if (!induceNot)
-				_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), induceInterval, induceThresholdInitial));			
+				_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), std::ref(_induceParameters), induceThresholdInitial, induceInterval));			
 		}
 		if (_struct=="struct002")
 		{
@@ -822,7 +822,7 @@ Actor::Actor(const std::string& args_filename)
 					LOG activeA.name << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG				
 				}			
 				if (!induceNot)
-					_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), induceInterval, induceThresholdInitial));			
+					_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), std::ref(_induceParameters), induceThresholdInitial, induceInterval));			
 			}			
 		}
 		_threads.push_back(std::thread(run_act, std::ref(*this)));	
