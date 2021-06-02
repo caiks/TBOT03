@@ -75,7 +75,9 @@ public:
 	std::map<Status, double> _distributionTurn;
 	double _collisionRange;
 	std::size_t _collisionFOV;
-	
+	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetNext;
+	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _locationsSlicesStepCount;
+
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
 

@@ -322,6 +322,279 @@ void run_act(Actor& actor)
 				}			
 				actor._statusTimestamp = Clock::now();			
 			}
+			else if (actor._mode=="mode008")
+			{
+				// bool ok = true;		
+				// auto& activeA = *actor._level2.front();
+				// if (!activeA.terminate)	
+				// {			
+					// auto mark = clk::now();
+					// std::lock_guard<std::mutex> guard(activeA.mutex);
+					// ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
+					// if (ok)
+					// {
+						// std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
+						// auto nloc = locations.size();
+						// std::map<std::string,std::size_t> locationsInt;
+						// for (std::size_t i = 0; i < locations.size(); i++)
+							// locationsInt[locations[i]] = i;	
+
+						// auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+						// auto sliceA = activeA.historySparse->arr[historyEventA];
+						// std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+						// auto& hs = *activeA.historySparse;
+						// std::size_t goal = locationsInt[actor._goal];
+						// const char turn_left = 0;
+						// const char ahead = 1;
+						// const char turn_right = 2;
+						// auto over = activeA.historyOverflow;
+						// auto& mm = actor._ur->mapVarSize();
+						// auto& mvv = hr->mapVarInt();
+						// auto motor = mvv[mm[Variable("motor")]];
+						// auto location = mvv[mm[Variable("location")]];
+						// auto n = hr->dimension;
+						// auto z = hr->size;
+						// auto y = activeA.historyEvent;
+						// auto rr = hr->arr;	
+						// auto rs = hs.arr;
+						// auto locA = rr[historyEventA*n+location];
+						// auto sliceLocA = sliceA*nloc+locA;
+						// auto sliceCount = activeA.historySlicesSetEvent.size();
+						// std::map<std::size_t, std::size_t> neighbours;
+						// // EVAL(neighbours);							
+						// {
+							// // neighbours.clear();
+							// auto& slicesStepCount = actor._locationsSlicesStepCount[goal];
+							// for (auto sliceLocB : actor._slicesSliceSetNext[sliceLocA])
+							// {
+								// auto it = slicesStepCount.find(sliceLocB);
+								// if (it != slicesStepCount.end())
+									// neighbours[sliceLocB] = it->second;								
+							// }
+						// }
+						// // EVAL(sliceA);							
+						// // EVAL(locA);							
+						// EVAL(sliceLocA);							
+						// EVAL(neighbours);							
+						// std::set<std::size_t> neighbourLeasts;
+						// {
+							// bool found = false;
+							// std::size_t least = 0;
+							// for (auto& p : neighbours)	
+								// if (!found || least > p.second)
+								// {
+									// least = p.second;
+									// found = true;
+								// }
+							// for (auto& p : neighbours)	
+								// if (p.second == least)	
+									// neighbourLeasts.insert(p.first);
+							// EVAL(least);
+						// }
+						// EVAL(neighbourLeasts);
+						// if (sliceLocA != actor._mode4SliceLocA)
+						// {
+							// if (actor._mode4Neighbours.find(sliceLocA) == actor._mode4Neighbours.end())
+								// actor._mode4TransistionNullCount++;
+							// else 
+							// {
+								// if (actor._mode4NeighbourLeasts.find(sliceLocA) != actor._mode4NeighbourLeasts.end())
+									// actor._mode4TransistionSuccessCount++;
+								// actor._mode4TransistionExpectedSuccessCount += (double) actor._mode4NeighbourLeasts.size() / (double) actor._mode4Neighbours.size();
+							// }
+							// actor._mode4TransistionCount++;
+							// double transition_success_rate = (double) actor._mode4TransistionSuccessCount * 100.0 / (double) actor._mode4TransistionCount;
+							// double transition_expected_success_rate = (double) actor._mode4TransistionExpectedSuccessCount * 100.0 / (double) actor._mode4TransistionCount;
+							// double transition_null_rate = (double) actor._mode4TransistionNullCount * 100.0 / (double) actor._mode4TransistionCount;
+							// EVAL(transition_success_rate);
+							// EVAL(transition_expected_success_rate);
+							// EVAL(transition_null_rate);
+							// actor._mode4SliceLocA = sliceLocA;
+							// actor._mode4NeighbourLeasts = neighbourLeasts;
+							// actor._mode4Neighbours.clear();
+							// for (auto& p : neighbours)
+								// actor._mode4Neighbours.insert(p.first);
+						// }
+						// if (neighbourLeasts.size() && neighbourLeasts.size() < neighbours.size())
+						// {
+							// std::map<std::size_t, std::size_t> actionsCount;
+							// if (actor._mode4Stepwise)
+							// {
+								// std::map<std::size_t, std::map<std::size_t, std::size_t>> stepsActionsCount;
+								// std::size_t stepsEventA = 0;
+								// for (auto ev : activeA.historySlicesSetEvent[sliceA])
+								// {
+									// if (rr[ev*n+location] == locA)
+									// {
+										// std::size_t steps = 0;
+										// {
+											// auto j = ev + (ev >= y ? 0 : z) - 1;	
+											// while (j >= (over ? y : z))
+											// {
+												// auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
+												// if (sliceLocB != sliceLocA)
+													// break;
+												// j--;
+												// steps++;
+											// }												
+										// }
+										// if (historyEventA == ev)
+											// stepsEventA = steps;
+										// {
+											// auto j = ev + (ev >= y ? 0 : z)  + 1;	
+											// while (j < y+z)
+											// {
+												// auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
+												// if (sliceLocB != sliceLocA)
+												// {
+													// if (neighbourLeasts.find(sliceLocB) != neighbourLeasts.end())
+														// stepsActionsCount[steps][rr[((ev+actor._mode4Lag)%z)*n+motor]]++;
+													// break;
+												// }
+												// j++;
+											// }												
+										// }
+									// }
+								// }	
+								// EVAL(stepsEventA);
+								// EVAL(stepsActionsCount);
+								// if (stepsActionsCount.size())
+								// {
+									// auto it = stepsActionsCount.find(stepsEventA);
+									// if (it != stepsActionsCount.end())
+										// actionsCount = it->second;
+									// else			
+										// actionsCount = stepsActionsCount.rbegin()->second;
+								// }								
+							// }
+							// else
+							// {
+								// for (auto ev : activeA.historySlicesSetEvent[sliceA])
+								// {
+									// if (rr[ev*n+location] == locA)
+									// {
+										// auto j = ev + (ev >= y ? 0 : z)  + 1;	
+										// while (j < y+z)
+										// {
+											// auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
+											// if (sliceLocB != sliceLocA)
+											// {
+												// if (neighbourLeasts.find(sliceLocB) != neighbourLeasts.end())
+													// actionsCount[rr[((ev+actor._mode4Lag)%z)*n+motor]]++;
+												// break;
+											// }
+											// j++;
+										// }										
+									// }
+								// }
+							// }
+							// EVAL(actionsCount);
+							// if (actionsCount.size())
+							// {
+								// char action = ahead;
+								// if (actor._modeProbabilistic)
+								// {
+									// std::size_t total = 0;
+									// for (auto& p : actionsCount)	
+										// total += p.second;
+									// auto r = rand() % total;
+									// std::size_t accum = 0.0;
+									// for (auto& p : actionsCount)
+									// {
+										// accum += p.second;
+										// if (r < accum)
+										// {
+											// action = p.first;
+											// break;
+										// }
+									// }						
+								// }
+								// else
+								// {
+									// if (actionsCount[turn_left] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_left] > actionsCount[turn_right])
+										// action = turn_left;
+									// else if (actionsCount[turn_right] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_right] > actionsCount[turn_left])
+										// action = turn_right;	
+								// }	
+								// // locking here? TODO
+								// if (action == turn_left)
+								// {
+									// actor._turn_request = "left";
+									// actor._bias_right = false;
+								// }
+								// else if (action == turn_right)
+								// {
+									// actor._turn_request = "right";
+									// actor._bias_right = true;
+								// }					
+							// }							
+						// }
+					// }
+
+				// }		
+				{					
+					// turn randomly chosen from distribution with collision avoidance
+					// handle case of blocked ahead and blocked to the sides
+					actor._status = Actor::AHEAD;
+					{
+						auto r = (double) rand() / (RAND_MAX);
+						double accum = 0.0;
+						for (auto& p : actor._distribution)
+						{
+							accum += p.second;
+							if (r < accum)
+							{
+								actor._status = p.first;
+								break;
+							}
+						}						
+					}
+					bool blockedAhead = false;
+					if (actor._status == Actor::AHEAD)
+					{
+						for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+							if (actor._scan[i%360] <= actor._collisionRange)
+							{
+								blockedAhead = true;
+								break;					
+							}					
+					}
+					bool blockedLeft = actor._scan[(int)actor._angularMaximum] <= actor._collisionRange;
+					bool blockedRight = actor._scan[360-(int)actor._angularMaximum] <= actor._collisionRange;
+					if (blockedAhead && blockedLeft && !blockedRight)
+						actor._status = Actor::RIGHT;
+					else if (blockedAhead && !blockedLeft && blockedRight)
+						actor._status = Actor::LEFT;
+					else if (blockedAhead)
+					{
+						auto r = (double) rand() / (RAND_MAX);
+						double accum = 0.0;
+						for (auto& p : actor._distributionTurn)
+						{
+							accum += p.second;
+							if (r < accum)
+							{
+								actor._status = p.first;
+								break;
+							}
+						}						
+					}				
+					actor._actionPrevious = actor._status;
+				}
+				
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
 
 		auto t = Clock::now() - mark;
@@ -826,6 +1099,84 @@ Actor::Actor(const std::string& args_filename)
 			}			
 		}
 		_threads.push_back(std::thread(run_act, std::ref(*this)));	
+	}
+	
+	if (_struct=="struct001" && _mode=="mode008")
+	{	
+		std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
+		auto nloc = locations.size();
+		auto bloc = nloc - 6;
+		auto& activeA = *_level2.front();	
+		auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+		std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+		auto& hs = *activeA.historySparse;
+		auto over = activeA.historyOverflow;
+		auto& mm = _ur->mapVarSize();
+		auto& mvv = hr->mapVarInt();
+		auto location = mvv[mm[Variable("location")]];
+		auto n = hr->dimension;
+		auto z = hr->size;
+		auto y = activeA.historyEvent;
+		auto rr = hr->arr;	
+		auto rs = hs.arr;
+		auto sliceCount = activeA.historySlicesSetEvent.size();
+		_slicesSliceSetNext.reserve(sliceCount*nloc);
+		{
+			auto j = over ? y : z;	
+			auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
+			j++;
+			while (j < y+z)
+			{
+				auto sliceLocC = rs[j%z]*nloc + rr[(j%z)*n+location];
+				if (sliceLocC != sliceLocB)
+				{
+					if (activeA.continousIs && !activeA.continousHistoryEventsEvent.count(j%z))
+						_slicesSliceSetNext[sliceLocB].insert(sliceLocC);
+					sliceLocB = sliceLocC;
+				}
+				j++;
+			}					
+		}
+		{
+			std::unordered_map<std::size_t, Alignment::SizeSet> slicesSliceSetPrev;
+			slicesSliceSetPrev.reserve(sliceCount);
+			for (auto& p : _slicesSliceSetNext)
+				for (auto& q : p.second)
+					slicesSliceSetPrev[q].insert(p.first);
+			for (auto locA = bloc; locA < nloc; locA++)
+			{
+				auto& slicesStepCount = _locationsSlicesStepCount[locA];
+				slicesStepCount.reserve(sliceCount);
+				SizeUSet sliceCurrents;
+				sliceCurrents.reserve(sliceCount);		
+				std::size_t steps = 0;				
+				for (auto& p : slicesSliceSetPrev)
+					if (p.first % nloc == locA)
+					{
+						slicesStepCount.insert_or_assign(p.first,steps);
+						sliceCurrents.insert(p.first);
+					}
+				while (sliceCurrents.size())
+				{
+					steps++;
+					SizeList sliceCurrentBs;
+					sliceCurrentBs.reserve(sliceCurrents.size() * 20);
+					for (auto sliceLocC : sliceCurrents)		
+					{
+						for (auto sliceLocD : slicesSliceSetPrev[sliceLocC])
+						{					
+							if (!slicesStepCount.count(sliceLocD))
+							{
+								sliceCurrentBs.push_back(sliceLocD);			
+								slicesStepCount.insert_or_assign(sliceLocD,steps);
+							}
+						}
+					}	
+					sliceCurrents.clear();
+					sliceCurrents.insert(sliceCurrentBs.begin(), sliceCurrentBs.end());
+				}				
+			}
+		}
 	}
 	
 	{
