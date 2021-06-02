@@ -29,6 +29,7 @@ int main(int argc, char **argv)
 		ECHO(std::shared_ptr<TBOT03::RecordList> records = std::move(persistentsRecordList(in)));
 		EVAL(*records);
 	}
+	
 	if (argc >= 3 && (string(argv[1]) == "view_active" || string(argv[1]) == "view_active_concise"))
 	{
 		bool ok = true;
@@ -124,5 +125,70 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	
+	if (argc >= 3 && string(argv[1]) == "location_entropy")
+	{
+		bool ok = true;
+		string model = string(argv[2]);
+	
+		EVAL(model);
+		
+		std::unique_ptr<System> uu;
+		std::unique_ptr<SystemRepa> ur;
+		std::unique_ptr<HistoryRepa> hr;
+		if (ok) 
+		{
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, std::array<double,7>(), std::array<double,360>());	
+			uu = std::move(std::get<0>(xx));
+			ur = std::move(std::get<1>(xx));
+			hr = std::move(std::get<2>(xx));
+		}
+
+		Active activeA;
+		activeA.logging = true;		
+		if (ok) 
+		{
+			ActiveIOParameters ppio;
+			ppio.filename = model +".ac";
+			ok = ok && activeA.load(ppio);			
+		}		
+		std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;		
+		if (ok)
+		{
+
+			TRUTH(activeA.historyOverflow);
+			EVAL(sizeA);
+			EVAL(activeA.decomp->fuds.size());
+			EVAL(activeA.decomp->fudRepasSize);
+			EVAL((double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA);
+		}
+		
+		ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
+		if (ok)
+		{
+			std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+			auto over = activeA.historyOverflow;
+			auto& mm = ur->mapVarSize();
+			auto& mvv = hr->mapVarInt();
+			auto location = mvv[mm[Variable("location")]];
+			auto n = hr->dimension;
+			auto z = hr->size;
+			auto rr = hr->arr;	
+			auto entropyA = 0.0;
+			for (auto& p : activeA.historySlicesSetEvent)
+			{
+				std::map<std::size_t, double> locsCount;
+				for (auto ev : p.second)
+					locsCount[rr[ev*n+location]] += 1.0 / p.second.size();	
+				for (auto q : locsCount)
+					entropyA -= (double)p.second.size() * q.second * std::log(q.second);
+			}		
+			EVAL(entropyA);
+			EVAL(entropyA/sizeA);
+			EVAL((double)sizeA * std::log(sizeA));
+			EVAL(std::log(sizeA));
+		}
+	}
+	
 	return 0;
 }
