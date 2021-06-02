@@ -77,7 +77,14 @@ public:
 	std::size_t _collisionFOV;
 	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetNext;
 	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _locationsSlicesStepCount;
-
+	std::set<std::size_t> _neighbours;
+	std::set<std::size_t> _neighbourLeasts;
+	std::size_t _sliceLocA;
+	std::size_t _transistionSuccessCount;
+	std::size_t _transistionNullCount;
+	double _transistionExpectedSuccessCount;
+	std::size_t _transistionCount;
+	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
 
