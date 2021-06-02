@@ -29,12 +29,15 @@ int main(int argc, char **argv)
 		ECHO(std::shared_ptr<TBOT03::RecordList> records = std::move(persistentsRecordList(in)));
 		EVAL(*records);
 	}
-	if (argc >= 3 && string(argv[1]) == "view_active")
+	if (argc >= 3 && (string(argv[1]) == "view_active" || string(argv[1]) == "view_active_concise"))
 	{
 		bool ok = true;
 		string model = string(argv[2]);
 	
 		EVAL(model);
+		
+		bool concise = string(argv[1]) == "view_active_concise";
+		TRUTH(concise);
 		
 		std::unique_ptr<System> uu;
 		std::unique_ptr<SystemRepa> ur;
@@ -79,15 +82,30 @@ int main(int argc, char **argv)
 				EVAL(hr->size);				
 				// EVAL(*hr);				
 			}			
-			EVAL(sorted(activeA.underlyingSlicesParent));				
+			if (!concise)
+			{
+				EVAL(sorted(activeA.underlyingSlicesParent));				
+			}
+			else 
+			{
+				EVAL(activeA.underlyingSlicesParent.size());				
+			}			
 			EVAL(activeA.bits);				
 			EVAL(activeA.var);				
 			EVAL(activeA.varSlice);				
 			EVAL(activeA.induceThreshold);				
 			EVAL(activeA.induceVarExclusions);				
 			if (activeA.historySparse) {EVAL(activeA.historySparse->size);}
-			// if (activeA.historySparse) {EVAL(*activeA.historySparse);}				
-			EVAL(activeA.historySlicesSetEvent);				
+			if (!concise)
+			{
+				if (activeA.historySparse) {EVAL(*activeA.historySparse);}				
+				EVAL(activeA.historySlicesSetEvent);			
+			}	
+			else 
+			{
+				EVAL(activeA.underlyingSlicesParent.size());				
+			}			
+			EVAL(activeA.historySlicesSetEvent.size());				
 			EVAL(activeA.induceSlices);				
 			EVAL(activeA.induceSliceFailsSize);				
 			EVAL(activeA.frameUnderlyings);				
@@ -96,7 +114,14 @@ int main(int argc, char **argv)
 			if (activeA.decomp) {EVAL(activeA.decomp->fuds.size());}
 			if (activeA.decomp) {EVAL(activeA.decomp->fudRepasSize);}
 			if (activeA.decomp) {EVAL((double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA);}
-			// if (activeA.decomp) {EVAL(*activeA.decomp);}			
+			if (!concise)
+			{
+				if (activeA.decomp) {EVAL(*activeA.decomp);}			
+			}	
+			else 
+			{
+				TRUTH(activeA.decomp);				
+			}
 		}
 	}
 	return 0;
