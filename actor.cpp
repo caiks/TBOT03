@@ -412,88 +412,65 @@ void run_act(Actor& actor)
 							for (auto& p : neighbours)
 								actor._neighbours.insert(p.first);
 						}
-						// if (neighbourLeasts.size() && neighbourLeasts.size() < neighbours.size())
-						// {
-							// std::map<std::size_t, std::size_t> actionsCount;
-							// {
-								// for (auto ev : activeA.historySlicesSetEvent[sliceA])
-								// {
-									// if (rr[ev*n+location] == locA)
-									// {
-										// auto j = ev + (ev >= y ? 0 : z)  + 1;	
-										// while (j < y+z)
-										// {
-											// auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
-											// if (sliceLocB != sliceLocA)
-											// {
-												// if (neighbourLeasts.find(sliceLocB) != neighbourLeasts.end())
-													// actionsCount[rr[((ev+actor._lag)%z)*n+motor]]++;
-												// break;
-											// }
-											// j++;
-										// }										
-									// }
-								// }
-							// }
-							// EVAL(actionsCount);
-							// if (actionsCount.size())
-							// {
-								// char action = ahead;
-								// if (actor._modeProbabilistic)
-								// {
-									// std::size_t total = 0;
-									// for (auto& p : actionsCount)	
-										// total += p.second;
-									// auto r = rand() % total;
-									// std::size_t accum = 0.0;
-									// for (auto& p : actionsCount)
-									// {
-										// accum += p.second;
-										// if (r < accum)
-										// {
-											// action = p.first;
-											// break;
-										// }
-									// }						
-								// }
-								// else
-								// {
-									// if (actionsCount[turn_left] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_left] > actionsCount[turn_right])
-										// action = turn_left;
-									// else if (actionsCount[turn_right] * actor._acts_per_turn * 2 > actionsCount[ahead] && actionsCount[turn_right] > actionsCount[turn_left])
-										// action = turn_right;	
-								// }	
-								// // locking here? TODO
-								// if (action == turn_left)
-								// {
-									// actor._turn_request = "left";
-									// actor._bias_right = false;
-								// }
-								// else if (action == turn_right)
-								// {
-									// actor._turn_request = "right";
-									// actor._bias_right = true;
-								// }					
-							// }							
-						// }
-						
-						{					
-							// turn randomly chosen from distribution with collision avoidance
-							// handle case of blocked ahead and blocked to the sides
-							actor._status = Actor::AHEAD;
+						actor._status = Actor::AHEAD;
+						std::map<std::size_t, std::size_t> actionsCount;
+						if (neighbourLeasts.size() && neighbourLeasts.size() < neighbours.size())
+						{
+							for (auto ev : activeA.historySlicesSetEvent[sliceA])
 							{
-								auto r = (double) rand() / (RAND_MAX);
-								double accum = 0.0;
-								for (auto& p : actor._distribution)
+								if (rr[ev*n+location] == locA)
 								{
-									accum += p.second;
-									if (r < accum)
+									auto j = ev + (ev >= y ? 0 : z)  + 1;	
+									if (j < y+z && (!activeA.continousIs || !activeA.continousHistoryEventsEvent.count(j%z)))
 									{
-										actor._status = p.first;
-										break;
-									}
-								}						
+										auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
+										if (sliceLocB != sliceLocA)
+										{
+											if (neighbourLeasts.count(sliceLocB))
+												actionsCount[rr[(j%z)*n+motor]]++;
+										}
+									}										
+								}
 							}
+							EVAL(actionsCount);						
+						}
+						if (actionsCount.size())
+						{
+							char action = ahead;
+							std::size_t total = 0;
+							for (auto& p : actionsCount)	
+								total += p.second;
+							auto r = rand() % total;
+							std::size_t accum = 0.0;
+							for (auto& p : actionsCount)
+							{
+								accum += p.second;
+								if (r < accum)
+								{
+									action = p.first;
+									break;
+								}
+							}		
+							if (action == turn_left)
+								actor._status = Actor::LEFT;
+							else if (action == turn_right)
+								actor._status = Actor::RIGHT;					
+						}
+						else
+						{					
+							auto r = (double) rand() / (RAND_MAX);
+							double accum = 0.0;
+							for (auto& p : actor._distribution)
+							{
+								accum += p.second;
+								if (r < accum)
+								{
+									actor._status = p.first;
+									break;
+								}
+							}						
+						}
+						{
 							bool blockedAhead = false;
 							if (actor._status == Actor::AHEAD)
 							{
@@ -526,7 +503,6 @@ void run_act(Actor& actor)
 							}				
 							actor._actionPrevious = actor._status;
 						}
-						
 						if (actor._updateLogging)
 						{
 							string statusString;
@@ -1077,7 +1053,7 @@ Actor::Actor(const std::string& args_filename)
 				auto sliceLocC = rs[j%z]*nloc + rr[(j%z)*n+location];
 				if (sliceLocC != sliceLocB)
 				{
-					if (activeA.continousIs && !activeA.continousHistoryEventsEvent.count(j%z))
+					if (!activeA.continousIs || !activeA.continousHistoryEventsEvent.count(j%z))
 						_slicesSliceSetNext[sliceLocB].insert(sliceLocC);
 					sliceLocB = sliceLocC;
 				}
