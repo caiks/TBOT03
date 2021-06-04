@@ -14,6 +14,7 @@ namespace js = rapidjson;
 #define EVAL(x) { std::ostringstream str; str << #x << ": " << (x); RCLCPP_INFO(actor_this->get_logger(), str.str());}
 #define EVALTIME(x) { std::ostringstream str; str << #x << ": " << std::fixed << std::setprecision(3) << ((Sec)(x - actor_this->_startTimestamp)).count() << std::defaultfloat << "s"; RCLCPP_INFO(actor_this->get_logger(), str.str());}
 #define EVALDATETIME(x) { const std::time_t t_c = std::chrono::system_clock::to_time_t(x); std::ostringstream str; str << #x << ": " << std::put_time(std::localtime(&t_c), "%F %T"); RCLCPP_INFO(actor_this->get_logger(), str.str());}
+#define TRUTH(x) { std::ostringstream str; str << #x << ": " << ((x) ? "true" : "false"); RCLCPP_INFO(actor_this->get_logger(), str.str());}
 
 #define ARGS_STRING_DEF(x,y) args.HasMember(#x) && args[#x].IsString() ? args[#x].GetString() : y
 #define ARGS_STRING(x) ARGS_STRING_DEF(x,"")
@@ -337,7 +338,6 @@ void run_act(Actor& actor)
 						std::map<std::string,std::size_t> locationsInt;
 						for (std::size_t i = 0; i < locations.size(); i++)
 							locationsInt[locations[i]] = i;	
-
 						auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
 						auto sliceA = activeA.historySparse->arr[historyEventA];
 						std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
@@ -359,9 +359,11 @@ void run_act(Actor& actor)
 						auto locA = rr[historyEventA*n+location];
 						auto sliceLocA = sliceA*nloc+locA;
 						auto sliceCount = activeA.historySlicesSetEvent.size();
+						actor._status = Actor::AHEAD;
 						// EVAL(sliceA);							
-						// EVAL(locA);							
-						EVAL(sliceLocA);							
+						EVAL(locations[locA]);							
+						EVAL(sliceLocA);	
+						EVAL(actor.eventsRecord(historyEventA));						
 						std::map<std::size_t, std::size_t> neighbours;
 						{
 							auto& slicesStepCount = actor._locationsSlicesStepCount[goal];
@@ -412,7 +414,6 @@ void run_act(Actor& actor)
 							for (auto& p : neighbours)
 								actor._neighbours.insert(p.first);
 						}
-						actor._status = Actor::AHEAD;
 						std::map<std::size_t, std::size_t> actionsCount;
 						if (neighbourLeasts.size() && neighbourLeasts.size() < neighbours.size())
 						{
@@ -420,6 +421,7 @@ void run_act(Actor& actor)
 							{
 								if (rr[ev*n+location] == locA)
 								{
+									EVAL(actor.eventsRecord(ev));
 									auto j = ev + (ev >= y ? 0 : z)  + 1;	
 									if (j < y+z && (!activeA.continousIs || !activeA.continousHistoryEventsEvent.count(j%z)))
 									{
@@ -432,8 +434,8 @@ void run_act(Actor& actor)
 									}										
 								}
 							}
-							EVAL(actionsCount);						
 						}
+						EVAL(actionsCount);						
 						if (actionsCount.size())
 						{
 							char action = ahead;
@@ -470,8 +472,8 @@ void run_act(Actor& actor)
 								}
 							}						
 						}
+						bool blockedAhead = false;
 						{
-							bool blockedAhead = false;
 							if (actor._status == Actor::AHEAD)
 							{
 								for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
@@ -503,6 +505,7 @@ void run_act(Actor& actor)
 							}				
 							actor._actionPrevious = actor._status;
 						}
+						TRUTH(blockedAhead);
 						if (actor._updateLogging)
 						{
 							string statusString;
@@ -661,7 +664,7 @@ Actor::Actor(const std::string& args_filename)
 	// EVAL(_model);
 	// EVAL(_mode);
 	
-	if (_model.size() && modelInitial.size())
+	if (modelInitial.size())
 	{
 		try
 		{
@@ -1030,7 +1033,6 @@ Actor::Actor(const std::string& args_filename)
 		auto nloc = locations.size();
 		auto bloc = nloc - 6;
 		auto& activeA = *_level2.front();	
-		auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
 		std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
 		auto& hs = *activeA.historySparse;
 		auto over = activeA.historyOverflow;
@@ -1449,6 +1451,41 @@ void Actor::callbackGoal(const std_msgs::msg::String::SharedPtr msg)
 {
 	_goal = msg->data;
 	LOG "actor\tgoal:" << _goal UNLOG	
+}
+
+TBOT03::Record Actor::eventsRecord(std::size_t ev)
+{
+	TBOT03::Record record;
+	if (_records && _level2.size() && _level2.front()->continousHistoryEventsEvent.size())
+	{
+		auto& activeA = *_level2.front();			
+		if (activeA.historyOverflow)
+		{
+			auto z = activeA.historySize;
+			auto y = activeA.historyEvent;
+			auto j = ev + (ev >= y ? 0 : z);	
+			SizeSizeMap discont;
+			for (auto& pp : activeA.continousHistoryEventsEvent)
+				discont.insert_or_assign(pp.first + (pp.first >= y ? 0 : z), pp.second);
+			for (auto it = discont.rbegin(); it != discont.rend(); it++)
+				if (it->first <= j)
+				{
+					record = (*_records)[j - it->first + it->second];
+					break;
+				}
+		}
+		else
+		{
+			auto& discont = activeA.continousHistoryEventsEvent;
+			for (auto it = discont.rbegin(); it != discont.rend(); it++)
+				if (it->first <= ev)
+				{
+					record = (*_records)[ev - it->first + it->second];
+					break;
+				}
+		}
+	}
+	return record;
 }
 
 int main(int argc, char** argv)

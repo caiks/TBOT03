@@ -41,6 +41,7 @@ public:
 	Status _actionPrevious;
 	
 	std::shared_ptr<TBOT03::RecordList> _records;
+	TBOT03::Record eventsRecord(std::size_t);
 	
 	bool _updateLogging;
 	
