@@ -332,8 +332,18 @@ int main(int argc, char **argv)
 			for (auto& dev : sizesDeviations)
 			{
 				std::sort(dev.second.begin(),dev.second.end());
-				cout << dev.first << ": " << sizesSlices[dev.first].size() << " " << dev.second.front() << "," << dev.second[dev.second.size()/10] << "," << dev.second[dev.second.size()/2] << "," << dev.second.back() << endl;
+				cout << dev.first << ": " << sizesSlices[dev.first].size() << " " << dev.second.front() << "," << dev.second[dev.second.size()/10] << "," << dev.second[dev.second.size()/4] << "," << dev.second[dev.second.size()/2] << "," << dev.second.back() << endl;
 			}
+		}
+		if (ok)
+		{
+			std::map<double,std::set<std::size_t>> bucketsSlices;
+			for (auto& dev : slicesDeviations)
+				bucketsSlices[std::round(dev.second*100.0)/100.0].insert(dev.first);	
+			std::map<double,std::size_t> bucketsSizes;
+			for (auto& p : bucketsSlices)
+				bucketsSizes[p.first] = p.second.size();
+			EVAL(bucketsSizes);
 		}
 	}
 	
