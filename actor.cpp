@@ -1456,35 +1456,40 @@ void Actor::callbackGoal(const std_msgs::msg::String::SharedPtr msg)
 TBOT03::Record Actor::eventsRecord(std::size_t ev)
 {
 	TBOT03::Record record;
-	if (_records && _level2.size() && _level2.front()->continousHistoryEventsEvent.size())
+	if (_records)
 	{
-		auto& activeA = *_level2.front();			
-		if (activeA.historyOverflow)
+		record = (*_records)[ev];
+		if (_level2.size() && _level2.front()->continousHistoryEventsEvent.size()))
 		{
-			auto z = activeA.historySize;
-			auto y = activeA.historyEvent;
-			auto j = ev + (ev >= y ? 0 : z);	
-			SizeSizeMap discont;
-			for (auto& pp : activeA.continousHistoryEventsEvent)
-				discont.insert_or_assign(pp.first + (pp.first >= y ? 0 : z), pp.second);
-			for (auto it = discont.rbegin(); it != discont.rend(); it++)
-				if (it->first <= j)
-				{
-					record = (*_records)[j - it->first + it->second];
-					break;
-				}
-		}
-		else
-		{
+			auto& activeA = *_level2.front();			
 			auto& discont = activeA.continousHistoryEventsEvent;
-			for (auto it = discont.rbegin(); it != discont.rend(); it++)
-				if (it->first <= ev)
-				{
-					record = (*_records)[ev - it->first + it->second];
-					break;
-				}
-		}
+			if (activeA.historyOverflow)
+			{
+				auto z = activeA.historySize;
+				auto y = activeA.historyEvent;
+				auto j = ev + (ev >= y ? 0 : z);	
+				SizeSizeMap discont;
+				for (auto& pp : activeA.continousHistoryEventsEvent)
+					discont.insert_or_assign(pp.first + (pp.first >= y ? 0 : z), pp.second);
+				for (auto it = discont.rbegin(); it != discont.rend(); it++)
+					if (it->first <= j)
+					{
+						record = (*_records)[j - it->first + it->second];
+						break;
+					}
+			}
+			else
+			{
+				for (auto it = discont.rbegin(); it != discont.rend(); it++)
+					if (it->first <= ev)
+					{
+						record = (*_records)[ev - it->first + it->second];
+						break;
+					}
+			}
+		}		
 	}
+
 	return record;
 }
 

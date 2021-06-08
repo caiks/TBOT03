@@ -190,5 +190,93 @@ int main(int argc, char **argv)
 		}
 	}
 	
+	if (argc >= 3 && string(argv[1]) == "configuration_deviation")
+	{
+		bool ok = true;
+		string model = string(argv[2]);
+	
+		EVAL(model);
+		
+		std::unique_ptr<System> uu;
+		std::unique_ptr<SystemRepa> ur;
+		std::unique_ptr<HistoryRepa> hr;
+		if (ok) 
+		{
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, std::array<double,7>(), std::array<double,360>());	
+			uu = std::move(std::get<0>(xx));
+			ur = std::move(std::get<1>(xx));
+			hr = std::move(std::get<2>(xx));
+			ok = ok && uu && ur && hr;
+		}
+
+		Active activeA;
+		activeA.logging = true;		
+		if (ok) 
+		{
+			ActiveIOParameters ppio;
+			ppio.filename = model +"_2.ac";
+			ok = ok && activeA.load(ppio);			
+		}		
+		std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;		
+		if (ok)
+		{
+
+			TRUTH(activeA.historyOverflow);
+			EVAL(sizeA);
+			EVAL(activeA.decomp->fuds.size());
+			EVAL(activeA.decomp->fudRepasSize);
+			EVAL((double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA);
+		}
+		
+		std::shared_ptr<TBOT03::RecordList> records;
+		if (ok) 
+		{
+			try
+			{
+				std::ifstream in(model + ".rec", std::ios::binary);
+				records = std::move(persistentsRecordList(in));
+				ok = ok && records;			
+			}
+			catch (const exception&)
+			{
+				ok = false;
+			}
+		}		
+		if (ok)
+		{
+			EVAL(records->size());
+		}
+	
+		std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
+		auto nloc = locations.size();
+		std::map<std::size_t, std::vector<Record>> slicesRecords;
+		ok = ok && !activeA.historyOverflow && activeA.continousHistoryEventsEvent.size();
+		if (ok)
+		{
+			std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+			auto& mm = ur->mapVarSize();
+			auto& mvv = hr->mapVarInt();
+			auto location = mvv[mm[Variable("location")]];
+			auto n = hr->dimension;
+			auto z = hr->size;
+			auto rr = hr->arr;	
+			auto& discont = activeA.continousHistoryEventsEvent;
+			for (auto& p : activeA.historySlicesSetEvent)
+			{
+				for (auto ev : p.second)
+				{
+					auto sliceLocA = p.first*nloc + rr[ev*n+location];	
+					for (auto it = discont.rbegin(); it != discont.rend(); it++)
+						if (it->first <= ev)
+						{
+							slicesRecords[sliceLocA].push_back(((*records)[ev - it->first + it->second]).standard());
+							break;
+						}
+				}
+			}		
+			EVAL(slicesRecords.size());
+		}
+	}
+	
 	return 0;
 }
