@@ -320,6 +320,21 @@ int main(int argc, char **argv)
 				deviations.insert(dev.second);	
 			EVAL(deviations);
 		}
+		if (ok)
+		{
+			std::map<std::size_t, std::set<std::size_t>> sizesSlices;
+			std::map<std::size_t, std::vector<double>> sizesDeviations;
+			for (auto& dev : slicesDeviations)
+			{
+				sizesSlices[slicesRecords[dev.first].size()].insert(dev.first);	
+				sizesDeviations[slicesRecords[dev.first].size()].push_back(dev.second);	
+			}
+			for (auto& dev : sizesDeviations)
+			{
+				std::sort(dev.second.begin(),dev.second.end());
+				cout << dev.first << ": " << sizesSlices[dev.first].size() << " " << dev.second.front() << "," << dev.second[dev.second.size()/10] << "," << dev.second[dev.second.size()/2] << "," << dev.second.back() << endl;
+			}
+		}
 	}
 	
 	return 0;
