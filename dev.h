@@ -45,6 +45,7 @@ namespace TBOT03
 			y = y1;
 			yaw = yaw1;
 		}
+		Record standard() const;
 		double x;
 		double y;
 		double yaw;

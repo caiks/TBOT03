@@ -7,6 +7,11 @@ using namespace Alignment;
 using namespace TBOT03;
 using namespace std;
 
+TBOT03::Record TBOT03::Record::standard() const
+{					
+	return Record((x+5.15)/12.65, (y+5.275)/10.545, (yaw+180.0)/360.0);
+}
+
 void TBOT03::recordsPersistent(Record& r, std::ostream& out)
 {
 	out.write(reinterpret_cast<char*>(&r.x), sizeof(double));
