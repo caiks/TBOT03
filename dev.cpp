@@ -12,6 +12,30 @@ TBOT03::Record TBOT03::Record::standard() const
 	return Record((x+5.15)/12.65, (y+5.275)/10.545, (yaw+180.0)/360.0);
 }
 
+TBOT03::Record TBOT03::Record::config() const
+{					
+	return Record(x*12.65 - 5.15, y*10.545-5.275, yaw*360.0-180.0);
+}
+
+double TBOT03::Record::squared(const Record& b)
+{		
+	return (x-b.x)*(x-b.x)+(y-b.y)*(y-b.y)+(yaw-b.yaw)*(yaw-b.yaw);
+}
+
+void TBOT03::Record::operator+=(const Record& recordB)
+{		
+	x += recordB.x;
+	y += recordB.y;
+	yaw += recordB.yaw;
+}
+
+void TBOT03::Record::operator/=(double floatA)
+{		
+	x /= floatA;
+	y /= floatA;
+	yaw /= floatA;
+}
+
 void TBOT03::recordsPersistent(Record& r, std::ostream& out)
 {
 	out.write(reinterpret_cast<char*>(&r.x), sizeof(double));

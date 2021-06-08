@@ -276,6 +276,50 @@ int main(int argc, char **argv)
 			}		
 			EVAL(slicesRecords.size());
 		}
+		
+		if (ok)
+		{
+			std::set<std::size_t> sizes;
+			for (auto& p : slicesRecords)
+				sizes.insert(p.second.size());	
+			EVAL(sizes);
+		}
+		
+		std::map<std::size_t, Record> slicesMean;
+		if (ok)
+		{
+			for (auto& p : slicesRecords)
+			{
+				Record recordA;
+				for (auto recordB : p.second)
+					recordA += recordB;
+				recordA /= p.second.size();
+				slicesMean.insert_or_assign(p.first,recordA);
+			}		
+			EVAL(slicesMean.size());
+		}
+		
+		std::map<std::size_t, double> slicesDeviations;
+		if (ok)
+		{
+			for (auto& p : slicesRecords)
+			{
+				double variance = 0.0;
+				Record mean = slicesMean[p.first];
+				for (auto recordB : p.second)
+					variance += mean.squared(recordB);
+				variance /= p.second.size();
+				slicesDeviations.insert_or_assign(p.first,std::sqrt(variance));
+			}		
+			EVAL(slicesDeviations.size());
+		}
+		if (ok)
+		{
+			std::set<double> deviations;
+			for (auto& dev : slicesDeviations)
+				deviations.insert(dev.second);	
+			EVAL(deviations);
+		}
 	}
 	
 	return 0;

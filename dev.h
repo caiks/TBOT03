@@ -46,6 +46,10 @@ namespace TBOT03
 			yaw = yaw1;
 		}
 		Record standard() const;
+		Record config() const;
+		double squared(const Record&);
+		void operator+=(const Record&);
+		void operator/=(double);
 		double x;
 		double y;
 		double yaw;
