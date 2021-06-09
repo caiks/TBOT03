@@ -36,6 +36,25 @@ void TBOT03::Record::operator/=(double floatA)
 	yaw /= floatA;
 }
 
+Record TBOT03::recordsMean(const RecordList& ll)
+{
+	Record recordA;
+	for (auto recordB : ll)
+		recordA += recordB;
+	recordA /= ll.size();
+	return recordA;
+}
+
+double TBOT03::recordsDeviation(const RecordList& ll)
+{
+	double variance = 0.0;
+	Record mean = recordsMean(ll);
+	for (auto recordB : ll)
+		variance += mean.squared(recordB);
+	variance /= ll.size();
+	return std::sqrt(variance);
+}
+
 void TBOT03::recordsPersistent(Record& r, std::ostream& out)
 {
 	out.write(reinterpret_cast<char*>(&r.x), sizeof(double));

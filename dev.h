@@ -55,6 +55,9 @@ namespace TBOT03
 		double yaw;
 	};
 	typedef std::vector<Record> RecordList;
+	
+	Record recordsMean(const RecordList&);
+	double recordsDeviation(const RecordList&);
 
 	void recordsPersistent(Record&, std::ostream&);
 

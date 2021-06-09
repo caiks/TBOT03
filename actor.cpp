@@ -417,11 +417,15 @@ void run_act(Actor& actor)
 						std::map<std::size_t, std::size_t> actionsCount;
 						if (neighbourLeasts.size() && neighbourLeasts.size() < neighbours.size())
 						{
+							RecordList recordStandards;
+							std::vector<std::tuple<double, double, double>> records;
 							for (auto ev : activeA.historySlicesSetEvent[sliceA])
 							{
 								if (rr[ev*n+location] == locA)
 								{
-									EVAL(actor.eventsRecord(ev));
+									Record record = actor.eventsRecord(ev);
+									records.push_back(std::make_tuple(record.x, record.y, record.yaw));
+									recordStandards.push_back(record.standard());
 									auto j = ev + (ev >= y ? 0 : z)  + 1;	
 									if (j < y+z && (!activeA.continousIs || !activeA.continousHistoryEventsEvent.count(j%z)))
 									{
@@ -434,6 +438,14 @@ void run_act(Actor& actor)
 									}										
 								}
 							}
+							std::sort(records.begin(),records.end());
+							for (auto& recordA : records)
+							{
+								Record record(std::get<0>(recordA),std::get<1>(recordA),std::get<2>(recordA));
+								EVAL(record);
+							}
+							EVAL(recordsMean(recordStandards).config());
+							EVAL(recordsDeviation(recordStandards));
 						}
 						EVAL(actionsCount);						
 						if (actionsCount.size())
@@ -1459,7 +1471,7 @@ TBOT03::Record Actor::eventsRecord(std::size_t ev)
 	if (_records)
 	{
 		record = (*_records)[ev];
-		if (_level2.size() && _level2.front()->continousHistoryEventsEvent.size()))
+		if (_level2.size() && _level2.front()->continousHistoryEventsEvent.size())
 		{
 			auto& activeA = *_level2.front();			
 			auto& discont = activeA.continousHistoryEventsEvent;
