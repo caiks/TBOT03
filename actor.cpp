@@ -371,7 +371,7 @@ void run_act(Actor& actor)
 							{
 								auto it = slicesStepCount.find(sliceLocB);
 								if (it != slicesStepCount.end())
-									neighbours[sliceLocB] = it->second;								
+									neighbours[sliceLocB] = it->second;
 							}
 						}
 						EVAL(neighbours);							
@@ -644,6 +644,7 @@ Actor::Actor(const std::string& args_filename)
 	}
 	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 1.0);
 	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 20);
+	_configDeviationMax = ARGS_DOUBLE(configuration_deviation_maximum);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
@@ -1058,12 +1059,15 @@ Actor::Actor(const std::string& args_filename)
 		auto rs = hs.arr;
 		auto sliceCount = activeA.historySlicesSetEvent.size();
 		_slicesSliceSetNext.reserve(sliceCount*nloc);
+		SizeUSet setSliceLocA;
+		setSliceLocA.reserve(sliceCount*nloc);
 		{
 			auto j = over ? y : z;	
 			auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
 			j++;
 			while (j < y+z)
 			{
+				setSliceLocA.insert(sliceLocB);
 				auto sliceLocC = rs[j%z]*nloc + rr[(j%z)*n+location];
 				if (sliceLocC != sliceLocB)
 				{
@@ -1073,6 +1077,34 @@ Actor::Actor(const std::string& args_filename)
 				}
 				j++;
 			}					
+		}
+		if (_configDeviationMax > 0.0)
+		{
+			SizeUSet setSliceLocB;
+			setSliceLocB.reserve(setSliceLocA.size());
+			for (auto sliceLocB : setSliceLocA)
+			{
+				auto locB = sliceLocB % nloc;
+				RecordList recordStandards;
+				for (auto ev : activeA.historySlicesSetEvent[sliceLocB/nloc])
+					if (rr[ev*n+location] == locB)
+						recordStandards.push_back(eventsRecord(ev).standard());
+				if (recordsDeviation(recordStandards) <= _configDeviationMax)
+					setSliceLocB.insert(sliceLocB);
+			}
+			if (setSliceLocB.size() < setSliceLocA.size())
+			{
+				std::unordered_map<std::size_t, Alignment::SizeSet> slicesSliceSetNextB;
+				slicesSliceSetNextB.reserve(_slicesSliceSetNext.size());
+				for (auto& p : _slicesSliceSetNext)
+					if (setSliceLocB.count(p.first))
+						for (auto sliceLocC : p.second)						
+							if (setSliceLocB.count(sliceLocC))
+								slicesSliceSetNextB[p.first].insert(sliceLocC);
+				EVAL(_slicesSliceSetNext.size());
+				EVAL(slicesSliceSetNextB.size());
+				_slicesSliceSetNext = slicesSliceSetNextB;
+			}
 		}
 		{
 			std::unordered_map<std::size_t, Alignment::SizeSet> slicesSliceSetPrev;

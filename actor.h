@@ -77,6 +77,7 @@ public:
 	double _collisionRange;
 	std::size_t _collisionFOV;
 	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetNext;
+	double _configDeviationMax;
 	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _locationsSlicesStepCount;
 	std::set<std::size_t> _neighbours;
 	std::set<std::size_t> _neighbourLeasts;
