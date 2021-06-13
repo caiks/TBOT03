@@ -16,15 +16,17 @@ using namespace std::chrono_literals;
 typedef std::chrono::duration<double> sec;
 typedef std::chrono::high_resolution_clock clk;
 
-Commander::Commander(const std::string& room_initial, std::chrono::milliseconds command_interval, std::size_t room_seed, std::size_t running)
+Commander::Commander(const std::string& goal, std::chrono::milliseconds command_interval, std::size_t room_seed, std::size_t running)
 : Node("TBOT03_commander_node")
 {
 	srand(room_seed);
 	
+	_goal = goal;
+	
 	_locations = vector<string>{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6", "unknown" };
 	_room = _locations.size()-1;
 	for (size_t i = 0; i < _locations.size()-1; i++)
-		if (_locations[i] == room_initial)
+		if (_locations[i] == goal)
 			_room = i;
 		
 	_counts.push_back(0);
@@ -39,8 +41,8 @@ Commander::Commander(const std::string& room_initial, std::chrono::milliseconds 
 		
 	_timerCommand = this->create_wall_timer(command_interval, std::bind(&Commander::callbackCommand, this));
 
-	EVAL(room_initial);
-	RCLCPP_INFO(this->get_logger(), "TBOT03 commander node has been initialised");
+	EVAL(goal);
+	RCLCPP_INFO(this->get_logger(), "TBOT03 commander node has been initialised");		
 }
 
 Commander::~Commander()
@@ -74,7 +76,14 @@ void Commander::callbackScan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
 
 void Commander::callbackCommand()
 {
-	if (_poseTimestamp != TimePoint() && _scanTimestamp != TimePoint())
+	if (_goal.substr(0,4)!="room")
+	{
+		std_msgs::msg::String msg;
+		msg.data = _goal;
+		_publisherGoal->publish(msg);	
+		rclcpp::shutdown();
+	}
+	else if (_poseTimestamp != TimePoint() && _scanTimestamp != TimePoint())
 	{	
 		auto xx = posesScansHistoryRepa(8, _pose, _scan);
 		auto ur = std::move(std::get<1>(xx));

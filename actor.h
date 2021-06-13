@@ -39,6 +39,7 @@ public:
 	TimePoint _scanTimestampPrevious;
 	TimePoint _scanTimestamp;
 	Status _actionPrevious;
+	std::string _actionManual;
 	
 	std::shared_ptr<TBOT03::RecordList> _records;
 	TBOT03::Record eventsRecord(std::size_t);

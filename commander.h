@@ -32,6 +32,7 @@ private:
 	std::size_t _room;
 	std::vector<std::size_t> _counts;
 	std::size_t _running;
+	std::string _goal;
 
 	std::array<double,7> _pose;
 	TimePoint _poseTimestamp;

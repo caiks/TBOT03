@@ -83,9 +83,9 @@ void run_act(Actor& actor)
 	{
 		auto mark = Clock::now();
 		if (actor._status == Actor::STOP 
-			&& actor._actionPrevious != Actor::STOP 
 			&& actor._system)
 		{
+			if (actor._actionPrevious != Actor::STOP)
 			{
 				std::unique_ptr<HistoryRepa> hr;
 				{
@@ -142,7 +142,6 @@ void run_act(Actor& actor)
 					for (auto& t : threadsLevel)
 						t.join();			
 				}
-				actor._actionPrevious = Actor::STOP;
 				if (actor._actLogging)
 				{
 					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
@@ -182,6 +181,7 @@ void run_act(Actor& actor)
 			{
 				std::this_thread::sleep_for((std::chrono::milliseconds)250);
 				actor._status = Actor::WAIT_ODOM;
+				actor._actionPrevious = Actor::STOP;
 				if (actor._updateLogging)
 				{
 					LOG "actor\t" << "WAIT_ODOM" << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
@@ -532,6 +532,157 @@ void run_act(Actor& actor)
 						actor._statusTimestamp = Clock::now();	
 					}
 				}		
+			}
+			else if (actor._mode=="mode009")
+			{
+				bool ok = true;		
+				auto& activeA = *actor._level2.front();
+				if (!activeA.terminate && actor._actionPrevious != Actor::STOP)	
+				{			
+					std::lock_guard<std::mutex> guard(activeA.mutex);
+					ok = ok && (activeA.historyOverflow	|| activeA.historyEvent);
+					if (ok)
+					{
+						std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
+						auto nloc = locations.size();
+						std::map<std::string,std::size_t> locationsInt;
+						for (std::size_t i = 0; i < locations.size(); i++)
+							locationsInt[locations[i]] = i;	
+						auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+						auto sliceA = activeA.historySparse->arr[historyEventA];
+						std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+						auto& hs = *activeA.historySparse;
+						std::size_t goal = locationsInt[actor._goal];
+						const char turn_left = 0;
+						const char ahead = 1;
+						const char turn_right = 2;
+						auto over = activeA.historyOverflow;
+						auto& mm = actor._ur->mapVarSize();
+						auto& mvv = hr->mapVarInt();
+						auto motor = mvv[mm[Variable("motor")]];
+						auto location = mvv[mm[Variable("location")]];
+						auto n = hr->dimension;
+						auto z = hr->size;
+						auto y = activeA.historyEvent;
+						auto rr = hr->arr;	
+						auto rs = hs.arr;
+						auto locA = rr[historyEventA*n+location];
+						auto sliceLocA = sliceA*nloc+locA;
+						auto sliceCount = activeA.historySlicesSetEvent.size();
+						// EVAL(sliceA);							
+						EVAL(locations[locA]);							
+						EVAL(sliceLocA);	
+						EVAL(actor.eventsRecord(historyEventA));						
+						std::map<std::size_t, std::size_t> neighbours;
+						{
+							auto& slicesStepCount = actor._locationsSlicesStepCount[goal];
+							for (auto sliceLocB : actor._slicesSliceSetNext[sliceLocA])
+							{
+								auto it = slicesStepCount.find(sliceLocB);
+								if (it != slicesStepCount.end())
+									neighbours[sliceLocB] = it->second;
+							}
+						}
+						EVAL(neighbours);							
+						std::set<std::size_t> neighbourLeasts;
+						{
+							bool found = false;
+							std::size_t least = 0;
+							for (auto& p : neighbours)	
+								if (!found || least > p.second)
+								{
+									least = p.second;
+									found = true;
+								}
+							for (auto& p : neighbours)	
+								if (p.second == least)	
+									neighbourLeasts.insert(p.first);
+							EVAL(least);
+						}
+						EVAL(neighbourLeasts);
+						if (sliceLocA != actor._sliceLocA)
+						{
+							if (!actor._neighbours.count(sliceLocA))
+								actor._transistionNullCount++;
+							else 
+							{
+								if (actor._neighbourLeasts.count(sliceLocA))
+									actor._transistionSuccessCount++;
+								actor._transistionExpectedSuccessCount += (double) actor._neighbourLeasts.size() / (double) actor._neighbours.size();
+							}
+							actor._transistionCount++;
+							double transition_success_rate = (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount;
+							double transition_expected_success_rate = (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount;
+							double transition_null_rate = (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount;
+							EVAL(transition_success_rate);
+							EVAL(transition_expected_success_rate);
+							EVAL(transition_null_rate);
+							actor._sliceLocA = sliceLocA;
+							actor._neighbourLeasts = neighbourLeasts;
+							actor._neighbours.clear();
+							for (auto& p : neighbours)
+								actor._neighbours.insert(p.first);
+						}
+						std::map<std::size_t, std::size_t> actionsCount;
+						if (neighbourLeasts.size() && neighbourLeasts.size() < neighbours.size())
+						{
+							RecordList recordStandards;
+							std::vector<std::tuple<double, double, double>> records;
+							for (auto ev : activeA.historySlicesSetEvent[sliceA])
+							{
+								if (rr[ev*n+location] == locA)
+								{
+									Record record = actor.eventsRecord(ev);
+									records.push_back(std::make_tuple(record.x, record.y, record.yaw));
+									recordStandards.push_back(record.standard());
+									auto j = ev + (ev >= y ? 0 : z)  + 1;	
+									if (j < y+z && (!activeA.continousIs || !activeA.continousHistoryEventsEvent.count(j%z)))
+									{
+										auto sliceLocB = rs[j%z]*nloc + rr[(j%z)*n+location];
+										if (sliceLocB != sliceLocA)
+										{
+											if (neighbourLeasts.count(sliceLocB))
+												actionsCount[rr[(j%z)*n+motor]]++;
+										}
+									}										
+								}
+							}
+							std::sort(records.begin(),records.end());
+							for (auto& recordA : records)
+							{
+								Record record(std::get<0>(recordA),std::get<1>(recordA),std::get<2>(recordA));
+								EVAL(record);
+							}
+							EVAL(recordsMean(recordStandards).config());
+							EVAL(recordsDeviation(recordStandards));
+						}
+						EVAL(actionsCount);		
+						actor._actionPrevious = Actor::STOP;
+					}	
+				}
+				if (actor._actionManual.size())
+				{				
+					if (actor._actionManual == "LEFT")
+						actor._status = Actor::LEFT;
+					else if (actor._actionManual == "AHEAD")
+						actor._status = Actor::AHEAD;					
+					else if (actor._actionManual == "RIGHT")
+						actor._status = Actor::RIGHT;					
+					actor._actionPrevious = actor._status;
+					actor._actionManual = "";
+					if (actor._updateLogging)
+					{
+						string statusString;
+						switch(actor._status)
+						{
+							case Actor::AHEAD   : statusString = "AHEAD";    break;
+							case Actor::LEFT   : statusString = "LEFT";    break;
+							case Actor::RIGHT   : statusString = "RIGHT";    break;
+						}
+						LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+					}			
+					actor._statusTimestamp = Clock::now();	
+				}
 			}
 		}
 
@@ -1040,7 +1191,7 @@ Actor::Actor(const std::string& args_filename)
 		_threads.push_back(std::thread(run_act, std::ref(*this)));	
 	}
 	
-	if (_struct=="struct001" && _mode=="mode008")
+	if (_struct=="struct001" && (_mode=="mode008" || _mode=="mode009"))
 	{	
 		std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
 		auto nloc = locations.size();
@@ -1493,8 +1644,11 @@ void Actor::callbackUpdate()
 
 void Actor::callbackGoal(const std_msgs::msg::String::SharedPtr msg)
 {
-	_goal = msg->data;
-	LOG "actor\tgoal:" << _goal UNLOG	
+	if (msg->data.substr(0,4)=="room")
+		_goal = msg->data;
+	else
+		_actionManual = msg->data;
+	LOG "actor\tgoal:" << msg->data UNLOG	
 }
 
 TBOT03::Record Actor::eventsRecord(std::size_t ev)
