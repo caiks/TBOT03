@@ -206,41 +206,22 @@ ln -s ~/TBOT03_build/main main
 
 Now let us investigate various turtlebot *slice* topologies and goals. 
 
-[Active discontinuities and physical configuration](#Active)
+[Physical configuration](#Physical)
+
+[Active discontinuities](#Active)
 
 [Actor node](#Actor)
 
 [Conclusion](#Conclusion)
 
 
-<a name = "Active"></a>
+<a name = "Physical"></a>
 
-### Active discontinuities and physical configuration
+### Physical configuration
 
-Like the `TBOT02` actor node, the `TBOT03` actor node is implemented with the active framework defined in the [AlignmentActive repository](https://github.com/caiks/AlignmentActive). An active updates a *history* and induces a *model* from a stream of incoming *events* in real time. In a simulator such as Gazebo we are able to keep information not known to the robot such as its position and orientation. In `TBOT03` we will record the x and y coorinates and the yaw. This will enable us to determine the label *entropy* of the map from the *slices* to the physical configuration space. To keep the configuration record list synchronised with the active *history* we must handle discontinuities in the stream of *events*. In addition, if we wish to look back or forward from a particular *event* to past or future *events*, we must not roll past discontinuities of *event* update such as before the restart of an active given an initial *model*, or before the first *event* in the *history* which depends on overflow. 
+In a simulator such as Gazebo we are able to gather information not known to the robot such as its position and orientation. Although the physical configuration could include many other dynamic measures of the world, such as the poses of other agents, or objects that can be moved by agents, in `TBOT03` we will record just the turtlebot's x and y coordinates and yaw. This configuration will be recorded separately from its active *history*. 
 
-So before moving on to `TBOT03`, we added a map from discontinuous *events* to the *event* id in the stream - 
-```
-cd ~/TBOT02_build
-make
-```
-
-```
-cd ~/TBOT02_ws
-./main induce09 model027 data009 
-...
-activeB.continousIs: true
-activeC.continousIs: true
-activeB.continousHistoryEventsEvent: {(0,0),(1,1),(2,4),(3,6),(4,8),(5,10)}
-activeC.continousHistoryEventsEvent: {(0,0),(1,1),(2,4),(3,6),(4,8),(5,10)}
-...
-```
-The physical configuration records can be viewed thus -
-```
-cd ~/TBOT03_build
-make
-```
-
+This is an example -
 ```
 cd ~/TBOT03_ws
 ./main view_records model075 
@@ -265,15 +246,60 @@ cd ~/TBOT03_ws
 (-1.99716,1.5,0.0341257)
 (-1.99699,1.5,0.036157)
 ```
-When an actor starts with an initial *model* it pushes an empty record into the list and creates a discontinuity on the actives where the *slices* map to configuration space, so that the dummy record does not appear in their *histories*.
+Of course, the physical configuration cannot be obtained when the turtlebot is operating in the real world, so we will only use this simulator information to help us choose its sensors, *induction* parameters, and motors, and then to help us design and debug its modes of operation.
+
+Ultimately any agent's model of the world is key to its ability to act in that world. So the map between the turtlebot's *slices* and the physical configuration must be at least as accurate as is required to accomplish its goals, whether they are imperative goals, such as navigating to a room, or cognitive goals which aim to maximise the *model likelihood* given the *history size*. In the case of `TBOT03` we will start with the room goal of `TBOT01` and `TBOT02` before moving on to consider various 'interest' modes. 
+
+Clearly in order to navigate to another room, the turtlebot must be able to determine not only which room it is in, but also its position and orientation within the room. At any point in time it knows the *slice* it is in. By examining the *slice* transitions it can determine its *slice* neighbourhood. Then the turtlebot can select the subset of its neighbours which have the fewest *slice* transitions to the goal *slice* and choose the action accordingly. If all of its *slices* are such that each *slice's* *events* are closely clustered in configuration space, then turtlebot choice of action will be the correct one. If, however, the *slices* sometimes contain more than one cluster of configurations, each with a different average position and orientation, or if the clusters are rather ill-defined and spread out, then the map between the *slice* topology and the environment can become blurry and have worm-holes and circularities.
+
+It is therefore important to minimise the label *entropy* of the map from the *slices* to the physical configuration space. The configuration consists of continuous measures, however, so configuration *entropy* is difficult to define. Instead we will calculate the standard deviation of the Euclidean distance of the *event* configurations from the *slice's* mean configuration. The configurations are normalised so that the position and orientation measures are commensurate.
+
+Here we count the 
+
+```
+cd ~/TBOT03_ws
+./main configuration_deviation model077 
+
+```
+
+<a name = "Active"></a>
+
+### Active discontinuities and physical configuration
+
+Like the `TBOT02` actor node, the `TBOT03` actor node is implemented with the active framework defined in the [AlignmentActive repository](https://github.com/caiks/AlignmentActive). An active updates a *history* and induces a *model* from a stream of incoming *events* in real time. To keep the physical configuration record list synchronised with the active *history* we must handle discontinuities in the stream of *events*. In addition, if we wish to look backward or forward from a particular *event* to past or future *events*, we must not roll past the discontinuities of *event* update, such as before the first *event* in the *history*, or before the restart of an active given an initial *model*. 
+
+So, before moving on to `TBOT03`, we added a map from the discontinuous *events* to the *event* id in the stream - 
+```
+cd ~/TBOT02_build
+make
+```
+
+```
+cd ~/TBOT02_ws
+./main induce09 model027 data009 
+...
+activeB.continousIs: true
+...
+activeB.continousHistoryEventsEvent: {(0,0),(1,1),(2,4),(3,6),(4,8),(5,10)}
+...
+```
+When an actor starts with an initial *model*, it pushes an empty record into the list and creates a discontinuity in the active's map between the *history* and the configuration space.
 
 <a name = "Actor"></a>
 
 ### Actor node
 
-The `TBOT03` actor node has the same active structure - `struct001` which defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*.
+The `TBOT03` actor node has similar active structure to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*.
+
+The principal differences between `TBOT02` and `TBOT03` is not the active structure, but the actions loop and the modes of action.
 
 describe the act loop and the test modes 1-4
+
+TBOT02 had a small success rate but because it was in constant motion that was enough to attain the goals statistically significantly. In TBOT03 we are stopping between actions like a bird walking 
+
+use the change in pose rather than linear or angular speed. So for forward motion have a change in postion of 0.5m i.e. 4m lidar range / 8 valency. For turn a change in orientation of 30 deg with update rate of 5ms (odom is 3.3ms), i.e. 360/30 = 12 regional models in level 1. Forwards take 3000ms, turns 30ms. Then wait 220ms for the lidar before stop state. Add a wait state before the stop state. Run at a higher real_time_factor.
+
+actions recorded on next event, actions disconnected from the performance (the acts)
 
 randomly distributed actions mode 5
 
@@ -283,27 +309,26 @@ turn randomly chosen from distribution with collision avoidance handling case of
 
 mode 8 first room goal 
 
+problems with the topology - measure of deviation rather than configuration entropy
+
+calculate room entropy - model 77 has considerably higher room label entropy than the similar TBOT02 model 65 - we will need slice-room transitions - add to README. 
+
+In model 77, of the 38k slices only 19k have 5 or more events. Around 17K have low variance. Only around 10% of larger slices have low variance. So even if we prevent loops and ambiguous slices, the slice topology is likely to be patchy. We should seek to improve both the model and the effectiveness. README
+
+In TBOT03 we are stopping between actions like a bird walking and so much more successful, but ironically this means that the turtlebot is more likely to be stuck in any loops caused by ambiguity wormholes. We must either have better maps to the configuration space or loop handling that artificially fails to go to the wormhole neighbour. Always better to have a good map because delooping is not guaranteed to be better than chance. It will help only if there are parts of the slice topology that is well mapped eg at doorways.
+
+can't really expect too much - need landmarks, magnetic compass, etc
+
+mustn't make unfair anthropomorphic comparisons, except between TBOT03 and a newborn
+
+TBOT03 measure successful transition actions
+
+debugging the topology
+
 mode 9 manual with mode 8 
-
-
-TBOT03 README - actions recorded on next event, actions disconnected from the performance (the acts)
-
-TBOT03 readme TBOT02 had a small success rate but because it was in constant motion that was enough to attain the goals statistically significantly. In TBOT03 we are stopping between actions like a bird walking and so much more successful, but ironically this means that the turtlebot is more likely to be stuck in any loops caused by ambiguity wormholes. We must either have better maps to the configuration space or loop handling that artificially fails to go to the wormhole neighbour. Always better to have a good map because delooping is not guaranteed to be better than chance. It will help only if there are parts of the slice topology that is well mapped eg at doorways.
 
 TBOT03  README in mode 9 we are essentially debugging the slice topology by manually manoeuvring the turtlebot with tracing what it would have done automatically in mode 8
 
-TBOT03 In model 77, of the 38k slices only 19k have 5 or more events. Around 17K have low variance. Only around 10% of larger slices have low variance. So even if we prevent loops and ambiguous slices, the slice topology is likely to be patchy. We should seek to improve both the model and the effectiveness. README
-
-TBOT03 mustn't make unfair anthropomorphic comparisons, except between TBOT03 and a newborn README
-
-TBOT03 calculate room entropy - model 77 has considerably higher room label entropy than the similar TBOT02 model 65 - we will need slice-room transitions - add to README. 
-
-
-
-
-TBOT03 use the change in pose rather than linear or angular speed. So for forward motion have a change in postion of 0.5m i.e. 4m lidar range / 8 valency. For turn a change in orientation of 30 deg with update rate of 5ms (odom is 3.3ms), i.e. 360/30 = 12 regional models in level 1. Forwards take 3000ms, turns 30ms. Then wait 220ms for the lidar before stop state. Add a wait state before the stop state. Run at a higher real_time_factor.
-
-TBOT03 measure successful transition actions
 
 TBOT03 we can model configuration space clustering by making a slice tree for each dimension and then inducing. The resultant configuration model slices are the clusters. Of course this is just the same as having the odometry as substrate instead of LiDAR. No doubt we could have a very good slice topology in that case. We can compare models by rel ent so could compare the substrate induced model to the configuration induced model (with same threshold) to get a measure of the quality of the slice topology. Then can run the model without odometry knowing whether it's slice topology was better or worse than some other substrate induced model.
 
