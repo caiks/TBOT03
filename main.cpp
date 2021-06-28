@@ -15,6 +15,45 @@ typedef std::chrono::high_resolution_clock clk;
 #define EVALL(x) cout << #x << ": " << endl << (x) << endl
 #define TRUTH(x) cout << #x << ": " << ((x) ? "true" : "false") << endl
 
+Record eventsRecord(const Alignment::Active& activeA, std::shared_ptr<TBOT03::RecordList> records, std::size_t ev)
+{
+	TBOT03::Record record;
+	if (records)
+	{
+		record = (*records)[ev];
+		if (activeA.continousHistoryEventsEvent.size())
+		{
+			auto& discont = activeA.continousHistoryEventsEvent;
+			if (activeA.historyOverflow)
+			{
+				auto z = activeA.historySize;
+				auto y = activeA.historyEvent;
+				auto j = ev + (ev >= y ? 0 : z);	
+				SizeSizeMap discont;
+				for (auto& pp : activeA.continousHistoryEventsEvent)
+					discont.insert_or_assign(pp.first + (pp.first >= y ? 0 : z), pp.second);
+				for (auto it = discont.rbegin(); it != discont.rend(); it++)
+					if (it->first <= j)
+					{
+						record = (*records)[j - it->first + it->second];
+						break;
+					}
+			}
+			else
+			{
+				for (auto it = discont.rbegin(); it != discont.rend(); it++)
+					if (it->first <= ev)
+					{
+						record = (*records)[ev - it->first + it->second];
+						break;
+					}
+			}
+		}		
+	}
+
+	return record;
+}
+
 int main(int argc, char **argv)
 {
 	if (argc >= 3 && string(argv[1]) == "view_records")
@@ -344,6 +383,82 @@ int main(int argc, char **argv)
 			for (auto& p : bucketsSlices)
 				bucketsSizes[p.first] = p.second.size();
 			EVAL(bucketsSizes);
+		}
+	}
+	
+	if (argc >= 3 && string(argv[1]) == "configuration_deviation_all")
+	{
+		bool ok = true;
+		string model = string(argv[2]);
+	
+		EVAL(model);
+		
+		std::unique_ptr<System> uu;
+		std::unique_ptr<SystemRepa> ur;
+		std::unique_ptr<HistoryRepa> hr;
+		if (ok) 
+		{
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, std::array<double,7>(), std::array<double,360>());	
+			uu = std::move(std::get<0>(xx));
+			ur = std::move(std::get<1>(xx));
+			hr = std::move(std::get<2>(xx));
+			ok = ok && uu && ur && hr;
+		}
+
+		Active activeA;
+		activeA.logging = true;		
+		if (ok) 
+		{
+			ActiveIOParameters ppio;
+			ppio.filename = model +"_2.ac";
+			ok = ok && activeA.load(ppio);			
+		}		
+		std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;		
+		if (ok)
+		{
+
+			TRUTH(activeA.historyOverflow);
+			EVAL(sizeA);
+			EVAL(activeA.decomp->fuds.size());
+			EVAL(activeA.decomp->fudRepasSize);
+			EVAL((double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA);
+		}
+		
+		std::shared_ptr<TBOT03::RecordList> records;
+		if (ok) 
+		{
+			try
+			{
+				std::ifstream in(model + ".rec", std::ios::binary);
+				records = std::move(persistentsRecordList(in));
+				ok = ok && records;			
+			}
+			catch (const exception&)
+			{
+				ok = false;
+			}
+		}		
+		if (ok)
+		{
+			EVAL(records->size());
+		}
+	
+		if (ok)
+		{
+			double variance = 0.0;
+			std::size_t count = 0;
+			for (auto& p : activeA.historySlicesSetEvent)
+			{
+				RecordList recordStandards;
+				for (auto ev : p.second)
+					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());
+				count += recordStandards.size();
+				auto dev = recordsDeviation(recordStandards);
+				variance += dev*dev*recordStandards.size();
+			}		
+			variance /= count;
+			EVAL(count);
+			EVAL(std::sqrt(variance));
 		}
 	}
 	

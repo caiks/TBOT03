@@ -219,7 +219,7 @@ Now let us investigate various turtlebot *slice* topologies and goals.
 
 ### Physical configuration
 
-In a simulator such as Gazebo we are able to gather information not known to the robot such as its position and orientation. Although the physical configuration could include many other dynamic measures of the world, such as the poses of other agents, or objects that can be moved by agents, in `TBOT03` we will record just the turtlebot's x and y coordinates and yaw. This configuration will be recorded separately from its active *history*. 
+In a simulator such as Gazebo we are able to gather information not known to the robot such as its exact position and orientation. Although the physical configuration could include many other dynamic measures of the world, such as the poses of other agents, or objects that can be moved by agents, in `TBOT03` we will record just the turtlebot's x and y coordinates and yaw. This configuration will be recorded separately from its active *history*. 
 
 This is an example -
 ```
