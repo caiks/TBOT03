@@ -221,45 +221,72 @@ Now let us investigate various turtlebot *slice* topologies and goals.
 
 In a simulator such as Gazebo we are able to gather information not known to the robot such as its exact position and orientation. Although the physical configuration could include many other dynamic measures of the world, such as the poses of other agents, or objects that can be moved by agents, in `TBOT03` we will record just the turtlebot's x and y coordinates and yaw. This configuration will be recorded separately from its active *history*. 
 
-This is an example -
+This is an example, where the turtlebot moves from its starting position in room 4 into the corridor to room 2 -
 ```
 cd ~/TBOT03_ws
-./main view_records model075 
-*records: (-1.99993,1.5,0.00114709)
-(-1.9997,1.5,0.0029681)
-(-1.99955,1.5,0.00490264)
-(-1.99942,1.5,0.0067631)
-(-1.99928,1.5,0.00800717)
-(-1.99915,1.5,0.00973616)
-(-1.999,1.5,0.0114542)
-(-1.99884,1.5,0.0134741)
-(-1.99866,1.5,0.0154754)
-(-1.99851,1.5,0.0174261)
-(-1.99835,1.5,0.0193936)
-(-1.9982,1.5,0.0212292)
-(-1.99803,1.5,0.0232272)
-(-1.99787,1.5,0.0252249)
-(-1.99771,1.5,0.027225)
-(-1.99756,1.5,0.0290707)
-(-1.9974,1.5,0.0310904)
-(-1.99729,1.5,0.0324365)
-(-1.99716,1.5,0.0341257)
-(-1.99699,1.5,0.036157)
+./main view_records model078 
+*records: (-1.99981,1.49997,0.0253202)
+(-1.44517,1.49196,-1.26718)
+(-1.44015,1.48738,-32.0543)
+(-0.983593,1.17426,-36.6514)
+(-0.98557,1.17272,-62.3233)
+(-0.722155,0.688435,-60.0746)
+(-0.720621,0.689003,-33.1571)
+(-0.719856,0.686763,-56.9441)
+(-0.718682,0.68733,-29.7472)
+(-0.242669,0.407572,-30.4445)
+(-0.242399,0.408778,-3.77064)
+(0.307508,0.367783,-4.17933)
+(0.859555,0.32512,-4.44195)
+(0.859711,0.32612,21.3517)
+(0.859928,0.3279,50.352)
+(0.862455,0.329382,26.2096)
+(0.864997,0.329421,-1.49013)
+(1.41928,0.319821,-0.533272)
+(1.41856,0.320849,26.0159)
+(1.41867,0.321568,54.0519)
+(1.42144,0.32312,30.0234)
+(1.42398,0.323476,1.41045)
+(1.9765,0.335904,1.70144)
+(2.53027,0.352991,1.8135)
+(3.08338,0.369931,1.83139)
+(3.63614,0.386508,1.79969)
 ```
-Of course, the physical configuration cannot be obtained when the turtlebot is operating in the real world, so we will only use this simulator information to help us choose its sensors, *induction* parameters, and motors, and then to help us design and debug its modes of operation.
+Of course, the physical configuration cannot be obtained when the turtlebot is operating in the real world, so we will only use this simulator information to help us choose its sensors, *induction* parameters, and motors, and also to help us design and debug its modes of operation.
 
-Ultimately any agent's model of the world is key to its ability to act in that world. So the map between the turtlebot's *slices* and the physical configuration must be at least as accurate as is required to accomplish its goals, whether they are imperative goals, such as navigating to a room, or cognitive goals which aim to maximise the *model likelihood* given the *history size*. In the case of `TBOT03` we will start with the room goal of `TBOT01` and `TBOT02` before moving on to consider various 'interest' modes. 
+Ultimately any agent's model of the world is key to its ability to act in that world. So the map between the turtlebot's *slices* and the physical configuration must be at least as accurate as is required to accomplish its goals, whether they are imperative goals, such as navigating to a room, or cognitive goals which aim to maximise the *model likelihood* given finite *history size*. In the case of `TBOT03` we will start with the room goal of `TBOT01` and `TBOT02` before moving on to consider various 'interest' modes. 
 
-Clearly in order to navigate to another room, the turtlebot must be able to determine not only which room it is in, but also its position and orientation within the room. At any point in time it knows the *slice* it is in. By examining the *slice* transitions it can determine its *slice* neighbourhood. Then the turtlebot can select the subset of its neighbours which have the fewest *slice* transitions to the goal *slice* and choose the action accordingly. If all of its *slices* are such that each *slice's* *events* are closely clustered in configuration space, then turtlebot choice of action will be the correct one. If, however, the *slices* sometimes contain more than one cluster of configurations, each with a different average position and orientation, or if the clusters are rather ill-defined and spread out, then the map between the *slice* topology and the environment can become blurry and have worm-holes and circularities.
+In order to navigate to another room, the turtlebot must be able to determine not only which room it is in, but also its position and orientation within the room. At any point in time it knows the current *slice*. By examining the *slice* transitions from this *slice* it can determine its *slice* neighbourhood. Then the turtlebot can select the subset of its neighbours which have the fewest *slice* transitions to the goal *slice* and choose the action accordingly. If all of its *slices* are such that each *slice's* *events* are closely clustered in configuration space, then turtlebot's choice of action will usually be correct. If, however, the *slices* sometimes contain more than one cluster of configurations, each cluster with a different average position and orientation, or if the clusters are rather ill-defined and spread out, then the map between the *slice* topology and the environment can become blurry and have worm-holes. In this case the turtlebot may end up going around in loops.
 
-It is therefore important to minimise the label *entropy* of the map from the *slices* to the physical configuration space. The configuration consists of continuous measures, however, so configuration *entropy* is difficult to define. Instead we will calculate the standard deviation of the Euclidean distance of the *event* configurations from the *slice's* mean configuration. The configurations are normalised so that the position and orientation measures are commensurate.
+It is therefore important to minimise the label *entropy* of the map from the *slices* to the physical configuration space. The configuration consists of continuous measures, however, so configuration *entropy* is difficult to define. Instead we will calculate the standard deviation of the Euclidean distance of the *event* configuration coordinates from the *slice's* mean configuration coordinate. The configurations are normalised so that the position and orientation measures are commensurate.
 
-Here we count the 
+Here we calculate the overall standard deviation for models 76 and 77 -
 
 ```
 cd ~/TBOT03_ws
-./main configuration_deviation model077 
+./main configuration_deviation_all model076 
+model: model076
+model076_2      load    file name: model076_2.ac        time 0.0386838s
+activeA.historyOverflow: false
+sizeA: 90178
+activeA.decomp->fuds.size(): 851
+activeA.decomp->fudRepasSize: 15983
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.943689
+records->size(): 90178
+count: 90178
+std::sqrt(variance): 0.469366
 
+./main configuration_deviation_all model077 
+model: model077
+model077_2      load    file name: model077_2.ac        time 0.231826s
+activeA.historyOverflow: false
+sizeA: 395073
+activeA.decomp->fuds.size(): 3925
+activeA.decomp->fudRepasSize: 67049
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.993487
+records->size(): 395074
+count: 395073
+std::sqrt(variance): 0.427422
 ```
 
 <a name = "Active"></a>

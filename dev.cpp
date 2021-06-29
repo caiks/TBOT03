@@ -17,6 +17,11 @@ TBOT03::Record TBOT03::Record::config() const
 	return Record(x*12.65 - 5.15, y*10.545-5.275, yaw*360.0-180.0);
 }
 
+TBOT03::Record TBOT03::Record::flip() const
+{					
+	return Record(x, y, yaw >= 0.0 ? yaw - 180.0 : yaw + 180.0);
+}
+
 double TBOT03::Record::squared(const Record& b)
 {		
 	return (x-b.x)*(x-b.x)+(y-b.y)*(y-b.y)+(yaw-b.yaw)*(yaw-b.yaw);

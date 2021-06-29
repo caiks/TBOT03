@@ -47,6 +47,7 @@ namespace TBOT03
 		}
 		Record standard() const;
 		Record config() const;
+		Record flip() const;
 		double squared(const Record&);
 		void operator+=(const Record&);
 		void operator/=(double);

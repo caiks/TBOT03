@@ -437,11 +437,11 @@ int main(int argc, char **argv)
 			{
 				ok = false;
 			}
+			if (ok)
+			{
+				EVAL(records->size());
+			}		
 		}		
-		if (ok)
-		{
-			EVAL(records->size());
-		}
 	
 		if (ok)
 		{
@@ -450,11 +450,19 @@ int main(int argc, char **argv)
 			for (auto& p : activeA.historySlicesSetEvent)
 			{
 				RecordList recordStandards;
+				RecordList recordFlipStandards;
 				for (auto ev : p.second)
-					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());
+				{
+					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());										
+					recordFlipStandards.push_back(eventsRecord(activeA,records,ev).flip().standard());					
+				}
 				count += recordStandards.size();
 				auto dev = recordsDeviation(recordStandards);
-				variance += dev*dev*recordStandards.size();
+				auto devFlip = recordsDeviation(recordFlipStandards);
+				if (dev <= devFlip)
+					variance += dev*dev*recordStandards.size();
+				else
+					variance += devFlip*devFlip*recordFlipStandards.size();
 			}		
 			variance /= count;
 			EVAL(count);
