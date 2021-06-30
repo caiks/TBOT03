@@ -256,17 +256,64 @@ Of course, the physical configuration cannot be obtained when the turtlebot is o
 
 Ultimately any agent's model of the world is key to its ability to act in that world. So the map between the turtlebot's *slices* and the physical configuration must be at least as accurate as is required to accomplish its goals, whether they are imperative goals, such as navigating to a room, or cognitive goals which aim to maximise the *model likelihood* given finite *history size*. In the case of `TBOT03` we will start with the room goal of `TBOT01` and `TBOT02` before moving on to consider various 'interest' modes. 
 
-In order to navigate to another room, the turtlebot must be able to determine not only which room it is in, but also its position and orientation within the room. At any point in time it knows the current *slice*. By examining the *slice* transitions from this *slice* it can determine its *slice* neighbourhood. Then the turtlebot can select the subset of its neighbours which have the fewest *slice* transitions to the goal *slice* and choose the action accordingly. If all of its *slices* are such that each *slice's* *events* are closely clustered in configuration space, then turtlebot's choice of action will usually be correct. If, however, the *slices* sometimes contain more than one cluster of configurations, each cluster with a different average position and orientation, or if the clusters are rather ill-defined and spread out, then the map between the *slice* topology and the environment can become blurry and have worm-holes. In this case the turtlebot may end up going around in loops.
+In order to navigate to another room, the turtlebot must be able to determine not only which room it is in, but also its position and orientation within the room. At any point in time it knows the current *slice*. By examining the *slice* transitions from this *slice* it can determine its *slice* neighbourhood. Then the turtlebot can select the subset of its neighbours which have the fewest *slice* transitions to the goal *slice* and choose the action accordingly. If all of its *slices* are such that each *slice's* *events* are closely clustered in configuration space, then turtlebot's choice of action will usually be correct. If, however, the *slices* sometimes contain more than one cluster of configurations, each cluster with a different average position and orientation, or if the clusters are rather ill-defined and spread out, then the map between the *slice* topology and the environment can become blurry or have worm-holes. In this case the turtlebot may end up going around in loops. It is therefore important to minimise the label *entropy* of the map from the *slices* to the physical configuration space. 
 
-It is therefore important to minimise the label *entropy* of the map from the *slices* to the physical configuration space. The configuration consists of continuous measures, however, so configuration *entropy* is difficult to define. Instead we will calculate the standard deviation of the Euclidean distance of the *event* configuration coordinates from the *slice's* mean configuration coordinate. The configurations are normalised so that the position and orientation measures are commensurate.
+In `TBOT01` and `TBOT02` we calculated `location` *entropy* rather than configuration  *entropy*. We can do the same in `TBOT03`, for example -
+
+```
+./main location_entropy model076_2
+model: model076_2
+model076_2      load    file name: model076_2.ac        time 0.0395493s
+activeA.historyOverflow: false
+sizeA: 90178
+activeA.decomp->fuds.size(): 851
+activeA.decomp->fudRepasSize: 15983
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.943689
+entropyA: 100571
+entropyA/sizeA: 1.11525
+(double)sizeA * std::log(sizeA): 1.02889e+06
+std::log(sizeA): 11.4095
+
+./main location_entropy model077_2
+model: model077_2
+model077_2      load    file name: model077_2.ac        time 0.231134s
+activeA.historyOverflow: false
+sizeA: 395073
+activeA.decomp->fuds.size(): 3925
+activeA.decomp->fudRepasSize: 67049
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.993487
+entropyA: 330471
+entropyA/sizeA: 0.83648
+(double)sizeA * std::log(sizeA): 5.09124e+06
+std::log(sizeA): 12.8868
+```
+
+Adding these 2 *models* to the earlier ones confirmed that, although the `location` *entropy* decreased with *size*, these *induced models* are not able to to reduce it to zero -
+
+model|size|label entropy/size
+---|---|---
+76|100,571|1.11525
+77|395,073|0.83648
+61|258,581|0.71099
+65|370,181|0.668522
+73|946,931|0.651033
+69|428,154|0.615338
+67|525,414|0.609749
+66|540,699|0.595765
+63|562,969|0.597108
+68|684,004|0.557499
+70|580,398|0.554539
+71|1,000,000|0.383128
+72|1,000,000|0.349623
+
+The physical configuration consists of continuous measures rather than discrete so configuration *entropy* is more difficult to define than `location` *entropy*. Instead of entropy we will calculate the standard deviation of the Euclidean distance of the *event* configuration coordinates from the *slice's* mean configuration coordinate. The configurations are normalised so that the position and orientation measures are commensurate.
 
 Here we calculate the overall standard deviation for models 76 and 77 -
 
 ```
-cd ~/TBOT03_ws
 ./main configuration_deviation_all model076 
 model: model076
-model076_2      load    file name: model076_2.ac        time 0.0386838s
+model076_2      load    file name: model076_2.ac        time 0.0370017s
 activeA.historyOverflow: false
 sizeA: 90178
 activeA.decomp->fuds.size(): 851
@@ -274,11 +321,13 @@ activeA.decomp->fudRepasSize: 15983
 (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.943689
 records->size(): 90178
 count: 90178
-std::sqrt(variance): 0.469366
+deviation: 0.4548
+count: 90178
+deviation_location: 0.220935
 
 ./main configuration_deviation_all model077 
 model: model077
-model077_2      load    file name: model077_2.ac        time 0.231826s
+model077_2      load    file name: model077_2.ac        time 0.292285s
 activeA.historyOverflow: false
 sizeA: 395073
 activeA.decomp->fuds.size(): 3925
@@ -286,7 +335,9 @@ activeA.decomp->fudRepasSize: 67049
 (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.993487
 records->size(): 395074
 count: 395073
-std::sqrt(variance): 0.427422
+deviation: 0.409984
+count: 395073
+deviation_location: 0.191815
 ```
 
 <a name = "Active"></a>
