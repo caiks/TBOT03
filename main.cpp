@@ -466,7 +466,51 @@ int main(int argc, char **argv)
 			}		
 			variance /= count;
 			EVAL(count);
-			EVAL(std::sqrt(variance));
+			auto deviation = std::sqrt(variance);
+			EVAL(deviation);
+		}
+		
+		if (ok)
+		{
+			SizeSizeSetMap historySliceLocationsSetEvent;
+			if (ok)
+			{
+				std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
+				auto nloc = locations.size();
+				std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+				auto& mm = ur->mapVarSize();
+				auto& mvv = hr->mapVarInt();
+				auto location = mvv[mm[Variable("location")]];
+				auto n = hr->dimension;
+				auto rr = hr->arr;	
+				for (auto& p : activeA.historySlicesSetEvent)
+					for (auto ev : p.second)
+						historySliceLocationsSetEvent[p.first*nloc+rr[ev*n+location]].insert(ev);
+			}
+
+			double variance = 0.0;
+			std::size_t count = 0;
+			for (auto& p : historySliceLocationsSetEvent)
+			{
+				RecordList recordStandards;
+				RecordList recordFlipStandards;
+				for (auto ev : p.second)
+				{
+					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());										
+					recordFlipStandards.push_back(eventsRecord(activeA,records,ev).flip().standard());					
+				}
+				count += recordStandards.size();
+				auto dev = recordsDeviation(recordStandards);
+				auto devFlip = recordsDeviation(recordFlipStandards);
+				if (dev <= devFlip)
+					variance += dev*dev*recordStandards.size();
+				else
+					variance += devFlip*devFlip*recordFlipStandards.size();
+			}		
+			variance /= count;
+			EVAL(count);
+			auto deviation_location = std::sqrt(variance);
+			EVAL(deviation_location);
 		}
 	}
 	
