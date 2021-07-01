@@ -446,7 +446,7 @@ int main(int argc, char **argv)
 		if (ok)
 		{
 			double variance = 0.0;
-			std::size_t count = 0;
+			std::size_t size = 0;
 			for (auto& p : activeA.historySlicesSetEvent)
 			{
 				RecordList recordStandards;
@@ -456,7 +456,7 @@ int main(int argc, char **argv)
 					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());										
 					recordFlipStandards.push_back(eventsRecord(activeA,records,ev).flip().standard());					
 				}
-				count += recordStandards.size();
+				size += recordStandards.size();
 				auto dev = recordsDeviation(recordStandards);
 				auto devFlip = recordsDeviation(recordFlipStandards);
 				if (dev <= devFlip)
@@ -464,8 +464,12 @@ int main(int argc, char **argv)
 				else
 					variance += devFlip*devFlip*recordFlipStandards.size();
 			}		
-			variance /= count;
-			EVAL(count);
+			variance /= size;
+			EVAL(size);
+			auto slice_count = (double) activeA.historySlicesSetEvent.size();
+			EVAL(slice_count);
+			auto slice_size_mean = (double) size / slice_count;
+			EVAL(slice_size_mean);
 			auto deviation = std::sqrt(variance);
 			EVAL(deviation);
 		}
@@ -489,7 +493,7 @@ int main(int argc, char **argv)
 			}
 
 			double variance = 0.0;
-			std::size_t count = 0;
+			std::size_t size = 0;
 			for (auto& p : historySliceLocationsSetEvent)
 			{
 				RecordList recordStandards;
@@ -499,7 +503,7 @@ int main(int argc, char **argv)
 					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());										
 					recordFlipStandards.push_back(eventsRecord(activeA,records,ev).flip().standard());					
 				}
-				count += recordStandards.size();
+				size += recordStandards.size();
 				auto dev = recordsDeviation(recordStandards);
 				auto devFlip = recordsDeviation(recordFlipStandards);
 				if (dev <= devFlip)
@@ -507,8 +511,12 @@ int main(int argc, char **argv)
 				else
 					variance += devFlip*devFlip*recordFlipStandards.size();
 			}		
-			variance /= count;
-			EVAL(count);
+			variance /= size;
+			EVAL(size);
+			auto slice_location_count = (double) historySliceLocationsSetEvent.size();
+			EVAL(slice_location_count);
+			auto slice_location_size_mean = (double) size / slice_location_count;
+			EVAL(slice_location_size_mean);
 			auto deviation_location = std::sqrt(variance);
 			EVAL(deviation_location);
 		}

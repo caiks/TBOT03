@@ -258,7 +258,7 @@ Ultimately any agent's model of the world is key to its ability to act in that w
 
 In order to navigate to another room, the turtlebot must be able to determine not only which room it is in, but also its position and orientation within the room. At any point in time it knows the current *slice*. By examining the *slice* transitions from this *slice* it can determine its *slice* neighbourhood. Then the turtlebot can select the subset of its neighbours which have the fewest *slice* transitions to the goal *slice* and choose the action accordingly. If all of its *slices* are such that each *slice's* *events* are closely clustered in configuration space, then turtlebot's choice of action will usually be correct. If, however, the *slices* sometimes contain more than one cluster of configurations, each cluster with a different average position and orientation, or if the clusters are rather ill-defined and spread out, then the map between the *slice* topology and the environment can become blurry or have worm-holes. In this case the turtlebot may end up going around in loops. It is therefore important to minimise the label *entropy* of the map from the *slices* to the physical configuration space. 
 
-In `TBOT01` and `TBOT02` we calculated `location` *entropy* rather than configuration  *entropy*. We can do the same in `TBOT03`, for example -
+In `TBOT01` and `TBOT02` we calculated `location` *entropy* rather than configuration  *entropy*. We can do the same for `TBOT03` in *models* 76 and 77  (described below), for example -
 
 ```
 ./main location_entropy model076_2
@@ -288,7 +288,7 @@ entropyA/sizeA: 0.83648
 std::log(sizeA): 12.8868
 ```
 
-Adding these 2 *models* to the earlier ones confirmed that, although the `location` *entropy* decreased with *size*, these *induced models* are not able to to reduce it to zero -
+Adding these 2 *models* to the earlier ones confirms that, although the `location` *entropy* decreased with *size*, these *induced models* are far from being able to to reduce it to zero -
 
 model|size|label entropy/size
 ---|---|---
@@ -309,36 +309,46 @@ model|size|label entropy/size
 The physical configuration consists of continuous measures rather than discrete so configuration *entropy* is more difficult to define than `location` *entropy*. Instead of entropy we will calculate the standard deviation of the Euclidean distance of the *event* configuration coordinates from the *slice's* mean configuration coordinate. The configurations are normalised so that the position and orientation measures are commensurate.
 
 Here we calculate the overall standard deviation for models 76 and 77 -
-
 ```
 ./main configuration_deviation_all model076 
 model: model076
-model076_2      load    file name: model076_2.ac        time 0.0370017s
+model076_2      load    file name: model076_2.ac        time 0.0353962s
 activeA.historyOverflow: false
 sizeA: 90178
 activeA.decomp->fuds.size(): 851
 activeA.decomp->fudRepasSize: 15983
 (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.943689
 records->size(): 90178
-count: 90178
+size: 90178
+slice_count: 3689
+slice_size_mean: 24.4451
 deviation: 0.4548
-count: 90178
+size: 90178
+slice_location_count: 11872
+slice_location_size_mean: 7.59586
 deviation_location: 0.220935
 
 ./main configuration_deviation_all model077 
 model: model077
-model077_2      load    file name: model077_2.ac        time 0.292285s
+model077_2      load    file name: model077_2.ac        time 0.232236s
 activeA.historyOverflow: false
 sizeA: 395073
 activeA.decomp->fuds.size(): 3925
 activeA.decomp->fudRepasSize: 67049
 (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.993487
 records->size(): 395074
-count: 395073
+size: 395073
+slice_count: 15008
+slice_size_mean: 26.3242
 deviation: 0.409984
-count: 395073
+size: 395073
+slice_location_count: 38008
+slice_location_size_mean: 10.3945
 deviation_location: 0.191815
 ```
+In fact we calculate both the configuration deviation for the *slices* and for the cross between *slice* and `location`. In the second case, we are assuming that the room or doorway is known to the turtlebot. That, of course, probably would not be the case in practice, but it is a requirement to identify room goal *slices*.
+
+Now that we have a measure of the map between *models* and the physical environments, we will experiment with various active structures and random modes, before going on to look at the goal modes.
 
 <a name = "Active"></a>
 
@@ -361,21 +371,36 @@ activeB.continousIs: true
 activeB.continousHistoryEventsEvent: {(0,0),(1,1),(2,4),(3,6),(4,8),(5,10)}
 ...
 ```
-When an actor starts with an initial *model*, it pushes an empty record into the list and creates a discontinuity in the active's map between the *history* and the configuration space.
+When an actor starts with an initial *model*, it pushes an empty record into the list to create a discontinuity in the active's map between the *history* and the configuration space.
 
 <a name = "Actor"></a>
 
 ### Actor node
 
-The `TBOT03` actor node has similar active structure to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*.
+The `TBOT03` actor node has similar active structures to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*.
 
-The principal differences between `TBOT02` and `TBOT03` is not the active structure, but the actions loop and the modes of action.
+The principal difference between `TBOT02` and `TBOT03` is not the active structure, however, but the actions loop and the modes of action.
+
+TBOT02 a lot of the problem, especially in small rooms, is that we are looking at actions and not requests. TBOT03 motor actions will be carefully sycnhronised with the senses. Ideally we would have a slice per act and vice-versa i.e. isomorphism.
+
+TBOT02 constrain each slice so that it spans a reasonable physical space ie the distance between events is a few metres. Doorways provide a potential barrier if sometimes the TBOT02 jumps across so have neighbours in same direction with differing steps. Slice topology necessarily poor because the slices are too large we need complete sets for each room. With vision and relative goals it would be better. Rather than crossing with room we need to cross with local region to keep the slices very small but with a good set of transitions. Add orientation/room to substrate instead of crossing slice topologies. Avoids the slices from becoming too small.
+
 
 describe the act loop and the test modes 1-4
 
 TBOT02 had a small success rate but because it was in constant motion that was enough to attain the goals statistically significantly. In TBOT03 we are stopping between actions like a bird walking 
 
 use the change in pose rather than linear or angular speed. So for forward motion have a change in postion of 0.5m i.e. 4m lidar range / 8 valency. For turn a change in orientation of 30 deg with update rate of 5ms (odom is 3.3ms), i.e. 360/30 = 12 regional models in level 1. Forwards take 3000ms, turns 30ms. Then wait 220ms for the lidar before stop state. Add a wait state before the stop state. Run at a higher real_time_factor.
+
+TBOT03 control is like a duck paddling requires individual strokes experiences increasing resistance
+
+TBOT03 Report linear and angular change in status log
+
+TBOT03 wait odom allow small changes in pose send stop
+
+TBOT03 actor `update_callback` will rely on the actor's clock and not the simulation's. Use the timestamp of the scan and odom records to transition the update_callback status. WAIT_ODOM waits until two odom records are identical, which is reported. Then WAIT_SCAN waits for the second scan timestamp after the first odom timestamp. Then write the record with a timestamp equal to the greater of the odom and scan timestamps, report the odom distance and angle rotated (updating averages for actions) from the previous event record and transition to STOP. The active update/act thread does nothing until STOP, then it gets the last event, adds it to the active's event queue and runs the update, and then sets the motor state to AHEAD, LEFT, or RIGHT according to the mode. If an obstacle prevents AHEAD the event moved flag is reset and the state is set to STOP. While the `update_callback` is in these motor states, it will publish the cmd_vel message, and check the odometry (running at 30Hz), until action complete. Then publish the cmd_vel message and go to WAIT_ODOM. Initial state is START which waits for the first odometry record and then transitions to WAIT_ODOM. If not START, always check if no longer horizontal, if not go to CRASH state. If STOP then do nothing. 
+
+TBOT03 readme TBOT02 had a small success rate but because it was in constant motion that was enough to attain the goals statistically significantly. In TBOT03 we are stopping between actions like a bird walking and so much more successful, but ironically this means that the turtlebot is more likely to be stuck in any loops caused by ambiguity wormholes. We must either have better maps to the configuration space or loop handling that artificially fails to go to the wormhole neighbour. Always better to have a good map because delooping is not guaranteed to be better than chance. It will help only if there are parts of the slice topology that is well mapped eg at doorways.
 
 actions recorded on next event, actions disconnected from the performance (the acts)
 
@@ -407,6 +432,8 @@ mode 9 manual with mode 8
 
 TBOT03  README in mode 9 we are essentially debugging the slice topology by manually manoeuvring the turtlebot with tracing what it would have done automatically in mode 8
 
+problem with structure 1 - if a detail is not visible across at least two the underlying actives then there are no alignments in the overlying active, and so, although, the underlying can 'see' the feature, it does not appear in the slice topology. One solution is to cross the overlying and underlying slices. 
+
 
 TBOT03 we can model configuration space clustering by making a slice tree for each dimension and then inducing. The resultant configuration model slices are the clusters. Of course this is just the same as having the odometry as substrate instead of LiDAR. No doubt we could have a very good slice topology in that case. We can compare models by rel ent so could compare the substrate induced model to the configuration induced model (with same threshold) to get a measure of the quality of the slice topology. Then can run the model without odometry knowing whether it's slice topology was better or worse than some other substrate induced model.
 
@@ -414,21 +441,13 @@ TBOT03 NB 202103081030 - essentially, we can measure the quality induced model's
 
 TBOT02 does not know the grammar of room navigation. We of course have high level models of paths, obstructions, doorways, escalators, etc. We look around to get our bearings when we walk into an unfamiliar room. TBOT02 has none of this. It is trapped in the present instant and so needs a large history and model for every location in the house.
 
-TBOT02 constrain each slice so that it spans a reasonable physical space ie the distance between events is a few metres. Doorways provide a potential barrier if sometimes the TBOT02 jumps across so have neighbours in same direction with differing steps. Slice topology necessarily poor because the slices are too large we need complete sets for each room. With vision and relative goals it would be better. Rather than crossing with room we need to cross with local region to keep the slices very small but with a good set of transitions. Add orientation/room to substrate instead of crossing slice topologies. Avoids the slices from becoming too small.
-
-TBOT02 a lot of the problem, especially in small rooms, is that we are looking at actions and not requests. TBOT03 motor actions will be carefully sycnhronised with the senses. Ideally we would have a slice per act and vice-versa i.e. isomorphism. 
-
 TBOT03 we are no longer interested in model likelihood, but assume that the inducer is always reasonably good. Interested in the temporal relationships between slices  or components of the model.
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
 
-TBOT03 control is like a duck paddling requires individual strokes experiences increasing resistance
-
 In the TBOT02 discussion we said that we can think of each *slice* as a set of *events* that corresponds roughly to a particular bounded and oriented area or region of the turtlebot house. Now, having, manually navigated in TBOT03's *slice* topology we can see that sometimes a *slice* corresponds to several different clusters of *events*. Each *event* has a coordinate in physical configuration space of `x`,`y` and `yaw`. Each cluster will have a  different mean coordinate and variance or deviation. If a *slice* has more than one cluster the overall mean won't correspond to any of the cluster means and the overall deviation will be greater than the deviation of any of the clusters.
 
 These areas arrange themselves contiguously to cover the turtlebot's explorations of the house. So a slice topology is a sort of map of the pathways through the physical environment, formed by the past movements of the agent. 
-
-
 
 The aim of TBOT03 is to debug the slice topologies created in TBOT02. 
 The best topologies approximate closely to the physical configuration space and affordances, with diverse neighbourhoods and complete connectivity. In TBOT02 the topologies were far from optimal!
