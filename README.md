@@ -379,7 +379,59 @@ When an actor starts with an initial *model*, it pushes an empty record into the
 
 The `TBOT03` actor node has similar active structures to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*.
 
-The principal difference between `TBOT02` and `TBOT03` is not the active structure, however, but the actions loop and the modes of action.
+The principal difference between `TBOT02` and `TBOT03` is not in the active structures, however, but in the actor's update and its modes of action.
+
+The actor's update has been simplified in `TBOT03`. The update no longer does record collection, collision avoidance or navigation, but instead it has a simple set of state transitions. If it's current state is an action state, `LEFT`, `AHEAD` or `RIGHT`, the turtlebot publishes a velocity or twist request. While moving it monitors its odometry. When the turtlebot has moved ahead the required distance, or rotated through the required angle, it publishes a stop request, and sets its state to `WAIT_ODOM`. While in this state it continues to check its pose until it has stopped moving. It then changes its state to `WAIT_SCAN`. In this state it waits until there has been a complete scan by the lidar whereupon it transitions to the `STOP` state. There it stays until given a new action state. So having started by being given an action state, the turtlebot finishes having (a) performed the action, and (b) taken a full scan while completely stationary. The time required for a complete action cycle varies but each cycle always yields only one configuration record and one active *event*. This is a change from `TBOT02` where the *events* were captured at regular intervals, regardless of the action requested. Now motor actions and sensor data are atomic.
+
+The update takes a very short time to process the state transitions, and so can be called frequently, defaulting to 10 milliseconds. In this way, the turtlebot acts as quickly as possible.
+
+All of the rest of turtlebot's behaviour is controlled by the act callback, according to the mode. Regardless of mode, the turtlebot only acts if the current actor state is `STOP`. When it first finds that it has stopped after an action it  records the configuration and then updates the active *levels* with the current *event*. The *levels* are updated in sequence from lowest to highest, running the active updates within a *level* in parallel threads. The actor then processes the mode if set.
+
+In mode 1 the turtlebot merely sets the actor state to `AHEAD`. This is the JSON configuration in `actor.json` -
+```json
+{
+	"structure" : "struct001",
+	"mode" : "mode001",
+	"logging_update" : true,
+	"warning_action" : true
+}
+```
+Run the simulation -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env009.model -s libgazebo_ros_init.so
+
+```
+Run the actor -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+```
+The turtlebot moves ahead and then crashes into the wall -
+```
+actor       START
+actor       WAIT_ODOM       time 10.277s
+actor       WAIT_SCAN       time 0.000s     x: -2   y: 1.5  yaw: 0.00115
+actor       STOP    time 0.210s
+actor       AHEAD   time 0.008s
+actor       WAIT_ODOM       time 1.951s     distance: 0.501
+actor       WAIT_SCAN       time 0.210s     x: -1.45        y: 1.5  yaw: 0.0113
+actor       STOP    time 0.350s
+actor       AHEAD   time 0.007s
+actor       WAIT_ODOM       time 1.823s     distance: 0.508
+actor       WAIT_SCAN       time 0.200s     x: -0.903       y: 1.5  yaw: 0.0215
+actor       STOP    time 0.170s
+actor       AHEAD   time 0.007s
+actor       WAIT_ODOM       time 1.833s     distance: 0.508
+actor       WAIT_SCAN       time 0.210s     x: -0.351       y: 1.5  yaw: 0.0327
+actor       STOP    time 0.360s
+actor       AHEAD   time 0.010s
+actor       CRASH   time 20.2777s
+```
+The default distance travelled before the brake is applied is 0.5 metres. The turtlebot decelerates for around another 5 centimetres before coming to a complete halt.
+
 
 TBOT02 a lot of the problem, especially in small rooms, is that we are looking at actions and not requests. TBOT03 motor actions will be carefully sycnhronised with the senses. Ideally we would have a slice per act and vice-versa i.e. isomorphism.
 
