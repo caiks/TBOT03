@@ -377,17 +377,19 @@ When an actor starts with an initial *model*, it pushes an empty record into the
 
 ### Actor node
 
-The `TBOT03` actor node has similar active structures to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*.
+The `TBOT03` actor node has similar active structures to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*. By default each active's induce operation will be called at regular intervals, unless *induction* is explicity disabled.
 
-The principal difference between `TBOT02` and `TBOT03` is not in the active structures, however, but in the actor's update and its modes of action.
+The principal differences between `TBOT02` and `TBOT03` are not in the active structures, however, but in the actor's update and its modes of action.
 
-The actor's update has been simplified in `TBOT03`. The update no longer does record collection, collision avoidance or navigation, but instead it has a simple set of state transitions. If it's current state is an action state, `LEFT`, `AHEAD` or `RIGHT`, the turtlebot publishes a velocity or twist request. While moving it monitors its odometry. When the turtlebot has moved ahead the required distance, or rotated through the required angle, it publishes a stop request, and sets its state to `WAIT_ODOM`. While in this state it continues to check its pose until it has stopped moving. It then changes its state to `WAIT_SCAN`. In this state it waits until there has been a complete scan by the lidar whereupon it transitions to the `STOP` state. There it stays until given a new action state. So having started by being given an action state, the turtlebot finishes having (a) performed the action, and (b) taken a full scan while completely stationary. The time required for a complete action cycle varies but each cycle always yields only one configuration record and one active *event*. This is a change from `TBOT02` where the *events* were captured at regular intervals, regardless of the action requested. Now motor actions and sensor data are atomic.
+The actor's update has been simplified in `TBOT03`. The update no longer does record collection, collision avoidance or navigation, but instead it has a simple set of state transitions. If it's current state is an action state, `LEFT`, `AHEAD` or `RIGHT`, the turtlebot publishes a velocity or twist request. While moving it monitors its odometry. When the turtlebot has moved ahead the required distance, or rotated through the required angle, it publishes a stop request (zero velocity and twist), and sets its state to `WAIT_ODOM`. While in this state it continues to check its pose until it has stopped moving. It then changes its state to `WAIT_SCAN`. In this state it waits until there has been a complete scan by the lidar whereupon it transitions to the `STOP` state. There it stays until given a new action state. So having started by being given an action state, the turtlebot finishes having (a) performed the action, and (b) taken a full scan while completely stationary. The time required for a complete action cycle varies but each cycle always yields only one configuration record and one active *event*. This is a change from `TBOT02` where the *events* were captured at regular intervals, regardless of the action requested or what state the actor was in. Now motor actions and sensor data are atomic and synchronised.
 
-The update takes a very short time to process the state transitions, and so can be called frequently, defaulting to 10 milliseconds. In this way, the turtlebot acts as quickly as possible.
+By contrast, although `TBOT02` sometimes did constrain each *slice* so that it spanned a small physical space, the *slices* were, nonetheless, often still too large partly due to the smearing of the lidar data when in motion. In `TBOT03` the turtlebot is stationary between actions similarly to the motion of a pigeon's head as it walks. Another analogy would be a duck's motion if it were to paddle through syrup. This should improve the map between *slice* and configuration space.
 
-All of the rest of turtlebot's behaviour is controlled by the act callback, according to the mode. Regardless of mode, the turtlebot only acts if the current actor state is `STOP`. When it first finds that it has stopped after an action it  records the configuration and then updates the active *levels* with the current *event*. The *levels* are updated in sequence from lowest to highest, running the active updates within a *level* in parallel threads. The actor then processes the mode if set.
+The update only takes a short time to process the state transitions, and so it can be called frequently. It defaults to 10 milliseconds. In this way, the turtlebot moves as quickly as possible.
 
-In mode 1 the turtlebot merely sets the actor state to `AHEAD`. This is the JSON configuration in `actor.json` -
+All of the rest of turtlebot's behaviour is controlled by the act operation, according to the mode. Regardless of mode, the turtlebot only acts if the current actor state is `STOP`. When it first finds that it has stopped after an action it  records the configuration and then updates the active *levels* with the current *event*. The *levels* are updated in sequence from lowest to highest, running the active updates within a *level* in parallel threads. The actor then processes the mode if set.
+
+In mode 1 the turtlebot only action is to set the actor state to `AHEAD`. This is the JSON configuration in `actor.json` -
 ```json
 {
 	"structure" : "struct001",
@@ -409,7 +411,7 @@ cd ~/turtlebot3_ws/src/TBOT03_ws
 ros2 run TBOT03 actor actor.json
 
 ```
-The turtlebot moves ahead and then crashes into the wall -
+When the simulator is started the turtlebot moves ahead and then crashes into the wall -
 ```
 actor       START
 actor       WAIT_ODOM       time 10.277s
@@ -430,31 +432,141 @@ actor       STOP    time 0.360s
 actor       AHEAD   time 0.010s
 actor       CRASH   time 20.2777s
 ```
-The default distance travelled before the brake is applied is 0.5 metres. The turtlebot decelerates for around another 5 centimetres before coming to a complete halt.
+The default distance travelled before the brake is applied is 0.5 metres. The turtlebot decelerates for around another 5 centimetres before coming to a complete halt. This distance is chosen to be equal to the 4 metre lidar range divided by a  valency of 8.
 
+In mode 2 the turtlebot only action is to set the actor state to `AHEAD`. This is the JSON configuration in `actor.json` -
+```json
+{
+	"angular_maximum_lag" : 2.0,
+	"structure" : "struct001",
+	"mode" : "mode002",
+	"logging_update" : true,
+	"warning_action" : true
+}
+```
+The turtlebot rotates anti-clockwise approximately 30 degrees,
+```
+actor       START
+actor       WAIT_ODOM       time 7.383s
+actor       WAIT_SCAN       time 0.000s     x: -2   y: 1.5  yaw: 0.000996
+actor       STOP    time 0.220s
+actor       LEFT    time 0.006s
+actor       WAIT_ODOM       time 0.814s     angle: 29.2
+actor       WAIT_SCAN       time 0.100s     x: -2   y: 1.5  yaw: 31.2
+actor       STOP    time 0.310s
+actor       LEFT    time 0.006s
+actor       WAIT_ODOM       time 0.774s     angle: 29.2
+actor       WAIT_SCAN       time 0.110s     x: -2   y: 1.5  yaw: 62.4
+actor       STOP    time 0.310s
+actor       LEFT    time 0.006s
+actor       WAIT_ODOM       time 0.774s     angle: 29.2
+actor       WAIT_SCAN       time 0.100s     x: -2   y: 1.5  yaw: 93.6
+actor       STOP    time 0.330s
+actor       LEFT    time 0.005s
+actor       WAIT_ODOM       time 0.784s     angle: 29.2
+actor       WAIT_SCAN       time 0.100s     x: -2   y: 1.5  yaw: 125
+actor       STOP    time 0.310s
+```
+Note that the default rotation is 30 degrees, but a lag has to be subtracted depending on the simulator real time factor and update frequency. For example, when running at 10x the lag should be set to 6.0 -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env015.model -s libgazebo_ros_init.so
 
-TBOT02 a lot of the problem, especially in small rooms, is that we are looking at actions and not requests. TBOT03 motor actions will be carefully sycnhronised with the senses. Ideally we would have a slice per act and vice-versa i.e. isomorphism.
+```
+Run the actor -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
 
-TBOT02 constrain each slice so that it spans a reasonable physical space ie the distance between events is a few metres. Doorways provide a potential barrier if sometimes the TBOT02 jumps across so have neighbours in same direction with differing steps. Slice topology necessarily poor because the slices are too large we need complete sets for each room. With vision and relative goals it would be better. Rather than crossing with room we need to cross with local region to keep the slices very small but with a good set of transitions. Add orientation/room to substrate instead of crossing slice topologies. Avoids the slices from becoming too small.
+```
 
+```json
+{
+	"update_interval" : 1,
+	"angular_maximum_lag" : 6.0,
+	"structure" : "struct001",
+	"mode" : "mode002",
+	"logging_update" : true,
+	"warning_action" : true
+}
+```
+```
+actor       START
+actor       WAIT_ODOM       time 2.712s
+actor       WAIT_SCAN       time 0.000s     x: -2   y: 1.5  yaw: 0.0187
+actor       STOP    time 0.020s
+actor       LEFT    time 0.006s
+actor       WAIT_ODOM       time 0.074s     angle: 24.5
+actor       WAIT_SCAN       time 0.032s     x: -2   y: 1.5  yaw: 30.6
+actor       STOP    time 0.033s
+actor       LEFT    time 0.012s
+actor       WAIT_ODOM       time 0.075s     angle: 24.9
+actor       WAIT_SCAN       time 0.023s     x: -2   y: 1.51 yaw: 60.3
+actor       STOP    time 0.034s
+actor       LEFT    time 0.011s
+actor       WAIT_ODOM       time 0.075s     angle: 25.3
+actor       WAIT_SCAN       time 0.025s     x: -2   y: 1.51 yaw: 90.5
+actor       STOP    time 0.034s
+actor       LEFT    time 0.007s
+actor       WAIT_ODOM       time 0.075s     angle: 25.3
+actor       WAIT_SCAN       time 0.025s     x: -2   y: 1.51 yaw: 120
+actor       STOP    time 0.033s
+```
+Again the 30 degrees rotation is chosen to be equal to the default field of view of the level 1 actives in structure 1. In general we are aiming to have a *slice* topology resolution such that there is generally a *slice* transition for each action. Ideally we would have a *slice* per act as well as an *event* per act.  That is, the indeterminacy of the `TBOT02` *slice* topology will be improved not only by a better map between *slice* and configuration space, but also by a better map between action and *slice* transition.
 
-describe the act loop and the test modes 1-4
+Mode 3 is the same as mode 2 except that the turtlebot rotates clockwise. Mode 4 tests the `WAIT_ODOM` state.
 
-TBOT02 had a small success rate but because it was in constant motion that was enough to attain the goals statistically significantly. In TBOT03 we are stopping between actions like a bird walking 
+Now, having dealt with the new update state transitions, we move on to acquiring active *history* and *modelling*. In mode 5, the turtlebot chooses an action at random from a probability distribution. By default, for every turn `LEFT` or `RIGHT`, the turtlebot will move `AHEAD` 5 times -
+```json
+{
+	"structure" : "struct001",
+	"mode" : "mode005",
+	"distribution_LEFT" : 1.0,
+	"distribution_AHEAD" : 5.0,
+	"distribution_RIGHT" : 1.0,
+	"logging_update" : true
+}
+```
+Run the simulation -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env009.model -s libgazebo_ros_init.so
 
-use the change in pose rather than linear or angular speed. So for forward motion have a change in postion of 0.5m i.e. 4m lidar range / 8 valency. For turn a change in orientation of 30 deg with update rate of 5ms (odom is 3.3ms), i.e. 360/30 = 12 regional models in level 1. Forwards take 3000ms, turns 30ms. Then wait 220ms for the lidar before stop state. Add a wait state before the stop state. Run at a higher real_time_factor.
+```
+Run the actor -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
 
-TBOT03 control is like a duck paddling requires individual strokes experiences increasing resistance
-
-TBOT03 Report linear and angular change in status log
-
-TBOT03 wait odom allow small changes in pose send stop
-
-TBOT03 actor `update_callback` will rely on the actor's clock and not the simulation's. Use the timestamp of the scan and odom records to transition the update_callback status. WAIT_ODOM waits until two odom records are identical, which is reported. Then WAIT_SCAN waits for the second scan timestamp after the first odom timestamp. Then write the record with a timestamp equal to the greater of the odom and scan timestamps, report the odom distance and angle rotated (updating averages for actions) from the previous event record and transition to STOP. The active update/act thread does nothing until STOP, then it gets the last event, adds it to the active's event queue and runs the update, and then sets the motor state to AHEAD, LEFT, or RIGHT according to the mode. If an obstacle prevents AHEAD the event moved flag is reset and the state is set to STOP. While the `update_callback` is in these motor states, it will publish the cmd_vel message, and check the odometry (running at 30Hz), until action complete. Then publish the cmd_vel message and go to WAIT_ODOM. Initial state is START which waits for the first odometry record and then transitions to WAIT_ODOM. If not START, always check if no longer horizontal, if not go to CRASH state. If STOP then do nothing. 
-
-TBOT03 readme TBOT02 had a small success rate but because it was in constant motion that was enough to attain the goals statistically significantly. In TBOT03 we are stopping between actions like a bird walking and so much more successful, but ironically this means that the turtlebot is more likely to be stuck in any loops caused by ambiguity wormholes. We must either have better maps to the configuration space or loop handling that artificially fails to go to the wormhole neighbour. Always better to have a good map because delooping is not guaranteed to be better than chance. It will help only if there are parts of the slice topology that is well mapped eg at doorways.
-
-actions recorded on next event, actions disconnected from the performance (the acts)
+```
+The turtlebot moves ahead, then rotates clockwise, and then moves ahead twice more before crashing -
+```
+actor       START
+actor       WAIT_ODOM       time 4.364s
+actor       WAIT_SCAN       time 0.000s     x: -2   y: 1.5  yaw: 0.000996
+actor       STOP    time 0.220s
+actor       AHEAD   time 0.017s
+actor       WAIT_ODOM       time 1.862s     distance: 0.502
+actor       WAIT_SCAN       time 0.200s     x: -1.45        y: 1.5  yaw: 0.0113
+actor       STOP    time 0.360s
+actor       RIGHT   time 0.013s
+actor       WAIT_ODOM       time 0.647s     angle: -23.8
+actor       WAIT_SCAN       time 0.110s     x: -1.45        y: 1.5  yaw: -25.7
+actor       STOP    time 0.230s
+actor       AHEAD   time 0.009s
+actor       WAIT_ODOM       time 1.831s     distance: 0.501
+actor       WAIT_SCAN       time 0.210s     x: -0.957       y: 1.26 yaw: -25.9
+actor       STOP    time 0.350s
+actor       AHEAD   time 0.007s
+actor       WAIT_ODOM       time 1.823s     distance: 0.508
+actor       WAIT_SCAN       time 0.200s     x: -0.46        y: 1.02 yaw: -26
+actor       STOP    time 0.170s
+actor       AHEAD   time 0.005s
+actor       CRASH   time 14.2228s
+```
+There is no collision avoidance in mode 5. In mode 6 we add a simple check before moving forward to see if any thing in a field of view directly ahead (defaulting to plus or minus 20 degrees) is within a certain range (defaulting to 1 metre). If it is blocked it rotates left or right according to the given distribution. In mode 7 we add further checks to the left and right at the rotation angle (defaulting to 30 degrees), so that if the turtlebot cannot move forward, it turns away from the direction in which it is also blocked. In this way mode 7 spends less time oscillating in corners.
 
 randomly distributed actions mode 5
 
