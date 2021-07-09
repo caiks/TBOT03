@@ -165,6 +165,58 @@ int main(int argc, char **argv)
 		}
 	}
 	
+	if (argc >= 3 && string(argv[1]) == "substrate_analyse")
+	{
+		auto aall = histogramsList;
+		auto araa = systemsHistogramRepasHistogram_u;
+		auto hrred = [](const HistoryRepa& hr, const SystemRepa& ur, const VarList& kk)
+		{
+			auto& vvi = ur.mapVarSize();
+			std::size_t m = kk.size();
+			SizeList kk1;
+			for (std::size_t i = 0; i < m; i++)
+				kk1.push_back(vvi[kk[i]]);
+			return setVarsHistoryRepasReduce_u(1.0, m, kk1.data(), hr);
+		};
+		
+		bool ok = true;
+		string model = string(argv[2]);
+	
+		EVAL(model);
+				
+		std::unique_ptr<System> uu;
+		std::unique_ptr<SystemRepa> ur;
+		std::shared_ptr<HistoryRepa> hr;
+		if (ok) 
+		{
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, std::array<double,7>(), std::array<double,360>());	
+			uu = std::move(std::get<0>(xx));
+			ur = std::move(std::get<1>(xx));
+		}
+
+		Active activeA;
+		activeA.logging = true;		
+		if (ok) 
+		{
+			ActiveIOParameters ppio;
+			ppio.filename = model +".ac";
+			ok = ok && activeA.load(ppio);
+			TRUTH(ok);				
+		}		
+		if (ok)
+		{
+			hr = activeA.underlyingHistoryRepa.front();
+			hr->size = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+
+			EVAL(hr->dimension);
+			EVAL(hr->size);
+			
+			rpln(cout, sorted(*aall(*araa(*uu, *ur, *hrred(*hr, *ur, VarList{ Variable("motor") })))));
+		cout << endl;
+		rpln(cout, sorted(*aall(*araa(*uu, *ur, *hrred(*hr, *ur, VarList{ Variable("location") })))));
+		}
+	}
+	
 	if (argc >= 3 && string(argv[1]) == "location_entropy")
 	{
 		bool ok = true;
