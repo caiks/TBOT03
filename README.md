@@ -385,7 +385,7 @@ The actor's update has been simplified in `TBOT03`. The update no longer does re
 
 So having started by being given an action state, the turtlebot finishes having (a) performed the action, and (b) taken a full scan while completely stationary. The time required for a complete action cycle varies but each cycle always yields only one configuration record and one active *event*. This is a change from `TBOT02` where the *events* were captured at regular intervals, regardless of the action requested or what state the actor was in. Now motor actions and sensor data are atomic and synchronised.
 
-By contrast, although `TBOT02` sometimes did find *slices* that spanned a small physical space, the *slices* were often still blurry or ill-defined partly due to the smearing of the lidar data when in motion. In `TBOT03` the turtlebot is stationary between actions. This is similar to the jerky motion of a pigeon's head as it walks. Another analogy would be a duck's motion if it were to paddle through syrup. This should improve the map between *slice* and configuration space.
+By contrast, although `TBOT02` sometimes did find *slices* that spanned a small physical space, the *slices* were often still blurry or ill-defined partly due to the smearing of the lidar data when in motion. Although the distortion of the scan while moving forward at a top speed of 30 cm per second is only a linear error of around +/- 6 cm compared to 50 cm per *event*, while rotating at 40 degrees per second there is an angular error of around +/- 8 degrees compared to 30 degrees per *event*. In `TBOT03` the turtlebot is stationary between actions. This is similar to the jerky motion of a pigeon's head as it walks. Another analogy would be a duck's motion if it were to paddle through syrup. This should improve the map between *slice* and configuration space.
 
 The update only takes a short time to process the state transitions, and so it can be called frequently. It defaults to 10 milliseconds. In this way, the turtlebot moves as quickly as possible.
 
@@ -435,7 +435,7 @@ actor       STOP    time 0.360s
 actor       AHEAD   time 0.010s
 actor       CRASH   time 20.2777s
 ```
-The default distance travelled before the brake is applied is 0.5 metres. The turtlebot decelerates for around another 5 centimetres before coming to a complete halt. This distance is chosen to be equal to the 4 metre lidar range divided by a  valency of 8.
+The default distance travelled before the brake is applied is 0.5 metres. The turtlebot decelerates for around another 5 cm before coming to a complete halt. This distance is chosen to be equal to the 4 metre lidar range divided by a  valency of 8.
 
 In mode 2 the turtlebot's only action is to set the actor state to `LEFT`. This is the JSON configuration in `actor.json` -
 ```json
@@ -571,7 +571,7 @@ actor       CRASH   time 14.2228s
 ```
 There is no collision avoidance in mode 5. 
 
-In mode 6 we add a simple check before moving forward to see if anything in the field of view directly ahead (defaulting to plus or minus 20 degrees) is within a certain range (defaulting to 1 metre). If the turtlebot is blocked ahead it rotates left or right according to the given distribution. 
+In mode 6 we add a simple check before moving forward to see if anything in the field of view directly ahead (defaulting to +/- 20 degrees) is within a certain range (defaulting to 1 metre). If the turtlebot is blocked ahead it rotates left or right according to the given distribution. 
 
 In mode 7 we add a further check. When the turtlebot is blocked ahead it looks to the left and right at the rotation angle (defaulting to 30 degrees), so that if the turtlebot is also blocked to the left it turns right, and vice-versa. Thus, in mode 7 the turtlebot spends less time oscillating in corners.
 
@@ -638,6 +638,9 @@ debugging the topology
 mode 9 manual with mode 8 
 
 TBOT03  README in mode 9 we are essentially debugging the slice topology by manually manoeuvring the turtlebot with tracing what it would have done automatically in mode 8
+
+
+TBOT03 bigger gain from forcing an action per request mapping to a change in configuration?
 
 problem with structure 1 - if a detail is not visible across at least two the underlying actives then there are no alignments in the overlying active, and so, although, the underlying can 'see' the feature, it does not appear in the slice topology. One solution is to cross the overlying and underlying slices. 
 
