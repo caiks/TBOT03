@@ -392,7 +392,7 @@ The update only takes a short time to process the state transitions, and so it c
 
 All of the rest of turtlebot's behaviour is controlled by the act operation, defined according to the mode. Regardless of mode, the turtlebot only acts if the current actor state is `STOP`. When it first finds that it has stopped after an action it  (a) records the configuration, (b) constructs the *event* from the lidar scan, (c) sets the the *event's* motor *variables* to the previous action, i.e. the action that led to this *event*, and then (d) updates the active *levels* with the new *event*. The *levels* are updated in sequence from lowest to highest, running the active updates within a *level* in parallel threads. At this point the current *slices* are defined for each active. The actor then processes the mode if it is defined.
 
-#### Modes 1-4
+#### Test modes 1-4
 
 In mode 1 the turtlebot's only action is to set the actor state to `AHEAD`. This is the JSON configuration in `actor.json` -
 ```json
@@ -521,7 +521,7 @@ Mode 3 is the same as mode 2 except that the turtlebot rotates clockwise, i.e. a
 
 Mode 4 tests the `WAIT_ODOM` state.
 
-#### Modes 5-7
+#### Random modes 5-7
 
 Now, having dealt with the new actor update state transitions, we can consider active *modelling* for the room goal. To do this we will acquire active *history* in various 'random' modes. In mode 5, the turtlebot chooses an action at random from a probability distribution. By default, for every turn `LEFT` or `RIGHT`, the turtlebot will move `AHEAD` 5 times -
 ```json
@@ -639,13 +639,11 @@ This is the tail end of the log -
 ```
 model077_2  induce summary  slice: 1706675  diagonal: 29.3814       fud cardinality: 3925   model cardinality: 67049        fuds per threshold: 0.993641
 ```
-
 *Model* 76 has an active *size* of 90,178. The *level* two active has a *fuds* per threshold per *size* of 0.944265, which is lower than similar *models* in `TBOT02`. *Model* 77 has an active *size* of 395,073. Its *level* two active has a *fuds* per threshold per *size* of 0.993641, which is higher than that of *model* 76 but still lower than similar *models* in `TBOT02`.
 
 The lower *model* measures might be due to the fact that a bug in `TBOT02` meant that it used a `WMAX` of 9 instead of 18 for the *level* two active, inadvertently improving the *likelihood*. 
 
-More likely, it is due to the time it spends oscillating in corners. If we analyse the *substrate* we can see that the actual distribution of the actor actions suggests that it travels forward far less than it should -
- 
+More likely, it is due to the time it spends oscillating in corners. If we analyse the *substrate* we can see that the actual distribution of the actor actions suggests that it travels forward far less often than it should -
 ```
 cd ~/TBOT03_ws
 ./main substrate_analyse model076_2
@@ -688,10 +686,88 @@ hr->size: 395073
 ({(location,room5)},38283 % 1)
 ({(location,room6)},41858 % 1)
 ```
+We can compare this to a `TBOT01` dataset -
+```
+./main analyse data009
+hr->dimension: 363
+hr->size: 172301
+...
+({(motor,0)},17809 % 1)
+({(motor,1)},136432 % 1)
+({(motor,2)},18060 % 1)
+
+({(location,door12)},2067 % 1)
+({(location,door13)},2365 % 1)
+({(location,door14)},2012 % 1)
+({(location,door45)},1288 % 1)
+({(location,door56)},2314 % 1)
+({(location,room1)},42708 % 1)
+({(location,room2)},19975 % 1)
+({(location,room3)},17110 % 1)
+({(location,room4)},45058 % 1)
+({(location,room5)},16658 % 1)
+({(location,room6)},20746 % 1)
+...
+```
+In `TBOT01` and `TBOT02` the actor turned even if the way ahead was not blocked but the side opposite to its turn bias was blocked. Also the turn direction depended on the bias which rarely changed during the actual turning. 
+
 This might also partly explain why `location` *entropies* of these two *models* is so much higher than similar *sized models* in `TBOT02`. Before going on to consider improvements to the random mode, however, let us see how well *model* 77 fares with navigating to a goal room.
 
+#### Room goal modes 8
 
-mode 8 first room goal 
+`TBOT03` mode 8 is very similar to [`TBOT02` mode 4 ](https://github.com/caiks/TBOT02#Actor_mode_4). Firstly, the topology is cached at startup rather than being recalculated for each action. Secondly, instead of a *slice* topology, mode 8 crosses with the `location` to create a *slice*-`location` topology. The count of transitions in the shortest path from local *slice*-`location` to the global goal *slice*-`location` set is more realistic than without `location` because of the high label *entropy*. The corresponding shortest-path neighbourhood should, in theory, provide a useful basis for the actions -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env009.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+```
+```
+{
+	"update_interval" : 2,
+	"act_interval" : 2,
+	"no_induce" : true,
+	"structure" : "struct001",
+	"model_initial" : "model077",
+	"structure_initial" : "struct001",
+	"mode" : "mode008",
+	"logging_update" : true,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false
+}
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 commander room5 60 17 50
+
+```
+This is the log after 2 hours -
+```
+transition_success_rate: 12.3143
+transition_expected_success_rate: 8.33337
+transition_null_rate: 63.1134
+
+room_initial: room5
+TBOT03 commander node has been initialised
+goal: room2     n: 1    mean: 892       std dev: 0      std err: 0      running mean: 892       running std dev: 0      running std err: 0
+goal: room6     n: 2    mean: 2243      std dev: 1351   std err: 955.301        running mean: 2243      running std dev: 1351   running std err: 955.301
+goal: room2     n: 3    mean: 12585     std dev: 14667.3        std err: 8468.19        running mean: 12585     running std dev: 14667.3        running std err: 8468.19
+goal: room6     n: 4    mean: 13041     std dev: 12726.8        std err: 6363.41        running mean: 13041     running std dev: 12726.8        running std err: 6363.41
+goal: room2     n: 5    mean: 13517     std dev: 11423  std err: 5108.5 running mean: 13517     running std dev: 11423  running std err: 5108.5
+goal: room4     n: 6    mean: 13314.8   std dev: 10437.5        std err: 4261.08        running mean: 13314.8   running std dev: 10437.5        running std err: 4261.08
+goal: room6     n: 7    mean: 13342.1   std dev: 9663.45        std err: 3652.44        running mean: 13342.1   running std dev: 9663.45        running std err: 3652.44
+goal: room2     n: 8    mean: 12430.2   std dev: 9355.77        std err: 3307.76        running mean: 12430.2   running std dev: 9355.77        running std err: 3307.76
+goal: room4     n: 9    mean: 12087.6   std dev: 8873.8 std err: 2957.93        running mean: 12087.6   running std dev: 8873.8 running std err: 2957.93
+```
+While its transition success rate is (12.3-8.3)/(1.0-0.631) = 10.8% than for `TBOT02`, the navigation performance is very poor. This is because it frequently becomes stuck in loops. The problem is that the *model* does not have a sufficient number of low deviation *slices* always to provide a path to goal even from room 4 to room 5. 
+
 
 problems with the topology - measure of deviation rather than configuration entropy
 
