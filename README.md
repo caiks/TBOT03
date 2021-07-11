@@ -713,7 +713,7 @@ In `TBOT01` and `TBOT02` the actor turned even if the way ahead was not blocked 
 
 This might also partly explain why `location` *entropies* of these two *models* is so much higher than similar *sized models* in `TBOT02`. Before going on to consider improvements to the random mode, however, let us see how well *model* 77 fares with navigating to a goal room.
 
-#### Room goal modes 8
+#### Room goal modes 8 and 9
 
 `TBOT03` mode 8 is very similar to [`TBOT02` mode 4 ](https://github.com/caiks/TBOT02#Actor_mode_4). Firstly, the topology is cached at startup rather than being recalculated for each action. Secondly, instead of a *slice* topology, mode 8 crosses with the `location` to create a *slice*-`location` topology. The count of transitions in the shortest path from local *slice*-`location` to the global goal *slice*-`location` set is more realistic than without `location` because of the high label *entropy*. The corresponding shortest-path neighbourhood should, in theory, provide a useful basis for the actions -
 ```
@@ -766,7 +766,281 @@ goal: room6     n: 7    mean: 13342.1   std dev: 9663.45        std err: 3652.44
 goal: room2     n: 8    mean: 12430.2   std dev: 9355.77        std err: 3307.76        running mean: 12430.2   running std dev: 9355.77        running std err: 3307.76
 goal: room4     n: 9    mean: 12087.6   std dev: 8873.8 std err: 2957.93        running mean: 12087.6   running std dev: 8873.8 running std err: 2957.93
 ```
-While its transition success rate is (12.3-8.3)/(1.0-0.631) = 10.8% than for `TBOT02`, the navigation performance is very poor. This is because it frequently becomes stuck in loops. The problem is that the *model* does not have a sufficient number of low deviation *slices* always to provide a path to goal even from room 4 to room 5. 
+While its transition success rate is (12.3-8.3)/(1.0-0.631) = 10.8%, which is better than that of `TBOT02`, the navigation performance is very poor. This is because it frequently becomes stuck in loops or in corners. The problem is that the *model* does not have a sufficient number of low deviation *slices* always to provide a path to goal even from room 4 to room 5. 
+
+We can demonstrate that this is the case in mode 9. In this mode, the choices that would have been made are calculated and traced but the control is now done manually. A modification to the commander allows us to set the action -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env009.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+```
+```
+{
+	"update_interval" : 2,
+	"act_interval" : 2,
+	"no_induce" : true,
+	"structure" : "struct001",
+	"model_initial" : "model077",
+	"structure_initial" : "struct001",
+	"mode" : "mode009",
+	"logging_update" : true,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false
+}
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 commander LEFT
+ros2 run TBOT03 commander AHEAD
+ros2 run TBOT03 commander RIGHT
+
+```
+In this sequence we begin 3 steps away from room 5 approaching from right. All previous slices are ambiguous -
+```
+actor       goal:AHEAD
+actor       AHEAD   time 3.705s
+actor       WAIT_ODOM       time 1.841s     distance: 0.509
+actor       WAIT_SCAN       time 0.202s     x: -4.41        y: 2.81 yaw: 151
+actor       STOP    time 0.272s
+locations[locA]: room4
+sliceLocA: 18746890
+actor.eventsRecord(historyEventA): (-4.41126,2.81218,151.223)
+neighbours: {(18746901,2),(18750487,2),(18912336,1),(18928209,1),(18932444,1),(18947899,1),(18947910,2)}
+least: 1
+neighbourLeasts: {18912336,18928209,18932444,18947899}
+transition_success_rate: 27.2727
+transition_expected_success_rate: 14.7509
+transition_null_rate: 36.3636
+record: (-4.9616,2.54394,154.439)
+record: (-4.864,2.60797,149.98)
+record: (-4.75085,2.43268,148.37)
+record: (-4.74081,2.47845,142.994)
+record: (-4.72679,2.75988,159.749)
+record: (-4.70993,2.38943,141.813)
+record: (-4.64723,2.63207,155.35)
+record: (-4.60178,3.38246,161.111)
+record: (-4.51526,3.1513,-158.949)
+record: (-4.41126,2.81218,151.223)
+record: (-4.17517,2.79346,140.08)
+record: (-2.98415,1.79346,-11.8733)
+recordsMean(recordStandards).config(): (-4.5074,2.64811,111.19)
+recordsDeviation(recordStandards): 0.264161
+actionsCount: {(1,8)}
+actor       goal:AHEAD
+actor       AHEAD   time 31.260s
+actor       WAIT_ODOM       time 1.804s     distance: 0.509
+actor       WAIT_SCAN       time 0.206s     x: -4.88        y: 3.09 yaw: 149
+actor       STOP    time 0.244s
+locations[locA]: door45
+sliceLocA: 18908530
+actor.eventsRecord(historyEventA): (-4.88708,3.09318,149.362)
+neighbours: {(18763110,1),(18800378,1),(18811334,1),(18838031,2),(18838097,2),(18838317,1),(18862715,2),(18866103,1),(18874837,1),(18881965,2),(18882702,2),(18883175,1),(18894736,1),(18894747,1),(18954730,1)}
+least: 1
+neighbourLeasts: {18763110,18800378,18811334,18838317,18866103,18874837,18883175,18894736,18894747,18954730}
+transition_success_rate: 25
+transition_expected_success_rate: 13.5216
+transition_null_rate: 41.6667
+record: (-5.06587,2.8607,142.779)
+record: (-5.02026,2.94188,142.548)
+record: (-5.01515,2.82079,143.733)
+record: (-5.01153,2.9356,142.433)
+record: (-5.00167,2.66534,143.85)
+record: (-4.99744,2.82138,136.398)
+record: (-4.90548,2.918,131.172)
+record: (-4.88708,3.09318,149.362)
+record: (-4.88625,2.98187,134.417)
+record: (-4.87977,2.91927,137.666)
+record: (-4.86373,3.11077,140.484)
+record: (-4.84094,3.16154,147.353)
+record: (-4.83975,2.74191,139.886)
+record: (-4.83742,3.05049,150.42)
+record: (-4.77453,2.79094,138.483)
+record: (-4.77402,2.79014,138.351)
+record: (-4.77009,2.85562,140.978)
+record: (-4.75207,2.8483,137.7)
+record: (-4.72749,3.02889,136.994)
+record: (-4.72241,3.34354,129.167)
+record: (-4.72136,3.01224,136.367)
+record: (-4.68858,3.11888,138.666)
+record: (-4.67847,3.21472,142.1)
+recordsMean(recordStandards).config(): (-4.85484,2.95765,140.057)
+recordsDeviation(recordStandards): 0.022714
+actionsCount: {(1,15)}
+actor       goal:AHEAD
+actor       AHEAD   time 168.113s
+actor       WAIT_ODOM       time 1.600s     distance: 0.501
+actor       WAIT_SCAN       time 0.204s     x: -5.33        y: 3.4  yaw: 145
+actor       STOP    time 0.328s
+locations[locA]: door45
+sliceLocA: 18883175
+actor.eventsRecord(historyEventA): (-5.33604,3.40131,145.413)
+neighbours: {(18766377,1),(18807490,0),(18857672,0),(18881998,2),(18894247,0),(18894742,0),(18932620,1),(18947531,0)}
+least: 0
+neighbourLeasts: {18807490,18857672,18894247,18894742,18947531}
+transition_success_rate: 30.7692
+transition_expected_success_rate: 17.6097
+transition_null_rate: 38.4615
+record: (-5.53493,3.29021,149.403)
+record: (-5.52074,3.29973,148.474)
+record: (-5.52069,3.30005,148.27)
+record: (-5.33604,3.40131,145.413)
+record: (-5.30758,3.54669,148.385)
+record: (-5.30076,3.46075,146.468)
+record: (-5.28061,3.53057,144.279)
+record: (-5.21639,3.52913,137.401)
+record: (-5.21624,3.48592,137.731)
+record: (-5.12453,3.57356,135.499)
+record: (-5.0935,3.48735,136.702)
+record: (-5.07736,3.45355,139.628)
+record: (-5.01815,3.4727,140.735)
+recordsMean(recordStandards).config(): (-5.27289,3.44858,142.953)
+recordsDeviation(recordStandards): 0.0210105
+actionsCount: {(1,8)}
+actor       goal:AHEAD
+actor       AHEAD   time 51.940s
+actor       WAIT_ODOM       time 1.758s     distance: 0.508
+actor       WAIT_SCAN       time 0.204s     x: -5.78        y: 3.71 yaw: 145
+actor       STOP    time 0.302s
+locations[locA]: room5
+sliceLocA: 18894742
+actor.eventsRecord(historyEventA): (-5.78985,3.71544,145.306)
+neighbours: {(18745868,0),(18790506,0),(18805213,0),(18825816,0),(18840633,0),(18857672,0),(18919492,0),(18927918,0),(18956199,0)}
+least: 0
+neighbourLeasts: {18745868,18790506,18805213,18825816,18840633,18857672,18919492,18927918,18956199}
+transition_success_rate: 35.7143
+transition_expected_success_rate: 20.8161
+transition_null_rate: 35.7143
+actionsCount: {}
+```
+We can see that the first step is ambiguous but happens to be correct, the last two steps are correct. That is, there are sometimes low deviation 'tunnels' to goal in certain *slices*.
+
+This is not always the case, though - this approach from right has no luck -
+```
+actor       goal:LEFT
+actor       LEFT    time 6.366s
+actor       WAIT_ODOM       time 0.628s     angle: 23.1
+actor       WAIT_SCAN       time 0.102s     x: -4.14        y: 4.45 yaw: -162
+actor       STOP    time 0.358s
+locations[locA]: room4
+sliceLocA: 18949928
+actor.eventsRecord(historyEventA): (-4.13752,4.45259,-161.997)
+neighbours: {}
+least: 0
+neighbourLeasts: {}
+transition_success_rate: 5.26316
+transition_expected_success_rate: 4.36042
+transition_null_rate: 68.4211
+actionsCount: {}
+actor       goal:AHEAD
+actor       AHEAD   time 18.651s
+actor       WAIT_ODOM       time 1.847s     distance: 0.51
+actor       WAIT_SCAN       time 0.210s     x: -4.66        y: 4.28 yaw: -162
+actor       STOP    time 0.240s
+locations[locA]: room4
+sliceLocA: 18939632
+actor.eventsRecord(historyEventA): (-4.67051,4.28111,-162.164)
+neighbours: {(18790890,2),(18790934,3),(18809172,3),(18820282,3),(18820337,2),(18835143,1),(18835144,0),(18837376,2),(18855801,3),(18870640,1),(18873412,3),(18888845,2),(18893026,0),(18904520,2),(18923913,1),(18927290,2),(18932911,2),(18939699,0),(18953349,2),(18954449,3)}
+least: 0
+neighbourLeasts: {18835144,18893026,18939699}
+transition_success_rate: 5
+transition_expected_success_rate: 4.14239
+transition_null_rate: 70
+record: (-4.75839,4.23672,-167.648)
+record: (-4.7514,4.2066,-168.771)
+record: (-4.70615,4.23509,-163.59)
+record: (-4.68102,4.31272,-159.481)
+record: (-4.67051,4.28111,-162.164)
+record: (-4.63861,4.349,-154.719)
+record: (-4.59832,4.26167,-140.724)
+record: (-4.59609,4.31813,-157.781)
+record: (-4.54589,4.44682,-142.85)
+record: (-4.51442,4.36654,-136.012)
+record: (-3.67404,4.72455,-160.923)
+record: (-3.5936,4.70378,-157.822)
+record: (-3.53164,4.73006,-159.069)
+record: (-3.50688,4.71231,-163.984)
+record: (-3.48899,4.70431,-158.165)
+record: (-3.48463,0.813982,-28.9957)
+record: (-3.40722,0.817243,-31.9204)
+record: (-3.3381,4.74963,-162.584)
+record: (-3.29562,4.73266,-162.444)
+record: (-3.25783,4.72927,-167.59)
+record: (-1.86244,4.24274,156.766)
+record: (-1.75437,4.27639,147.845)
+record: (-1.73335,0.348791,17.5367)
+record: (-1.01467,1.62824,69.544)
+record: (-0.951391,1.66583,70.701)
+record: (-0.612843,3.75314,109.939)
+record: (-0.608354,3.95653,116.129)
+record: (-0.607435,3.78828,117.274)
+record: (-0.597169,3.85509,112.111)
+record: (-0.596998,3.83145,112.563)
+record: (-0.57529,3.17496,101.561)
+recordsMean(recordStandards).config(): (-2.96625,3.7727,-57.2667)
+recordsDeviation(recordStandards): 0.387261
+actionsCount: {(1,4)}
+actor       goal:AHEAD
+actor       AHEAD   time 10.796s
+actor       WAIT_ODOM       time 1.790s     distance: 0.502
+actor       WAIT_SCAN       time 0.210s     x: -5.19        y: 4.12 yaw: -162
+actor       STOP    time 0.290s
+locations[locA]: room5
+sliceLocA: 18880926
+actor.eventsRecord(historyEventA): (-5.19127,4.11592,-162.409)
+neighbours: {(18762291,0),(18780166,0),(18793993,0),(18863238,0),(18865020,0),(18894137,0),(18921329,0),(18939699,0)}
+least: 0
+neighbourLeasts: {18762291,18780166,18793993,18863238,18865020,18894137,18921329,18939699}
+transition_success_rate: 4.7619
+transition_expected_success_rate: 3.94514
+transition_null_rate: 71.4286
+actionsCount: {}
+```
+Here is a successful transition -
+```
+locations[locA]: door56
+sliceLocA: 18754916
+actor.eventsRecord(historyEventA): (-6.3306,1.29055,84.4717)
+record: (-6.38131,1.03265,92.0128)
+record: (-6.34975,0.948405,86.993)
+record: (-6.33608,0.949404,89.9757)
+record: (-6.3306,1.29055,84.4717)
+record: (-6.31727,1.03887,85.9343)
+record: (-6.30239,1.05015,93.0726)
+record: (-6.29992,1.06378,83.2033)
+record: (-6.29662,1.13977,91.9588)
+record: (-6.27197,1.04943,93.219)
+record: (-6.24911,1.10854,94.9866)
+record: (-6.23914,1.05122,79.4263)
+recordsMean(recordStandards).config(): (-6.30674,1.06571,88.6595)
+recordsDeviation(recordStandards): 0.0159766
+neighbours: {(18749295,1),(18763391,0),(18810966,0),(18816560,1),(18855505,0),(18888912,0),(18894940,0)}
+least: 0
+neighbourLeasts: {18763391,18810966,18855505,18888912,18894940}
+transition_success_rate: 4.25532
+transition_expected_success_rate: 3.41392
+transition_null_rate: 80.8511
+actionsCount: {(1,8)}
+actor       goal:AHEAD
+actor       AHEAD   time 18.274s
+actor       WAIT_ODOM       time 1.778s     distance: 0.505
+actor       WAIT_SCAN       time 0.204s     x: -6.28        y: 1.83 yaw: 84.5
+actor       STOP    time 0.316s
+locations[locA]: room5
+sliceLocA: 18855505
+actor.eventsRecord(historyEventA): (-6.27756,1.83661,84.4508)
+```
+We can see from the experiments above that the *slices* often have several configuration clusters. If the *model* had more *events* in the *slices* away from the walls and corners, then the *model* might resolve into single cluster *slices*, i.e. low deviation *slices*. 
+
+We will attempt to address this problem by reverting the random mode 7 back to the obstruction handling in `TBOT01` and `TBOT02`.
+
 
 
 problems with the topology - measure of deviation rather than configuration entropy
