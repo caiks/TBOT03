@@ -142,7 +142,7 @@ void run_act(Actor& actor)
 					for (auto& t : threadsLevel)
 						t.join();			
 				}
-				if (actor._actLogging)
+				if (actor._actLogging && (actor._actLoggingFactor <= 1 || actor._eventId % actor._actLoggingFactor == 0))
 				{
 					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
 				}		
@@ -692,8 +692,99 @@ void run_act(Actor& actor)
 					actor._statusTimestamp = Clock::now();	
 				}
 			}
+			else if (actor._mode=="mode010")
+			{
+				// turn randomly chosen from distribution after 
+				// checking to the sides according to the turn bias
+				// and checking ahead - similar to TBOT01/2
+				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
+					actor._turnBiasRight = !actor._turnBiasRight;
+				bool blockedAhead = actor._scan[0] <= actor._collisionRange;
+				bool blockedLeft = actor._scan[(int)actor._angularMaximum] <= actor._collisionRangeAngle;
+				bool blockedRight = actor._scan[360-(int)actor._angularMaximum] <= actor._collisionRangeAngle;
+				if (actor._turnBiasRight && blockedLeft)
+					actor._status = Actor::RIGHT;
+				else if (blockedRight)
+					actor._status = Actor::LEFT;
+				else if (blockedLeft)
+					actor._status = Actor::RIGHT;
+				else if (blockedAhead)
+					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+				else
+				{
+					actor._status = Actor::AHEAD;
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distribution)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
+			else if (actor._mode=="mode011")
+			{
+				// turn randomly chosen from distribution after 
+				// checking to the sides according to the turn bias
+				// and checking ahead - similar to TBOT01/2 but less blocking
+				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
+					actor._turnBiasRight = !actor._turnBiasRight;
+				bool blockedAhead = actor._scan[0] <= actor._collisionRange;
+				bool blockedLeft = actor._scan[(int)actor._angularMaximum] <= actor._collisionRangeAngle;
+				bool blockedRight = actor._scan[360-(int)actor._angularMaximum] <= actor._collisionRangeAngle;
+				if (actor._turnBiasRight && blockedLeft)
+					actor._status = Actor::RIGHT;
+				else if (!actor._turnBiasRight && blockedRight)
+					actor._status = Actor::LEFT;
+				else if (blockedAhead)
+					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+				else
+				{
+					actor._status = Actor::AHEAD;
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distribution)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
-
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
 		{
@@ -743,6 +834,7 @@ Actor::Actor(const std::string& args_filename)
 
 	_updateLogging = ARGS_BOOL(logging_update);
 	_actLogging = ARGS_BOOL(logging_action);
+	_actLoggingFactor = ARGS_INT(logging_action_factor); 
 	_actWarning = ARGS_BOOL(warning_action);
 	std::chrono::milliseconds updateInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(update_interval,10));
 	_linearStopMaximum = ARGS_DOUBLE_DEF(linear_stop,0.005);
@@ -803,6 +895,9 @@ Actor::Actor(const std::string& args_filename)
 	}
 	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 1.0);
 	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 20);
+	_collisionRangeAngle = ARGS_DOUBLE_DEF(collision_range_angle, 0.7);
+	_turnBiasRight = ARGS_BOOL(turn_bias_right);	
+	_turnBiasFactor = ARGS_INT_DEF(turn_bias_factor,20);
 	_configDeviationMax = ARGS_DOUBLE(configuration_deviation_maximum);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;

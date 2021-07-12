@@ -1041,6 +1041,8 @@ We can see from the experiments above that the *slices* often have several confi
 
 We will attempt to address this problem by reverting the random mode 7 back to the obstruction handling in `TBOT01` and `TBOT02`.
 
+#### Random modes 10
+
 
 
 problems with the topology - measure of deviation rather than configuration entropy

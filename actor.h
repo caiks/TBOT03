@@ -47,6 +47,7 @@ public:
 	bool _updateLogging;
 	
 	bool _actLogging;
+	std::size_t _actLoggingFactor;
 	bool _actWarning;
 	std::chrono::milliseconds _actInterval;
 	std::string _struct;
@@ -77,6 +78,9 @@ public:
 	std::map<Status, double> _distributionTurn;
 	double _collisionRange;
 	std::size_t _collisionFOV;
+	bool _turnBiasRight;	
+	std::size_t _turnBiasFactor;
+	double _collisionRangeAngle;
 	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetNext;
 	double _configDeviationMax;
 	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _locationsSlicesStepCount;
