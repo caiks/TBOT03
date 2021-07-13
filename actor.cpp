@@ -784,6 +784,50 @@ void run_act(Actor& actor)
 				}			
 				actor._statusTimestamp = Clock::now();			
 			}
+			else if (actor._mode=="mode012")
+			{
+				// turn randomly chosen from distribution after 
+				// checking the entire field of view
+				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
+					actor._turnBiasRight = !actor._turnBiasRight;
+				bool blockedAhead = false;
+				for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+					if (actor._scan[i%360] <= actor._collisionRange)
+					{
+						blockedAhead = true;
+						break;					
+					}		
+				if (blockedAhead)
+					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+				else
+				{
+					actor._status = Actor::AHEAD;
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : actor._distribution)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
 		}
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
