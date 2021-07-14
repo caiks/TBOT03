@@ -1041,8 +1041,105 @@ We can see from the experiments above that the *slices* often have several confi
 
 We will attempt to address this problem by reverting the random mode 7 back to the obstruction handling in `TBOT01` and `TBOT02`.
 
-#### Random modes 10
+#### Random modes 10 - 12
 
+Modes 10, 11 and 12 are variations on the obstruction handling in `TBOT01` and `TBOT02`. They all use a turn bias in order to prevent the turtlebot from oscillating before obstructions. After experimenting with the various modes and parameters, it was found that the mode 12 prevented both crashing and the time spent in indecision. Its operation is simple - if there is any obstruction within the collision range and within the collision field of view then it turns in the direction of the turn bias only. The turn bias alternates between left and right at random intervals that tend to be longer than needed to escape from the current obstruction. That is, if the turtlebot is blocked it turns randomly to the either left or right, and then usually sticks to that decision until it is free to move at random again. 
+
+This is the configuration for *model* 79 running in mode 12 -
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env015.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model079.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model079",
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+Now we find that now it does, in fact, spend a larger proportion of its time moving ahead
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+./main substrate_analyse model079_2
+
+hr->dimension: 2
+hr->size: 347920
+({(motor,0)},93325 % 1)
+({(motor,1)},161054 % 1)
+({(motor,2)},93541 % 1)
+
+({(location,door12)},6035 % 1)
+({(location,door13)},4060 % 1)
+({(location,door14)},3895 % 1)
+({(location,door45)},1776 % 1)
+({(location,door56)},4451 % 1)
+({(location,room1)},94882 % 1)
+({(location,room2)},55812 % 1)
+({(location,room3)},30103 % 1)
+({(location,room4)},72314 % 1)
+({(location,room5)},30709 % 1)
+({(location,room6)},43883 % 1)
+```
+(Note that, although the fraction *events* moving ahead is still lower than in `TBOT01`, the distance moved per *event* is greater.)
+
+However, the reduction in the time spent avoiding obstructions does not translate into lower `location` *entropy* at 0.856429 -
+```
+./main location_entropy model079_2
+model: model079_2
+model079_2      load    file name: model079_2.ac        time 0.205295s
+activeA.historyOverflow: false
+sizeA: 347920
+activeA.decomp->fuds.size(): 3393
+activeA.decomp->fudRepasSize: 58541
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.975224
+entropyA: 297969
+entropyA/sizeA: 0.856429
+(double)sizeA * std::log(sizeA): 4.43936e+06
+std::log(sizeA): 12.7597
+```
+Nor does it improve the configuration deviation at 0.202962, which is very similar to *models* 76 and 77 - 
+```
+./main configuration_deviation_all model079 
+model: model079
+model079_2      load    file name: model079_2.ac        time 0.191438s
+activeA.historyOverflow: false
+sizeA: 347920
+activeA.decomp->fuds.size(): 3393
+activeA.decomp->fudRepasSize: 58541
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 0.975224
+records->size(): 347920
+size: 347920
+slice_count: 14015
+slice_size_mean: 24.8248
+deviation: 0.422196
+size: 347920
+slice_location_count: 35811
+slice_location_size_mean: 9.71545
+deviation_location: 0.202962
+```
 
 
 problems with the topology - measure of deviation rather than configuration entropy
