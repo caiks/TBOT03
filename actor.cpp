@@ -89,7 +89,7 @@ void run_act(Actor& actor)
 			{
 				std::unique_ptr<HistoryRepa> hr;
 				{
-					SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, actor._pose, actor._scan);
+					SystemHistoryRepaTuple xx = posesScansHistoryRepa(actor._valencyScan, actor._pose, actor._scan);
 					hr = std::move(std::get<2>(xx));
 					auto n = hr->dimension;
 					auto rr = hr->arr;
@@ -898,6 +898,7 @@ Actor::Actor(const std::string& args_filename)
 	std::string modelInitial = ARGS_STRING(model_initial);
 	std::string structInitial = ARGS_STRING(structure_initial);
 	_induceThreadCount = ARGS_INT_DEF(induceThreadCount,4);
+	_valencyScan = ARGS_INT_DEF(valency_scan,8);
 	_level1Count = ARGS_INT_DEF(level1Count,12);
 	bool level1Logging = ARGS_BOOL(logging_level1);
 	bool level1Summary = ARGS_BOOL(summary_level1);
@@ -1003,7 +1004,7 @@ Actor::Actor(const std::string& args_filename)
 	{
 		std::unique_ptr<HistoryRepa> hr;
 		{
-			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, _pose, _scan);	
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(_valencyScan, _pose, _scan);	
 			_uu = std::move(std::get<0>(xx));
 			_ur = std::move(std::get<1>(xx));
 			hr = std::move(std::get<2>(xx));

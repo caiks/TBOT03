@@ -1140,6 +1140,101 @@ slice_location_count: 35811
 slice_location_size_mean: 9.71545
 deviation_location: 0.202962
 ```
+Having determined that obstructions are not a major factor in the high deviation, we considered the *model* itself might be the reason. There are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to distinguish landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env015.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model080.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model080",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+The mode 12 `motor` *values* distribution is similar to that of *model* 79, as we would expect -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+./main substrate_analyse model080_2
+hr->dimension: 2
+hr->size: 222012
+({(motor,0)},59977 % 1)
+({(motor,1)},101997 % 1)
+({(motor,2)},60038 % 1)
+
+({(location,door12)},2888 % 1)
+({(location,door13)},2446 % 1)
+({(location,door14)},2204 % 1)
+({(location,door45)},1569 % 1)
+({(location,door56)},3755 % 1)
+({(location,room1)},47491 % 1)
+({(location,room2)},25840 % 1)
+({(location,room3)},19586 % 1)
+({(location,room4)},57088 % 1)
+({(location,room5)},25111 % 1)
+({(location,room6)},34034 % 1)
+```
+The `location` *entropy* at 0.895414 and configuration deviation at 0.204491 are little different, however, -
+```
+./main location_entropy model080_2
+model: model080_2
+model080_2      load    file name: model080_2.ac        time 0.112666s
+activeA.historyOverflow: false
+sizeA: 222012
+activeA.decomp->fuds.size(): 2426
+activeA.decomp->fudRepasSize: 37306
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.09273
+entropyA: 198793
+entropyA/sizeA: 0.895414
+(double)sizeA * std::log(sizeA): 2.73308e+06
+std::log(sizeA): 12.3105
+
+./main configuration_deviation_all model080 
+model: model080
+model080_2      load    file name: model080_2.ac        time 0.116825s
+activeA.historyOverflow: false
+sizeA: 222012
+activeA.decomp->fuds.size(): 2426
+activeA.decomp->fudRepasSize: 37306
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.09273
+records->size(): 222012
+size: 222012
+slice_count: 7814
+slice_size_mean: 28.4121
+deviation: 0.427935
+size: 222012
+slice_location_count: 21223
+slice_location_size_mean: 10.4609
+deviation_location: 0.204491
+```
+Note, though, that the *fuds* per *size* per threshold has improved from 0.975224 to 1.09273, which is similar to the `TBOT02` case. We might speculate that this is because the increased angular resolution counteracts the more gridlike distribution of the turtlebot's poses in `TBOT03`.
+
+Let us continue to focus on the *model* by improving the *level* 1 *models*.
+
 
 
 problems with the topology - measure of deviation rather than configuration entropy
