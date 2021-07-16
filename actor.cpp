@@ -1528,6 +1528,7 @@ void Actor::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
 		if (msg->pose.pose.position.z >= 0.02)
 		{
 			_status = CRASH;
+			_terminate = true;
 			LOG "actor\tCRASH\ttime " << ((Sec)(Clock::now() - _startTimestamp)).count() << "s" UNLOG			
 			_statusTimestamp = Clock::now();
 		}
