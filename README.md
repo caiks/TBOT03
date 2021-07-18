@@ -45,6 +45,9 @@ Then download the [TBOT03 workspace repository](https://github.com/caiks/TBOT03_
 ```
 git clone https://github.com/caiks/TBOT03_ws.git
 
+cd ~/TBOT03_ws
+cat model083_2a* >model083_2.ac
+
 ```
 Then build -
 ```
@@ -161,6 +164,9 @@ git clone https://github.com/caiks/AlignmentRepaC.git
 git clone https://github.com/caiks/AlignmentActive.git
 git clone https://github.com/caiks/TBOT03.git
 git clone https://github.com/caiks/TBOT03_ws.git
+
+cd ~/turtlebot3_ws/src/TBOT03_ws
+cat model083_2a* >model083_2.ac
 
 cd ~/turtlebot3_ws/src
 mkdir -p AlignmentC_build AlignmentRepaC_build AlignmentActive_build
