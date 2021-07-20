@@ -1298,11 +1298,3 @@ The ironic thing about TBOT03 is that its slice topology is so complete and conn
 <a name = "Conclusion"></a>
 
 ### Conclusion
-
-
-
-
-
-
-
-

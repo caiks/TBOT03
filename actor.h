@@ -63,6 +63,7 @@ public:
 	std::vector<std::thread> _threads;
 	std::vector<std::shared_ptr<Alignment::Active>> _level1;
 	std::size_t _valencyScan;
+	std::size_t _valencyDirection;
 	std::size_t _level1Count;
 	std::vector<std::shared_ptr<Alignment::Active>> _level2;
 	std::vector<std::shared_ptr<Alignment::Active>> _level3;

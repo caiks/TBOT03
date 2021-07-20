@@ -89,7 +89,11 @@ void run_act(Actor& actor)
 			{
 				std::unique_ptr<HistoryRepa> hr;
 				{
-					SystemHistoryRepaTuple xx = posesScansHistoryRepa(actor._valencyScan, actor._pose, actor._scan);
+					SystemHistoryRepaTuple xx;
+					if (actor._struct=="struct003")
+						xx = posesScansHistoryRepa_2(actor._valencyScan, actor._valencyDirection, actor._pose, actor._scan);	
+					else
+						xx = posesScansHistoryRepa(actor._valencyScan, actor._pose, actor._scan);
 					hr = std::move(std::get<2>(xx));
 					auto n = hr->dimension;
 					auto rr = hr->arr;
@@ -899,6 +903,7 @@ Actor::Actor(const std::string& args_filename)
 	std::string structInitial = ARGS_STRING(structure_initial);
 	_induceThreadCount = ARGS_INT_DEF(induceThreadCount,4);
 	_valencyScan = ARGS_INT_DEF(valency_scan,8);
+	_valencyDirection = ARGS_INT_DEF(valency_direction,12);
 	_level1Count = ARGS_INT_DEF(level1Count,12);
 	bool level1Logging = ARGS_BOOL(logging_level1);
 	bool level1Summary = ARGS_BOOL(summary_level1);
@@ -1000,11 +1005,15 @@ Actor::Actor(const std::string& args_filename)
 		}
 	}
 
-	if (_struct=="struct001" || _struct=="struct002")
+	if (_struct=="struct001" || _struct=="struct002" || _struct=="struct003")
 	{
 		std::unique_ptr<HistoryRepa> hr;
 		{
-			SystemHistoryRepaTuple xx = posesScansHistoryRepa(_valencyScan, _pose, _scan);	
+			SystemHistoryRepaTuple xx;
+			if (_struct=="struct003")
+				xx = posesScansHistoryRepa_2(_valencyScan, _valencyDirection, _pose, _scan);	
+			else
+				xx = posesScansHistoryRepa(_valencyScan, _pose, _scan);
 			_uu = std::move(std::get<0>(xx));
 			_ur = std::move(std::get<1>(xx));
 			hr = std::move(std::get<2>(xx));
@@ -1146,6 +1155,8 @@ Actor::Actor(const std::string& args_filename)
 						vv0.push_back(mm[Variable("location")]);
 						for (auto v : vv0)
 							activeA.induceVarExclusions.insert(v);
+						if (_struct=="struct003")
+							vv0.push_back(mm[Variable("direction")]);
 					}
 					auto hr1 = std::make_shared<HistoryRepa>();
 					{
@@ -1236,7 +1247,7 @@ Actor::Actor(const std::string& args_filename)
 				activeA.layerer_log = layerer_actor_log;
 				activeA.system = _system;
 				activeA.continousIs = true;
-				if (modelInitial.size() && structInitial != "struct001")
+				if (modelInitial.size() && structInitial == "struct002")
 				{
 					ActiveIOParameters ppio;
 					ppio.filename = modelInitial + "_3_" + (m<10 ? "0" : "") + std::to_string(m) +".ac";
@@ -1339,7 +1350,7 @@ Actor::Actor(const std::string& args_filename)
 		_threads.push_back(std::thread(run_act, std::ref(*this)));	
 	}
 	
-	if (_struct=="struct001" && (_mode=="mode008" || _mode=="mode009"))
+	if ((_struct=="struct001" || _struct=="struct003") && (_mode=="mode008" || _mode=="mode009"))
 	{	
 		std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
 		auto nloc = locations.size();
@@ -1480,7 +1491,7 @@ Actor::~Actor()
 			LOG "actor\terror: failed to write records file" <<_model + ".rec" UNLOG
 		}			
 	}
-	if (_system && (_struct=="struct001" || _struct=="struct002"))
+	if (_system && (_struct=="struct001" || _struct=="struct002" || _struct=="struct003"))
 	{
 		for (auto activeA : _level1)
 		{
