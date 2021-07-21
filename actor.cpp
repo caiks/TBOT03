@@ -37,6 +37,9 @@ Actor* actor_this = 0;
 #define UNLOG ; str.flush(); RCLCPP_INFO(actor_this->get_logger(), str.str());}
 #define LOG { std::ostringstream str; str << 
 
+typedef std::pair<double, double> Coord;
+typedef std::pair<Coord, Coord> CoordP;
+
 SystemHistoryRepaTuple TBOT03::posesScansHistoryRepa_2(int valencyScan, int valencyDirection, const std::array<double,7>& pose, const std::array<double,360>& scan)
 {
 	auto lluu = listsSystem_u;

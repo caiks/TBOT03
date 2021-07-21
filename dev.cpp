@@ -7,13 +7,6 @@ using namespace Alignment;
 using namespace TBOT03;
 using namespace std;
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
-
-#define DEG2RAD (M_PI / 180.0)
-#define RAD2DEG (180.0 / M_PI)
-
 TBOT03::Record TBOT03::Record::standard() const
 {					
 	return Record((x+5.15)/12.65, (y+5.275)/10.545, (yaw+180.0)/360.0);
