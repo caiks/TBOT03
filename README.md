@@ -48,6 +48,7 @@ git clone https://github.com/caiks/TBOT03_ws.git
 cd ~/TBOT03_ws
 cat model083_2a* >model083_2.ac
 cat model084_2a* >model084_2.ac
+cat model085_2a* >model085_2.ac
 
 ```
 Then build -
@@ -169,6 +170,7 @@ git clone https://github.com/caiks/TBOT03_ws.git
 cd ~/turtlebot3_ws/src/TBOT03_ws
 cat model083_2a* >model083_2.ac
 cat model084_2a* >model084_2.ac
+cat model085_2a* >model085_2.ac
 
 cd ~/turtlebot3_ws/src
 mkdir -p AlignmentC_build AlignmentRepaC_build AlignmentActive_build
