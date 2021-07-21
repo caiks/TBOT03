@@ -9,6 +9,11 @@
 
 #include "dev.h"
 
+namespace TBOT03
+{
+SystemHistoryRepaTuple posesScansHistoryRepa_2(int, int, const std::array<double,7>&, const std::array<double,360>&);
+}
+
 class Actor : public rclcpp::Node
 {
 public:
@@ -108,4 +113,5 @@ private:
 	void callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void callbackGoal(const std_msgs::msg::String::SharedPtr msg);
 };
+
 #endif // ACTOR_H

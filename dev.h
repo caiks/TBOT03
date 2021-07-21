@@ -69,8 +69,6 @@ namespace TBOT03
 	typedef std::tuple<std::unique_ptr<Alignment::System>, std::unique_ptr<Alignment::SystemRepa>, std::unique_ptr<Alignment::HistoryRepa>> SystemHistoryRepaTuple;
 
 	SystemHistoryRepaTuple posesScansHistoryRepa(int, const std::array<double,7>&, const std::array<double,360>&);
-
-	SystemHistoryRepaTuple posesScansHistoryRepa_2(int, int, const std::array<double,7>&, const std::array<double,360>&);
 }
 
 std::ostream& operator<<(std::ostream& out, const TBOT03::Record&);

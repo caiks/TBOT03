@@ -71,6 +71,7 @@ int main(int argc, char **argv)
 	
 	if (argc >= 3 && (string(argv[1]) == "view_active" || string(argv[1]) == "view_active_concise"))
 	{
+		auto dfrer = decompFudSlicedRepasApplicationRepa_u;
 		bool ok = true;
 		string model = string(argv[2]);
 	
@@ -154,9 +155,14 @@ int main(int argc, char **argv)
 			if (activeA.decomp) {EVAL(activeA.decomp->fuds.size());}
 			if (activeA.decomp) {EVAL(activeA.decomp->fudRepasSize);}
 			if (activeA.decomp) {EVAL((double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA);}
+			// if (activeA.decomp) 
+			// {
+				// auto er = dfrer(*activeA.decomp);
+				// EVAL(sorted(er->substrate));
+			// }
 			if (!concise)
 			{
-				if (activeA.decomp) {EVAL(*activeA.decomp);}			
+				if (activeA.decomp) {EVAL(*activeA.decomp);}
 			}	
 			else 
 			{
