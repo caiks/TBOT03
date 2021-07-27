@@ -1117,7 +1117,7 @@ hr->size: 347920
 ({(location,room5)},30709 % 1)
 ({(location,room6)},43883 % 1)
 ```
-(Note that, although the fraction *events* moving ahead is still lower than in `TBOT01`, the distance moved per *event* is greater.)
+(Note that, although the fraction of *events* moving ahead is still lower than in `TBOT01`, the distance moved per *event* is greater.)
 
 However, the reduction in the time spent avoiding obstructions does not translate into lower `location` *entropy* at 0.856429 -
 ```
@@ -1154,7 +1154,7 @@ slice_location_count: 35811
 slice_location_size_mean: 9.71545
 deviation_location: 0.202962
 ```
-Having determined that obstructions are not a major factor in the high deviation, we considered the *model* itself might be the reason. There are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to distinguish landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
+Having determined that obstructions are not a major factor in the high deviation, we will go on to consider whether the *model* itself might be the reason. There are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to distinguish landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
 
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
@@ -1247,9 +1247,320 @@ deviation_location: 0.204491
 ```
 Note, though, that the *fuds* per *size* per threshold has improved from 0.975224 to 1.09273, which is similar to the `TBOT02` case. We might speculate that this is because the increased angular resolution counteracts the more gridlike distribution of the turtlebot's poses in `TBOT03`.
 
-Let us continue to focus on the *model* by improving the *level* 1 *models*.
+Let us continue to focus on the *model* by improving the *level* 1 *models*. In *model* 81 we increase the *level* one active *size*, increase the *induce* threshold and also increase the *induction* parameters `XMAX` and `WMAX`. We also alter the *level* two initial threshold and parameter `XMAX`,
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env015.model -s libgazebo_ros_init.so
 
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model081.json
 
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model081",
+	"valency_scan" : 16,
+	"level1Count" : 36,
+	"activeSizeLevel1" : 90000,
+	"induceThresholdLevel1" : 300,
+	"induceThresholdInitialLevel1" : 900,
+	"induceParametersLevel1.xmax" : 1024,
+	"induceParametersLevel1.wmax" : 18,
+	"induceThresholdInitial" : 1000,
+	"induceParameters.xmax" : 1024,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+
+```
+./main location_entropy model081_2
+model: model081_2
+model081_2      load    file name: model081_2.ac        time 0.183945s
+activeA.historyOverflow: false
+sizeA: 275496
+activeA.decomp->fuds.size(): 2836
+activeA.decomp->fudRepasSize: 54419
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.02942
+entropyA: 276339
+entropyA/sizeA: 1.00306
+(double)sizeA * std::log(sizeA): 3.45095e+06
+std::log(sizeA): 12.5263
+
+./main configuration_deviation_all model081 
+model: model081
+model081_2      load    file name: model081_2.ac        time 0.168261s
+activeA.historyOverflow: false
+sizeA: 275496
+activeA.decomp->fuds.size(): 2836
+activeA.decomp->fudRepasSize: 54419
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.02942
+records->size(): 275496
+size: 275496
+slice_count: 8194
+slice_size_mean: 33.6217
+deviation: 0.450795
+size: 275496
+slice_location_count: 25524
+slice_location_size_mean: 10.7936
+deviation_location: 0.21413
+
+```
+Both the `location` *entropy* and configuration deviation increase.
+
+Note that the *fuds* per *size* per threshold are not in fact as low as 1.02942. This is an artefact of the slower induce performance, which causes the *model* to lag behind the available *history*. In fact, when the turtlebot eventually crashed, there were 119 *slices* that had exceeded the induce threshold but were yet to be processed.
+
+In *model* 82 we run a very similar configuration but with lower `WMAX`,
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env015.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model082.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model082",
+	"valency_scan" : 16,
+	"level1Count" : 36,
+	"activeSizeLevel1" : 90000,
+	"induceThresholdLevel1" : 300,
+	"induceThresholdInitialLevel1" : 900,
+	"induceParametersLevel1.xmax" : 1024,
+	"induceParametersLevel1.wmax" : 9,
+	"induceThresholdInitial" : 1000,
+	"induceParameters.xmax" : 1024,
+	"induceParameters.wmax" : 9,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+Again, these changes increase the `location` *entropy* and configuration deviation -
+```
+./main location_entropy model082_2
+model: model082_2
+model082_2      load    file name: model082_2.ac        time 0.0730772s
+activeA.historyOverflow: false
+sizeA: 90073
+activeA.decomp->fuds.size(): 992
+activeA.decomp->fudRepasSize: 16870
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.10133
+entropyA: 100869
+entropyA/sizeA: 1.11986
+(double)sizeA * std::log(sizeA): 1.02759e+06
+std::log(sizeA): 11.4084
+
+./main configuration_deviation_all model082 
+model: model082
+model082_2      load    file name: model082_2.ac        time 0.0672517s
+activeA.historyOverflow: false
+sizeA: 90073
+activeA.decomp->fuds.size(): 992
+activeA.decomp->fudRepasSize: 16870
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.10133
+records->size(): 90073
+size: 90073
+slice_count: 2361
+slice_size_mean: 38.1504
+deviation: 0.471576
+size: 90073
+slice_location_count: 8877
+slice_location_size_mean: 10.1468
+deviation_location: 0.235734
+```
+In *model* 83 we go back to the original *induce* parameterisation of *model* 80, but add new landmarks to the environment, to see if this can reduce ambiguity in physical configuration,
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model083.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model083",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+```
+./main location_entropy model083_2
+model: model083_2
+model083_2      load    file name: model083_2.ac        time 0.286235s
+activeA.historyOverflow: false
+sizeA: 365483
+activeA.decomp->fuds.size(): 3924
+activeA.decomp->fudRepasSize: 60527
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.07365
+entropyA: 406947
+entropyA/sizeA: 1.11345
+(double)sizeA * std::log(sizeA): 4.68146e+06
+std::log(sizeA): 12.809
+
+./main configuration_deviation_all model083 
+model: model083
+model083_2      load    file name: model083_2.ac        time 0.280011s
+activeA.historyOverflow: false
+sizeA: 365483
+activeA.decomp->fuds.size(): 3924
+activeA.decomp->fudRepasSize: 60527
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.07365
+records->size(): 365483
+size: 365483
+slice_count: 13043
+slice_size_mean: 28.0214
+deviation: 0.442595
+size: 365483
+slice_location_count: 42663
+slice_location_size_mean: 8.56674
+deviation_location: 0.188369
+```
+Interesingly, we see an increase in `location` *entropy* but a decrease configuration deviation to 0.188369. We may conjecture that we have added some strong *alignments* within the rooms where the landmarks have been added, at the cost of configuration deviation relevant *alignments* between the rooms. Now we run the same *model* for longer to create *model* 84 -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model084.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure_initial" : "struct001",
+	"model_initial" : "model083",
+	"structure" : "struct001",
+	"model" : "model084",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+After 929471 *events* the configuration deviation has decreased again to 0.167629 -
+```
+./main location_entropy model084_2
+model: model084_2
+model084_2      load    file name: model084_2.ac        time 1.28805s
+activeA.historyOverflow: false
+sizeA: 929471
+activeA.decomp->fuds.size(): 10288
+activeA.decomp->fudRepasSize: 157302
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.10687
+entropyA: 836547
+entropyA/sizeA: 0.900025
+(double)sizeA * std::log(sizeA): 1.27731e+07
+std::log(sizeA): 13.7424
+
+./main configuration_deviation_all model084 
+model: model084
+model084_2      load    file name: model084_2.ac        time 1.29636s
+activeA.historyOverflow: false
+sizeA: 929471
+activeA.decomp->fuds.size(): 10288
+activeA.decomp->fudRepasSize: 157302
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.10687
+records->size(): 929472
+size: 929471
+slice_count: 30632
+slice_size_mean: 30.3431
+deviation: 0.399805
+size: 929471
+slice_location_count: 88665
+slice_location_size_mean: 10.483
+deviation_location: 0.167629
+```
+Although we have seen an improvement, the configuration deviation is nowhere near what would be needed to obtain an average deviation of the scale that we see in *slices* that have only one cluster such as this one in *model* 77 when run in manual mode 9 (also shown above) -
+```
+sliceLocA: 18754916
+actor.eventsRecord(historyEventA): (-6.3306,1.29055,84.4717)
+record: (-6.38131,1.03265,92.0128)
+record: (-6.34975,0.948405,86.993)
+record: (-6.33608,0.949404,89.9757)
+record: (-6.3306,1.29055,84.4717)
+record: (-6.31727,1.03887,85.9343)
+record: (-6.30239,1.05015,93.0726)
+record: (-6.29992,1.06378,83.2033)
+record: (-6.29662,1.13977,91.9588)
+record: (-6.27197,1.04943,93.219)
+record: (-6.24911,1.10854,94.9866)
+record: (-6.23914,1.05122,79.4263)
+recordsMean(recordStandards).config(): (-6.30674,1.06571,88.6595)
+recordsDeviation(recordStandards): 0.0159766
+```
 
 problems with the topology - measure of deviation rather than configuration entropy
 
