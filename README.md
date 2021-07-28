@@ -1561,6 +1561,195 @@ record: (-6.23914,1.05122,79.4263)
 recordsMean(recordStandards).config(): (-6.30674,1.06571,88.6595)
 recordsDeviation(recordStandards): 0.0159766
 ```
+Next, let us try adding a `direction` *variable* to the *substrate* (a magnetometer in practice) to see if there are *alignments* with it that can distringuish between clusters. In structure `struct003` the `direction` has a *valency* of 12. *Model* 85 is a copy of *model* 83 with structure `struct003` -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model085.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct003",
+	"model" : "model085",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+./main location_entropy model085_2
+model: model085_2
+model085_2      load    file name: model085_2.ac        time 0.374053s
+activeA.historyOverflow: false
+sizeA: 324795
+activeA.decomp->fuds.size(): 3495
+activeA.decomp->fudRepasSize: 55642
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.07606
+entropyA: 356515
+entropyA/sizeA: 1.09766
+(double)sizeA * std::log(sizeA): 4.12196e+06
+std::log(sizeA): 12.6909
+
+./main configuration_deviation_all model085 
+model: model085
+model085_2      load    file name: model085_2.ac        time 0.328507s
+activeA.historyOverflow: false
+sizeA: 324795
+activeA.decomp->fuds.size(): 3495
+activeA.decomp->fudRepasSize: 55642
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.07606
+records->size(): 324795
+size: 324795
+slice_count: 11700
+slice_size_mean: 27.7603
+deviation: 0.434392
+size: 324795
+slice_location_count: 37943
+slice_location_size_mean: 8.56008
+deviation_location: 0.185767
+```
+We can see that the configuration deviation has decreased a little from 0.188369 to 0.185767. We let it run on until there is sufficient *history* to compare -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model086.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure_initial" : "struct003",
+	"model_initial" : "model085",
+	"structure" : "struct003",
+	"model" : "model086",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model087.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure_initial" : "struct003",
+	"model_initial" : "model086",
+	"structure" : "struct003",
+	"model" : "model087",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true
+}
+
+./main location_entropy model086_2
+model: model086_2
+model086_2      load    file name: model086_2.ac        time 0.950687s
+activeA.historyOverflow: false
+sizeA: 633806
+activeA.decomp->fuds.size(): 6849
+activeA.decomp->fudRepasSize: 106742
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.08061
+entropyA: 605275
+entropyA/sizeA: 0.954984
+(double)sizeA * std::log(sizeA): 8.46733e+06
+std::log(sizeA): 13.3595
+
+./main configuration_deviation_all model086 
+model: model086
+model086_2      load    file name: model086_2.ac        time 0.851379s
+activeA.historyOverflow: false
+sizeA: 633806
+activeA.decomp->fuds.size(): 6849
+activeA.decomp->fudRepasSize: 106742
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.08061
+records->size(): 633807
+size: 633806
+slice_count: 21574
+slice_size_mean: 29.3782
+deviation: 0.406912
+size: 633806
+slice_location_count: 64548
+slice_location_size_mean: 9.81914
+deviation_location: 0.170962
+
+./main location_entropy model087_2
+model: model087_2
+model087_2      load    file name: model087_2.ac        time 1.45364s
+activeA.historyOverflow: false
+sizeA: 927748
+activeA.decomp->fuds.size(): 10194
+activeA.decomp->fudRepasSize: 157019
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.09879
+entropyA: 805245
+entropyA/sizeA: 0.867956
+(double)sizeA * std::log(sizeA): 1.27477e+07
+std::log(sizeA): 13.7405
+
+./main configuration_deviation_all model087 
+model: model087
+model087_2      load    file name: model087_2.ac        time 1.23499s
+activeA.historyOverflow: false
+sizeA: 927748
+activeA.decomp->fuds.size(): 10194
+activeA.decomp->fudRepasSize: 157019
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.09879
+records->size(): 927750
+size: 927748
+slice_count: 30779
+slice_size_mean: 30.1422
+deviation: 0.388352
+size: 927748
+slice_location_count: 86902
+slice_location_size_mean: 10.6758
+deviation_location: 0.162262
+```
+*Model* 87 is a small improvement over *model* 84 with a configuration deviation of 0.162262 instead of 0.167629. Of course, the improvement is far too small to justify the modification of the *substrate*.
+
+now move on to 3 level
 
 problems with the topology - measure of deviation rather than configuration entropy
 
