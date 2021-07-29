@@ -1020,6 +1020,7 @@ Actor::Actor(const std::string& args_filename)
 	_records->reserve(activeSize);
 	std::size_t induceThreshold = ARGS_INT_DEF(induceThreshold,100);
 	std::size_t induceThresholdInitial = ARGS_INT_DEF(induceThresholdInitial,1000);
+	std::size_t induceThresholdInitialLevel3 = ARGS_INT_DEF(induceThresholdInitialLevel3,1500);
 	std::chrono::milliseconds induceInterval = (std::chrono::milliseconds)(ARGS_INT_DEF(induce_interval,10));	
 	bool level3Logging = ARGS_BOOL(logging_level3);
 	bool level3Summary = ARGS_BOOL(summary_level3);
@@ -1326,21 +1327,13 @@ Actor::Actor(const std::string& args_filename)
 		{
 			std::vector<SizeList> under 
 			{
-				SizeList{0,1,3,6,10,15,21,28,36}, 
-				SizeList{0,1,3}, 
-				SizeList{0,1,3,6,10}, 
-				SizeList{0,1,3,6,10,15,21,28,36}, 
-				SizeList{0,2,4,8,16,32}, 
-				SizeList{0,2,4,8,16,32}
+				SizeList{0,1,2,3,4,6,8,10},
+				SizeList{0,1,2,3,4}
 			};
 			std::vector<SizeList> self 
 			{
-				SizeList{}, 
-				SizeList{6,10,15}, 
-				SizeList{16,32,64}, 
-				SizeList{4,8,16,32,64}, 
-				SizeList{}, 
-				SizeList{16,32,64}
+				SizeList{},
+				SizeList{5,10}
 			};			
 			for (std::size_t m = 0; m < under.size(); m++)
 			{
@@ -1447,7 +1440,7 @@ Actor::Actor(const std::string& args_filename)
 					LOG activeA.name << "\tfuds cardinality: " << activeA.decomp->fuds.size() << "\tmodel cardinality: " << activeA.decomp->fudRepasSize << "\tactive size: " << sizeA << "\tfuds per threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG				
 				}			
 				if (!induceNot)
-					_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), std::ref(_induceParameters), induceThresholdInitial, induceInterval));			
+					_threads.push_back(std::thread(run_induce, std::ref(*this), std::ref(activeA), std::ref(_induceParameters), induceThresholdInitialLevel3, induceInterval));			
 			}			
 		}
 		_threads.push_back(std::thread(run_act, std::ref(*this)));	

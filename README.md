@@ -1629,7 +1629,46 @@ slice_location_count: 37943
 slice_location_size_mean: 8.56008
 deviation_location: 0.185767
 ```
-We can see that the configuration deviation has decreased a little from 0.188369 to 0.185767. We let it run on until there is sufficient *history* to compare -
+We can see that the configuration deviation has decreased a little from 0.188369 to 0.185767. If we run *model* 85 in manual mode 9 we can step ahead once to view a *slice* with two large clusters and a few unclustered *events* -
+```
+locations[locA]: room4
+sliceLocA: 53355277
+actor.eventsRecord(historyEventA): (-0.990066,1.47734,-3.1242)
+record: (-4.62833,2.18997,-147.263)
+record: (-4.18553,1.23923,169.797)
+record: (-4.16153,3.68723,-24.6138)
+record: (-4.13195,3.70864,-24.7941)
+record: (-4.12985,3.73495,-25.6054)
+record: (-4.04945,3.65882,-21.4776)
+record: (-4.01907,3.96418,-40.2642)
+record: (-3.99751,3.88248,-36.9523)
+record: (-3.98583,3.88344,-35.0906)
+record: (-3.98557,3.51418,-26.7673)
+record: (-3.97122,3.4146,-16.2444)
+record: (-3.93743,3.38519,-22.0811)
+record: (-3.92838,3.3992,-26.6156)
+record: (-3.89309,3.87912,-36.2889)
+record: (-3.8342,3.16802,-16.6457)
+record: (-3.00994,0.726074,-86.2496)
+record: (-1.51163,1.03998,132.138)
+record: (-1.46686,1.28999,148.558)
+record: (-1.31869,0.812944,-100.048)
+record: (-1.11409,0.806501,-100.163)
+record: (-1.03749,0.817748,-101.157)
+record: (-1.00139,0.805619,-98.4984)
+record: (-0.990066,1.47734,-3.1242)
+record: (-0.945078,0.79466,-98.3732)
+record: (-0.916815,0.758091,-94.0738)
+record: (-0.907985,0.800604,-95.2947)
+record: (-0.856944,0.784582,-98.7587)
+record: (-0.689069,0.711402,-85.5383)
+record: (-0.676035,0.77519,-95.3396)
+record: (-0.668564,0.79086,-95.6515)
+record: (-0.664544,0.754784,-90.4891)
+recordsMean(recordStandards).config(): (-2.53594,2.08567,-41.7087)
+recordsDeviation(recordStandards): 0.268739
+```
+Now let us run on until there is sufficient *history* to compare to the earlier *models* -
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ros2 run TBOT03 actor model086.json
