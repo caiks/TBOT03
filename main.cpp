@@ -447,9 +447,10 @@ int main(int argc, char **argv)
 	if (argc >= 3 && string(argv[1]) == "configuration_deviation_all")
 	{
 		bool ok = true;
-		string model = string(argv[2]);
+		string active = string(argv[2]);
+		string model = argc >= 4 ? string(argv[3]) : active +"_2";
 	
-		EVAL(model);
+		EVAL(active);
 		
 		std::unique_ptr<System> uu;
 		std::unique_ptr<SystemRepa> ur;
@@ -468,7 +469,7 @@ int main(int argc, char **argv)
 		if (ok) 
 		{
 			ActiveIOParameters ppio;
-			ppio.filename = model +"_2.ac";
+			ppio.filename = model +".ac";
 			ok = ok && activeA.load(ppio);			
 		}		
 		std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;		
@@ -487,7 +488,7 @@ int main(int argc, char **argv)
 		{
 			try
 			{
-				std::ifstream in(model + ".rec", std::ios::binary);
+				std::ifstream in(active + ".rec", std::ios::binary);
 				records = std::move(persistentsRecordList(in));
 				ok = ok && records;			
 			}
@@ -572,6 +573,160 @@ int main(int argc, char **argv)
 			variance /= size;
 			EVAL(size);
 			auto slice_location_count = (double) historySliceLocationsSetEvent.size();
+			EVAL(slice_location_count);
+			auto slice_location_size_mean = (double) size / slice_location_count;
+			EVAL(slice_location_size_mean);
+			auto deviation_location = std::sqrt(variance);
+			EVAL(deviation_location);
+		}
+	}
+	
+	if (argc >= 3 && string(argv[1]) == "configuration_deviation_all_3level")
+	{
+		bool ok = true;
+		string active = string(argv[2]);
+		string modelA = argc >= 4 ? string(argv[3]) : active +"_2";
+		string modelB = argc >= 5 ? string(argv[4]) : active +"_3_00";
+	
+		EVAL(active);
+		
+		std::unique_ptr<System> uu;
+		std::unique_ptr<SystemRepa> ur;
+		std::unique_ptr<HistoryRepa> hr;
+		if (ok) 
+		{
+			SystemHistoryRepaTuple xx = posesScansHistoryRepa(8, std::array<double,7>(), std::array<double,360>());	
+			uu = std::move(std::get<0>(xx));
+			ur = std::move(std::get<1>(xx));
+			hr = std::move(std::get<2>(xx));
+			ok = ok && uu && ur && hr;
+		}
+
+		Active activeA;
+		activeA.logging = true;		
+		if (ok) 
+		{
+			ActiveIOParameters ppio;
+			ppio.filename = modelA +".ac";
+			ok = ok && activeA.load(ppio);			
+		}			
+		Active activeB;
+		activeB.logging = true;		
+		if (ok) 
+		{
+			ActiveIOParameters ppio;
+			ppio.filename = modelB +".ac";
+			ok = ok && activeB.load(ppio);			
+		}			
+		
+		std::shared_ptr<TBOT03::RecordList> records;
+		if (ok) 
+		{
+			try
+			{
+				std::ifstream in(active + ".rec", std::ios::binary);
+				records = std::move(persistentsRecordList(in));
+				ok = ok && records;			
+			}
+			catch (const exception&)
+			{
+				ok = false;
+			}
+			if (ok)
+			{
+				EVAL(records->size());
+			}		
+		}		
+	
+		if (ok)
+		{
+			SizeSizeSetMap historySlicesSetEventA;
+			if (ok)
+			{
+				auto& hrB = activeB.historySparse;
+				auto rrB = hrB->arr;
+				for (auto& p : activeA.historySlicesSetEvent)
+					for (auto ev : p.second)
+					{
+						auto sliceA = (p.first << 16) + rrB[ev];
+						historySlicesSetEventA[sliceA].insert(ev);
+					}
+			}
+			
+			double variance = 0.0;
+			std::size_t size = 0;
+			for (auto& p : historySlicesSetEventA)
+			{
+				RecordList recordStandards;
+				RecordList recordFlipStandards;
+				for (auto ev : p.second)
+				{
+					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());										
+					recordFlipStandards.push_back(eventsRecord(activeA,records,ev).flip().standard());					
+				}
+				size += recordStandards.size();
+				auto dev = recordsDeviation(recordStandards);
+				auto devFlip = recordsDeviation(recordFlipStandards);
+				if (dev <= devFlip)
+					variance += dev*dev*recordStandards.size();
+				else
+					variance += devFlip*devFlip*recordFlipStandards.size();
+			}		
+			variance /= size;
+			EVAL(size);
+			auto slice_count = (double) historySlicesSetEventA.size();
+			EVAL(slice_count);
+			auto slice_size_mean = (double) size / slice_count;
+			EVAL(slice_size_mean);
+			auto deviation = std::sqrt(variance);
+			EVAL(deviation);
+		}
+		
+		if (ok)
+		{
+			SizeSizeSetMap historySlicesSetEventA;
+			if (ok)
+			{
+				std::vector<std::string> locations{ "door12", "door13", "door14", "door45", "door56", "room1", "room2", "room3", "room4", "room5", "room6" };
+				auto nloc = locations.size();
+				std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+				auto& mm = ur->mapVarSize();
+				auto& mvv = hr->mapVarInt();
+				auto location = mvv[mm[Variable("location")]];
+				auto n = hr->dimension;
+				auto rr = hr->arr;
+				auto& hrB = activeB.historySparse;
+				auto rrB = hrB->arr;
+				for (auto& p : activeA.historySlicesSetEvent)
+					for (auto ev : p.second)
+					{
+						auto sliceA = ((p.first << 16) + rrB[ev])*nloc + rr[ev*n+location];
+						historySlicesSetEventA[sliceA].insert(ev);
+					}
+			}
+
+			double variance = 0.0;
+			std::size_t size = 0;
+			for (auto& p : historySlicesSetEventA)
+			{
+				RecordList recordStandards;
+				RecordList recordFlipStandards;
+				for (auto ev : p.second)
+				{
+					recordStandards.push_back(eventsRecord(activeA,records,ev).standard());										
+					recordFlipStandards.push_back(eventsRecord(activeA,records,ev).flip().standard());					
+				}
+				size += recordStandards.size();
+				auto dev = recordsDeviation(recordStandards);
+				auto devFlip = recordsDeviation(recordFlipStandards);
+				if (dev <= devFlip)
+					variance += dev*dev*recordStandards.size();
+				else
+					variance += devFlip*devFlip*recordFlipStandards.size();
+			}		
+			variance /= size;
+			EVAL(size);
+			auto slice_location_count = (double) historySlicesSetEventA.size();
 			EVAL(slice_location_count);
 			auto slice_location_size_mean = (double) size / slice_location_count;
 			EVAL(slice_location_size_mean);
