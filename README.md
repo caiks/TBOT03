@@ -51,6 +51,7 @@ cat model084_2a* >model084_2.ac
 cat model085_2a* >model085_2.ac
 cat model086_2a* >model086_2.ac
 cat model087_2a* >model087_2.ac
+cat model089_2a* >model089_2.ac
 
 ```
 Then build -
@@ -175,6 +176,7 @@ cat model084_2a* >model084_2.ac
 cat model085_2a* >model085_2.ac
 cat model086_2a* >model086_2.ac
 cat model087_2a* >model087_2.ac
+cat model089_2a* >model089_2.ac
 
 cd ~/turtlebot3_ws/src
 mkdir -p AlignmentC_build AlignmentRepaC_build AlignmentActive_build
