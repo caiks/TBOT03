@@ -1790,7 +1790,188 @@ deviation_location: 0.162262
 ```
 *Model* 87 is a small improvement over *model* 84 with a configuration deviation of 0.162262 instead of 0.167629. Of course, the improvement is far too small to justify the modification of the *substrate*.
 
-now move on to 3 level
+Now let us return to the original *substrate*, i.e. without `direction`, but instead add a third *level* in structure `struct002`. In this *level* we add two *models*, the first will have *underlying frames* 0,1,2,3,4,6,8 and 10, the second has *underlying frames* 0,1,2,3 and 4, and *self frames* 5 and 10. *Model* 88 is otherwise a copy of *model* 83 -
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model088.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct002",
+	"model" : "model088",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true,
+	"summary_level3" : true
+}
+```
+This run crashes after 72,400 *events* so we continue on in *model* 89 -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model089.json
+
+```
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure_initial" : "struct002",
+	"model_initial" : "model088",
+	"structure" : "struct002",
+	"model" : "model089",
+	"level1Count" : 36,
+	"mode" : "mode012",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : true,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : true,
+	"summary_level2" : true,
+	"summary_level3" : true
+}
+```
+First let's check the *level* two *model* -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+
+./main location_entropy model089_2
+model: model089_2
+model089_2      load    file name: model089_2.ac        time 0.601311s
+activeA.historyOverflow: false
+sizeA: 536347
+activeA.decomp->fuds.size(): 5822
+activeA.decomp->fudRepasSize: 90656
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.08549
+entropyA: 540269
+entropyA/sizeA: 1.00731
+(double)sizeA * std::log(sizeA): 7.07578e+06
+std::log(sizeA): 13.1925
+
+./main configuration_deviation_all model089 
+model: model089
+model089_2      load    file name: model089_2.ac        time 0.54833s
+activeA.historyOverflow: false
+sizeA: 536347
+activeA.decomp->fuds.size(): 5822
+activeA.decomp->fudRepasSize: 90656
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.08549
+records->size(): 536348
+size: 536347
+slice_count: 18946
+slice_size_mean: 28.3092
+deviation: 0.420615
+size: 536347
+slice_location_count: 57844
+slice_location_size_mean: 9.2723
+deviation_location: 0.177661
+```
+As expected, *level* 2 *model* 89, with 536347 *events*, is intermediate between *model* 83 (365483 *events*) and *model* 84 (929471 *events*).
+
+Let us examine the configuration deviation of each of the *level* 3 *models* -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+
+./main configuration_deviation_all model089 model089_3_00
+active: model089
+model089_3_00   load    file name: model089_3_00.ac     time 0.586668s
+activeA.historyOverflow: false
+sizeA: 536347
+activeA.decomp->fuds.size(): 5585
+activeA.decomp->fudRepasSize: 121552
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.0413
+records->size(): 536348
+size: 536347
+slice_count: 23906
+slice_size_mean: 22.4357
+deviation: 0.486294
+size: 536347
+slice_location_count: 96697
+slice_location_size_mean: 5.54668
+deviation_location: 0.222139
+
+./main configuration_deviation_all model089 model089_3_01
+active: model089
+model089_3_01   load    file name: model089_3_01.ac     time 0.592444s
+activeA.historyOverflow: false
+sizeA: 536347
+activeA.decomp->fuds.size(): 5729
+activeA.decomp->fudRepasSize: 124982
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.06815
+records->size(): 536348
+size: 536347
+slice_count: 24116
+slice_size_mean: 22.2403
+deviation: 0.484602
+size: 536347
+slice_location_count: 96073
+slice_location_size_mean: 5.5827
+deviation_location: 0.21878
+```
+They turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has and more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* three *models* have smaller mean *slice sizes* than the *level* two *model*, with only 5-6 *events* against 9-10 *events*.
+
+These *slice sizes* are already very small, so we cannot expect that crosssing the *level* two *model* with a *level* three *model* will produce a very useful *slice* topology -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+./main configuration_deviation_all_3level model089 model089_2 model089_3_00
+active: model089
+model089_2      load    file name: model089_2.ac        time 0.494546s
+model089_3_00   load    file name: model089_3_00.ac     time 0.491431s
+records->size(): 536348
+size: 536347
+slice_count: 463822
+slice_size_mean: 1.15636
+deviation: 0.10275
+size: 536347
+slice_location_count: 478766
+slice_location_size_mean: 1.12027
+deviation_location: 0.0341585
+
+./main configuration_deviation_all_3level model089 model089_2 model089_3_01
+active: model089
+active: model089
+model089_2      load    file name: model089_2.ac        time 0.499151s
+model089_3_01   load    file name: model089_3_01.ac     time 0.503101s
+records->size(): 536348
+size: 536347
+slice_count: 440249
+slice_size_mean: 1.21828
+deviation: 0.122966
+size: 536347
+slice_location_count: 460388
+slice_location_size_mean: 1.16499
+deviation_location: 0.0411679
+```
+The `location` configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That is, the *models* of the different *levels* seem to be rather orthogonal - so much so, in fact, that crossing gives us little benefit. The map of *slice* to configuration is far too over-fitted.
+
+
 
 problems with the topology - measure of deviation rather than configuration entropy
 
