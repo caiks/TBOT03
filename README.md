@@ -1096,7 +1096,7 @@ ros2 run TBOT03 actor model079.json
 	"summary_level2" : true
 }
 ```
-Now we find that now it does, in fact, spend a larger proportion of its time moving ahead
+Now we find that it spends a larger proportion of its time moving ahead,
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ./main substrate_analyse model079_2
@@ -1156,7 +1156,7 @@ slice_location_count: 35811
 slice_location_size_mean: 9.71545
 deviation_location: 0.202962
 ```
-Having determined that obstructions are not a major factor in the high deviation, we will go on to consider whether the *model* itself might be the reason. There are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to distinguish landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
+Having determined that obstructions are not a major factor causing the high deviation, we will go on to consider whether the *model* itself might be the reason. In the default structure one configuration there are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to identify landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
 
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
@@ -1475,7 +1475,7 @@ slice_location_count: 42663
 slice_location_size_mean: 8.56674
 deviation_location: 0.188369
 ```
-Interesingly, we see an increase in `location` *entropy* but a decrease configuration deviation to 0.188369. We may conjecture that we have added some strong *alignments* within the rooms where the landmarks have been added, at the cost of configuration deviation relevant *alignments* between the rooms. Now we run the same *model* for longer to create *model* 84 -
+Interesingly, we see an increase in `location` *entropy* and general configuration deviation, but a decrease in `location`-configuration deviation to 0.188369. We may conjecture that we have added some strong *alignments* within the rooms where the landmarks have been added, at the cost of configuration deviation relevant *alignments* between the rooms. Now we run the same *model* for longer to create *model* 84 -
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -1512,7 +1512,7 @@ ros2 run TBOT03 actor model084.json
 	"summary_level2" : true
 }
 ```
-After 929471 *events* the configuration deviation has decreased again to 0.167629 -
+After 929,471 *events* the `location`-configuration deviation has decreased further to 0.167629 -
 ```
 ./main location_entropy model084_2
 model: model084_2
@@ -1545,7 +1545,7 @@ slice_location_count: 88665
 slice_location_size_mean: 10.483
 deviation_location: 0.167629
 ```
-Although we have seen an improvement, the configuration deviation is nowhere near what would be needed to obtain an average deviation of the scale that we see in *slices* that have only one cluster such as this one in *model* 77 when run in manual mode 9 (also shown above) -
+Although we have seen an improvement, the configuration deviation is nowhere near what would be needed to obtain an average deviation of the scale that we see in *slices* that have only one cluster such as this one from *model* 77, seen when run in manual mode 9 (also shown above) -
 ```
 sliceLocA: 18754916
 actor.eventsRecord(historyEventA): (-6.3306,1.29055,84.4717)
@@ -1563,7 +1563,7 @@ record: (-6.23914,1.05122,79.4263)
 recordsMean(recordStandards).config(): (-6.30674,1.06571,88.6595)
 recordsDeviation(recordStandards): 0.0159766
 ```
-Next, let us try adding a `direction` *variable* to the *substrate* (a magnetometer in practice) to see if there are *alignments* with it that can distringuish between clusters. In structure `struct003` the `direction` has a *valency* of 12. *Model* 85 is a copy of *model* 83 with structure `struct003` -
+Next, let us try adding a `direction` *variable* to the *substrate* (a magnetometer, in practice) to see if there exist *alignments* with it that are strong enough to disambiguate between clusters. In structure `struct003` the `direction` has a *valency* of 12. *Model* 85 is a copy of *model* 83 with structure `struct003` -
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -1788,9 +1788,9 @@ slice_location_count: 86902
 slice_location_size_mean: 10.6758
 deviation_location: 0.162262
 ```
-*Model* 87 is a small improvement over *model* 84 with a configuration deviation of 0.162262 instead of 0.167629. Of course, the improvement is far too small to justify the modification of the *substrate*.
+*Model* 87 is a small improvement over *model* 84 with a configuration deviation of 0.162262 instead of 0.167629. Of course, the improvement is far too small to justify the modification of the *substrate*. It does suggest, however, that a richer sensorium does improve the map between the *model* and the configuration and environment. This is what we would expect intuitively.
 
-Now let us return to the original *substrate*, i.e. without `direction`, but instead add a third *level* in structure `struct002`. In this *level* we add two *models*, the first will have *underlying frames* 0,1,2,3,4,6,8 and 10, the second has *underlying frames* 0,1,2,3 and 4, and *self frames* 5 and 10. *Model* 88 is otherwise a copy of *model* 83 -
+Now let us return to the original *substrate*, i.e. without `direction`, but instead add a third *level* defined in structure `struct002`. In this *level* we add two *models*, the first has *underlying frames* 0,1,2,3,4,6,8 and 10, the second has *underlying frames* 0,1,2,3 and 4, and *self frames* 5 and 10. *Model* 88 is otherwise a copy of *model* 83 -
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -1893,7 +1893,7 @@ slice_location_count: 57844
 slice_location_size_mean: 9.2723
 deviation_location: 0.177661
 ```
-As expected, *level* 2 *model* 89, with 536347 *events*, is intermediate between *model* 83 (365483 *events*) and *model* 84 (929471 *events*).
+As expected, *level* 2 *model* 89, with 536,347 *events*, is intermediate between *model* 83 (365,483 *events*) and *model* 84 (929,471 *events*).
 
 Let us examine the configuration deviation of each of the *level* 3 *models* -
 ```
@@ -1935,9 +1935,9 @@ slice_location_count: 96073
 slice_location_size_mean: 5.5827
 deviation_location: 0.21878
 ```
-They turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has and more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* three *models* have smaller mean *slice sizes* than the *level* two *model*, with only 5-6 *events* against 9-10 *events*.
+They both turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* three *models*, however, have smaller mean *slice sizes* than the *level* two *model*, with only 5-6 *events* against 9-10 *events*. 
 
-These *slice sizes* are already very small, so we cannot expect that crosssing the *level* two *model* with a *level* three *model* will produce a very useful *slice* topology -
+The mean *slice sizes* of the *level* three *models* are already small, so we cannot expect that crossing the *level* two *model* with a *level* three *model* will produce a very useful *slice* topology -
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ./main configuration_deviation_all_3level model089 model089_2 model089_3_00
@@ -1969,7 +1969,7 @@ slice_location_count: 460388
 slice_location_size_mean: 1.16499
 deviation_location: 0.0411679
 ```
-The `location` configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That is, the *models* of the different *levels* seem to be rather orthogonal - so much so, in fact, that crossing gives us little benefit. The map of *slice* to configuration is far too over-fitted.
+The `location`-configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That suggests that the *models* of the different *levels* are rather orthogonal - so much so, in fact, that crossing gives us little benefit. In other words, crossing the *levels* causes the map of *slice* to configuration to be far too over-fitted.
 
 
 
