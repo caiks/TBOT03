@@ -251,7 +251,7 @@ void run_act(Actor& actor)
 				}
 				if (actor._actLogging && (actor._actLoggingFactor <= 1 || actor._eventId % actor._actLoggingFactor == 0))
 				{
-					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG								
+					LOG "actor\tevent id: " << actor._eventId << "\ttime " << ((Sec)(Clock::now() - mark)).count() << "s" UNLOG
 				}		
 			}	
 			if (actor._mode=="mode001")
@@ -920,6 +920,106 @@ void run_act(Actor& actor)
 							break;
 						}
 					}						
+				}
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				actor._statusTimestamp = Clock::now();			
+			}
+			else if (actor._mode=="mode013")
+			{
+				// check the entire field of view
+				// check to see if remaining actions are effective
+				// choose randomly from the ineffective, setting the turn bias if blocked
+				// else choose randomly or by turn bias if blocked
+				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
+					actor._turnBiasRight = !actor._turnBiasRight;
+				bool blockedAhead = false;
+				for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+					if (actor._scan[i%360] <= actor._collisionRange)
+					{
+						blockedAhead = true;
+						break;					
+					}	
+				const char turn_left = 0;
+				const char ahead = 1;
+				const char turn_right = 2;
+				std::map<std::size_t, std::size_t> actionsCount;
+				auto& activeA = *actor._level2.front();
+				if (!activeA.terminate && (activeA.historyOverflow	|| activeA.historyEvent))	
+				{			
+					std::lock_guard<std::mutex> guard(activeA.mutex);
+					auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+					auto sliceA = activeA.historySparse->arr[historyEventA];
+					std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+					auto cont = activeA.continousIs;
+					auto& disc = activeA.continousHistoryEventsEvent;
+					auto& mm = actor._ur->mapVarSize();
+					auto& mvv = hr->mapVarInt();
+					auto motor = mvv[mm[Variable("motor")]];
+					auto n = hr->dimension;
+					auto z = hr->size;
+					auto y = activeA.historyEvent;
+					auto rr = hr->arr;	
+					// EVAL(sliceA);							
+					// EVAL(actor.eventsRecord(historyEventA));
+					for (auto& ev : activeA.historySlicesSetEvent[sliceA])
+					{
+						auto j = ev + (ev >= y ? 0 : z)  + 1;	
+						if (j < y+z && (!cont || !disc.count(j%z)))
+							actionsCount[rr[(j%z)*n+motor]]++;
+					}	
+				}	
+				// EVAL(actionsCount);
+				if (blockedAhead)
+				{
+					if (!actionsCount[turn_left] && actionsCount[turn_right])
+						actor._turnBiasRight = false;
+					else if (actionsCount[turn_left] && !actionsCount[turn_right])
+						actor._turnBiasRight = true;
+					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+				}					
+				else
+				{
+					std::map<Actor::Status, double> distributionA;
+					if (!actionsCount[turn_left])
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+					if (!actionsCount[ahead])
+						distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
+					if (!actionsCount[turn_right])
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					if (!actionsCount.size())
+						distributionA = actor._distribution;
+					{
+						double norm = 0.0;
+						for (auto& p : distributionA)
+							norm += p.second;	
+						for (auto& p : distributionA)
+							distributionA[p.first] /= norm;	
+					}
+					actor._status = Actor::AHEAD;
+					{
+						auto r = (double) rand() / (RAND_MAX);
+						double accum = 0.0;
+						for (auto& p : distributionA)
+						{
+							accum += p.second;
+							if (r < accum)
+							{
+								actor._status = p.first;
+								break;
+							}
+						}						
+					}
 				}
 				actor._actionPrevious = actor._status;
 				if (actor._updateLogging)
