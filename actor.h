@@ -98,6 +98,8 @@ public:
 	std::size_t _transistionNullCount;
 	double _transistionExpectedSuccessCount;
 	std::size_t _transistionCount;
+	bool _mode013Logging;
+	std::size_t _mode013LoggingFactor;
 	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;

@@ -1033,6 +1033,10 @@ void run_act(Actor& actor)
 					}
 					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
 				}			
+				if (actor._mode013Logging && (actor._mode013LoggingFactor <= 1 || actor._eventId % actor._mode013LoggingFactor == 0))
+				{
+					LOG activeA.name << "\t(event,fuds): (" << actor._eventId << "," << activeA.decomp->fuds.size() << ")" UNLOG	
+				}	
 				actor._statusTimestamp = Clock::now();			
 			}
 		}
@@ -1153,6 +1157,8 @@ Actor::Actor(const std::string& args_filename)
 	_turnBiasRight = ARGS_BOOL(turn_bias_right);	
 	_turnBiasFactor = ARGS_INT_DEF(turn_bias_factor,20);
 	_configDeviationMax = ARGS_DOUBLE(configuration_deviation_maximum);
+	_mode013Logging = ARGS_BOOL(logging_mode013);
+	_mode013LoggingFactor = ARGS_INT(logging_mode013_factor); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
