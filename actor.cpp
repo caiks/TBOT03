@@ -1033,9 +1033,222 @@ void run_act(Actor& actor)
 					}
 					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
 				}			
-				if (actor._mode013Logging && (actor._mode013LoggingFactor <= 1 || actor._eventId % actor._mode013LoggingFactor == 0))
+				if (actor._modeLogging && (actor._modeLoggingFactor <= 1 || actor._eventId % actor._modeLoggingFactor == 0))
 				{
 					LOG activeA.name << "\t(event,fuds): (" << actor._eventId << "," << activeA.decomp->fuds.size() << ")" UNLOG	
+				}	
+				actor._statusTimestamp = Clock::now();			
+			}
+			else if (actor._mode=="mode014")
+			{
+				// check the entire field of view
+				// check to see if remaining actions are effective
+				// if any ineffective choose randomly from the ineffective, setting the turn bias if blocked
+				// else if goal slice choose action by neighbourhood or turn by neighbourhood if blocked
+				// else choose randomly or by turn bias if blocked
+				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
+					actor._turnBiasRight = !actor._turnBiasRight;
+				bool blockedAhead = false;
+				for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+					if (actor._scan[i%360] <= actor._collisionRange)
+					{
+						blockedAhead = true;
+						break;					
+					}	
+				const char turn_left = 0;
+				const char ahead = 1;
+				const char turn_right = 2;
+				std::map<std::size_t, std::size_t> actionsCount;
+				auto& activeA = *actor._level2.front();
+				bool active = !activeA.terminate && (activeA.historyOverflow || activeA.historyEvent);
+				if (active)
+				{			
+					std::lock_guard<std::mutex> guard(activeA.mutex);
+					auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+					auto sliceA = activeA.historySparse->arr[historyEventA];
+					std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+					auto cont = activeA.continousIs;
+					auto& disc = activeA.continousHistoryEventsEvent;
+					auto& mm = actor._ur->mapVarSize();
+					auto& mvv = hr->mapVarInt();
+					auto motor = mvv[mm[Variable("motor")]];
+					auto n = hr->dimension;
+					auto z = hr->size;
+					auto y = activeA.historyEvent;
+					auto rr = hr->arr;	
+					// EVAL(sliceA);							
+					// EVAL(actor.eventsRecord(historyEventA));
+					for (auto& ev : activeA.historySlicesSetEvent[sliceA])
+					{
+						auto j = ev + (ev >= y ? 0 : z)  + 1;	
+						if (j < y+z && (!cont || !disc.count(j%z)))
+							actionsCount[rr[(j%z)*n+motor]]++;
+					}	
+				}					
+				// EVAL(actionsCount);
+				if (blockedAhead 
+					&& (!actionsCount[turn_left] || !actionsCount[turn_right]))
+				{
+					if (!actionsCount[turn_left] && actionsCount[turn_right])
+						actor._turnBiasRight = false;
+					else if (actionsCount[turn_left] && !actionsCount[turn_right])
+						actor._turnBiasRight = true;
+					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+				}					
+				else
+				{
+					if (active)
+					{			
+						std::lock_guard<std::mutex> guard(activeA.mutex);
+						auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+						auto sliceA = activeA.historySparse->arr[historyEventA];
+						std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+						auto& hs = *activeA.historySparse;
+						auto& slices = activeA.historySlicesSetEvent;
+						auto& fails = activeA.induceSliceFailsSize;
+						auto cont = activeA.continousIs;
+						auto& disc = activeA.continousHistoryEventsEvent;
+						auto& mm = actor._ur->mapVarSize();
+						auto& mvv = hr->mapVarInt();
+						auto motor = mvv[mm[Variable("motor")]];
+						auto n = hr->dimension;
+						auto z = hr->size;
+						auto y = activeA.historyEvent;
+						auto rr = hr->arr;	
+						auto rs = hs.arr;
+						auto& setEventA = slices[sliceA];
+						std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> slicesActionsCountNext;
+						slicesActionsCountNext.reserve(setEventA.size());
+						for (auto& ev : setEventA)
+						{
+							auto j = ev + (ev >= y ? 0 : z)  + 1;	
+							if (j < y+z && (!cont || !disc.count(j%z)))
+							{
+								auto sliceB = rs[j%z];
+								if (sliceB != sliceA)
+								{
+									auto actionA = rr[(j%z)*n+motor];
+									if (!blockedAhead || actionA != ahead)
+										slicesActionsCountNext[sliceB][actionA]++;
+								}
+							}
+						}	
+						std::size_t sizeMax = 0;
+						SizeSet setSliceSizeMax;
+						SizeSet setSliceOpen;
+						setSliceOpen.insert(sliceA);
+						SizeSet setSliceBoundA;
+						SizeSet setSliceBoundB;
+						for (auto& p : slicesActionsCountNext)
+						{
+							setSliceOpen.insert(p.first);							
+							setSliceBoundA.insert(p.first);		
+							if (!fails.count(p.first))
+							{
+								std::size_t sizeA = slices[p.first].size();
+								if (sizeA > sizeMax)
+								{
+									sizeMax = sizeA;
+									setSliceSizeMax.clear();
+									setSliceSizeMax.insert(p.first);
+								}		
+								else if (sizeA == sizeMax)
+									setSliceSizeMax.insert(p.first);
+							}
+						}
+						std::size_t	transitionA = 0;
+						while (transitionA < actor._mode014TransitionMax && setSliceBoundA.size())
+						{
+							for (auto sliceC : setSliceBoundA)
+								for (auto& ev : slices[sliceC])
+								{
+									auto j = ev + (ev >= y ? 0 : z)  + 1;	
+									if (j < y+z && (!cont || !disc.count(j%z)))
+									{
+										auto sliceB = rs[j%z];
+										if (sliceB != sliceC && !setSliceOpen.count(sliceB))
+										{
+											setSliceBoundB.insert(sliceB);
+											setSliceOpen.insert(sliceB);
+											if (!fails.count(sliceB))
+											{
+												std::size_t sizeA = slices[sliceB].size();
+												if (sizeA > sizeMax)
+												{
+													sizeMax = sizeA;
+													setSliceSizeMax.clear();
+													setSliceSizeMax.insert(sliceB);
+												}		
+												else if (sizeA == sizeMax)
+													setSliceSizeMax.insert(sliceB);
+											}
+										}
+									}
+								}
+							setSliceBoundA = setSliceBoundB;
+							setSliceBoundB.clear();
+							transitionA++;
+						}							
+						
+					}	
+				
+					
+					{
+						std::map<Actor::Status, double> distributionA;
+						if (!actionsCount[turn_left])
+							distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+						if (!actionsCount[ahead])
+							distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
+						if (!actionsCount[turn_right])
+							distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+						if (!actionsCount.size())
+							distributionA = actor._distribution;
+						{
+							double norm = 0.0;
+							for (auto& p : distributionA)
+								norm += p.second;	
+							for (auto& p : distributionA)
+								distributionA[p.first] /= norm;	
+						}
+						actor._status = Actor::AHEAD;
+						{
+							auto r = (double) rand() / (RAND_MAX);
+							double accum = 0.0;
+							for (auto& p : distributionA)
+							{
+								accum += p.second;
+								if (r < accum)
+								{
+									actor._status = p.first;
+									break;
+								}
+							}						
+						}
+					}
+				}
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				if (actor._modeLogging && (actor._modeLoggingFactor <= 1 || actor._eventId % actor._modeLoggingFactor == 0))
+				{
+					if (active)
+					{
+						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds:" << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG
+					}
+					else
+					{
+						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds:" << "0" << "\tfuds/size/threshold: " << "0.0" UNLOG
+					}
 				}	
 				actor._statusTimestamp = Clock::now();			
 			}
@@ -1130,7 +1343,6 @@ Actor::Actor(const std::string& args_filename)
 	bool level3Summary = ARGS_BOOL(summary_level3);
 	bool induceNot = ARGS_BOOL(no_induce);
 	_mode = ARGS_STRING_DEF(mode, "mode001");	
-	_modeLogging = ARGS_BOOL(mode_logging);	
 	srand(ARGS_INT_DEF(mode_seed,7));
 	_distribution[LEFT] = ARGS_DOUBLE_DEF(distribution_LEFT,1.0);
 	_distribution[AHEAD] = ARGS_DOUBLE_DEF(distribution_AHEAD,5.0);
@@ -1157,8 +1369,10 @@ Actor::Actor(const std::string& args_filename)
 	_turnBiasRight = ARGS_BOOL(turn_bias_right);	
 	_turnBiasFactor = ARGS_INT_DEF(turn_bias_factor,20);
 	_configDeviationMax = ARGS_DOUBLE(configuration_deviation_maximum);
-	_mode013Logging = ARGS_BOOL(logging_mode013);
-	_mode013LoggingFactor = ARGS_INT(logging_mode013_factor); 
+	_modeLogging = ARGS_BOOL(logging_mode);
+	_modeLoggingFactor = ARGS_INT(logging_mode_factor); 
+	_modeTracing = ARGS_BOOL(tracing_mode);
+	_mode014TransitionMax = ARGS_INT_DEF(transition_maximum,10); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);

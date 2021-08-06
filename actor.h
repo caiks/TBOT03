@@ -80,7 +80,6 @@ public:
 	std::shared_ptr<Alignment::System> _uu;
 	std::shared_ptr<Alignment::SystemRepa> _ur;
 	
-	bool _modeLogging;	
 	std::map<Status, double> _distribution;
 	std::map<Status, double> _distributionTurn;
 	double _collisionRange;
@@ -98,8 +97,10 @@ public:
 	std::size_t _transistionNullCount;
 	double _transistionExpectedSuccessCount;
 	std::size_t _transistionCount;
-	bool _mode013Logging;
-	std::size_t _mode013LoggingFactor;
+	bool _modeLogging;
+	std::size_t _modeLoggingFactor;
+	bool _modeTracing;
+	std::size_t _mode014TransitionMax;
 	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
