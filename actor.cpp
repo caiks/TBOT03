@@ -997,7 +997,7 @@ void run_act(Actor& actor)
 						distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
 					if (!actionsCount[turn_right])
 						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
-					if (!actionsCount.size())
+					if (actionsCount.size() == 3)
 						distributionA = actor._distribution;
 					{
 						double norm = 0.0;
@@ -1035,7 +1035,8 @@ void run_act(Actor& actor)
 				}			
 				if (actor._modeLogging && (actor._modeLoggingFactor <= 1 || actor._eventId % actor._modeLoggingFactor == 0))
 				{
-					LOG activeA.name << "\t(event,fuds): (" << actor._eventId << "," << activeA.decomp->fuds.size() << ")" UNLOG	
+					std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+					LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds:" << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG	
 				}	
 				actor._statusTimestamp = Clock::now();			
 			}
@@ -1193,38 +1194,7 @@ void run_act(Actor& actor)
 					}	
 				
 					
-					{
-						std::map<Actor::Status, double> distributionA;
-						if (!actionsCount[turn_left])
-							distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
-						if (!actionsCount[ahead])
-							distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
-						if (!actionsCount[turn_right])
-							distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
-						if (!actionsCount.size())
-							distributionA = actor._distribution;
-						{
-							double norm = 0.0;
-							for (auto& p : distributionA)
-								norm += p.second;	
-							for (auto& p : distributionA)
-								distributionA[p.first] /= norm;	
-						}
-						actor._status = Actor::AHEAD;
-						{
-							auto r = (double) rand() / (RAND_MAX);
-							double accum = 0.0;
-							for (auto& p : distributionA)
-							{
-								accum += p.second;
-								if (r < accum)
-								{
-									actor._status = p.first;
-									break;
-								}
-							}						
-						}
-					}
+
 				}
 				actor._actionPrevious = actor._status;
 				if (actor._updateLogging)
