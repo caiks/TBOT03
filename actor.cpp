@@ -972,7 +972,7 @@ void run_act(Actor& actor)
 					auto rr = hr->arr;	
 					// EVAL(sliceA);							
 					// EVAL(actor.eventsRecord(historyEventA));
-					for (auto& ev : activeA.historySlicesSetEvent[sliceA])
+					for (auto ev : activeA.historySlicesSetEvent[sliceA])
 					{
 						auto j = ev + (ev >= y ? 0 : z)  + 1;	
 						if (j < y+z && (!cont || !disc.count(j%z)))
@@ -1036,7 +1036,7 @@ void run_act(Actor& actor)
 				if (actor._modeLogging && (actor._modeLoggingFactor <= 1 || actor._eventId % actor._modeLoggingFactor == 0))
 				{
 					std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-					LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds:" << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG	
+					LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG	
 				}	
 				actor._statusTimestamp = Clock::now();			
 			}
@@ -1077,16 +1077,22 @@ void run_act(Actor& actor)
 					auto z = hr->size;
 					auto y = activeA.historyEvent;
 					auto rr = hr->arr;	
-					// EVAL(sliceA);							
-					// EVAL(actor.eventsRecord(historyEventA));
-					for (auto& ev : activeA.historySlicesSetEvent[sliceA])
+					if (actor._modeTracing)
+					{
+						EVAL(sliceA);							
+						EVAL(actor.eventsRecord(historyEventA));
+					}
+					for (auto ev : activeA.historySlicesSetEvent[sliceA])
 					{
 						auto j = ev + (ev >= y ? 0 : z)  + 1;	
 						if (j < y+z && (!cont || !disc.count(j%z)))
 							actionsCount[rr[(j%z)*n+motor]]++;
 					}	
-				}					
-				// EVAL(actionsCount);
+				}	
+				if (actor._modeTracing)
+				{
+					EVAL(actionsCount);
+				}				
 				if (blockedAhead 
 					&& (!actionsCount[turn_left] || !actionsCount[turn_right]))
 				{
@@ -1095,47 +1101,79 @@ void run_act(Actor& actor)
 					else if (actionsCount[turn_left] && !actionsCount[turn_right])
 						actor._turnBiasRight = true;
 					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
-				}					
-				else
+				}	
+				else if (!blockedAhead && actionsCount.size() < 3)
 				{
-					if (active)
-					{			
-						std::lock_guard<std::mutex> guard(activeA.mutex);
-						auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
-						auto sliceA = activeA.historySparse->arr[historyEventA];
-						std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
-						auto& hs = *activeA.historySparse;
-						auto& slices = activeA.historySlicesSetEvent;
-						auto& fails = activeA.induceSliceFailsSize;
-						auto cont = activeA.continousIs;
-						auto& disc = activeA.continousHistoryEventsEvent;
-						auto& mm = actor._ur->mapVarSize();
-						auto& mvv = hr->mapVarInt();
-						auto motor = mvv[mm[Variable("motor")]];
-						auto n = hr->dimension;
-						auto z = hr->size;
-						auto y = activeA.historyEvent;
-						auto rr = hr->arr;	
-						auto rs = hs.arr;
-						auto& setEventA = slices[sliceA];
-						std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> slicesActionsCountNext;
-						slicesActionsCountNext.reserve(setEventA.size());
-						for (auto& ev : setEventA)
+					std::map<Actor::Status, double> distributionA;
+					if (!actionsCount[turn_left])
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+					if (!actionsCount[ahead])
+						distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
+					if (!actionsCount[turn_right])
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					{
+						double norm = 0.0;
+						for (auto& p : distributionA)
+							norm += p.second;	
+						for (auto& p : distributionA)
+							distributionA[p.first] /= norm;	
+					}
+					actor._status = Actor::AHEAD;
+					{
+						auto r = (double) rand() / (RAND_MAX);
+						double accum = 0.0;
+						for (auto& p : distributionA)
 						{
-							auto j = ev + (ev >= y ? 0 : z)  + 1;	
-							if (j < y+z && (!cont || !disc.count(j%z)))
+							accum += p.second;
+							if (r < accum)
 							{
-								auto sliceB = rs[j%z];
-								if (sliceB != sliceA)
-								{
-									auto actionA = rr[(j%z)*n+motor];
-									if (!blockedAhead || actionA != ahead)
-										slicesActionsCountNext[sliceB][actionA]++;
-								}
+								actor._status = p.first;
+								break;
 							}
-						}	
+						}						
+					}
+				}				
+				else if (active)
+				{		
+					std::lock_guard<std::mutex> guard(activeA.mutex);
+					auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+					auto sliceA = activeA.historySparse->arr[historyEventA];
+					std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+					auto& hs = *activeA.historySparse;
+					auto& slices = activeA.historySlicesSetEvent;
+					auto& fails = activeA.induceSliceFailsSize;
+					auto cont = activeA.continousIs;
+					auto& disc = activeA.continousHistoryEventsEvent;
+					auto& mm = actor._ur->mapVarSize();
+					auto& mvv = hr->mapVarInt();
+					auto motor = mvv[mm[Variable("motor")]];
+					auto n = hr->dimension;
+					auto z = hr->size;
+					auto y = activeA.historyEvent;
+					auto rr = hr->arr;	
+					auto rs = hs.arr;
+					auto& setEventA = slices[sliceA];
+					std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> slicesActionsCountNext;
+					slicesActionsCountNext.reserve(setEventA.size());
+					for (auto ev : setEventA)
+					{
+						auto j = ev + (ev >= y ? 0 : z)  + 1;	
+						if (j < y+z && (!cont || !disc.count(j%z)))
+						{
+							auto sliceB = rs[j%z];
+							if (sliceB != sliceA)
+							{
+								auto actionA = rr[(j%z)*n+motor];
+								if (!blockedAhead || actionA != ahead)
+									slicesActionsCountNext[sliceB][actionA]++;
+							}
+						}
+					}	
+					SizeSet setSliceSizeMax;
+					if (slicesActionsCountNext.size() >= 2)
+					{
+						std::size_t transitionMax = 0;
 						std::size_t sizeMax = 0;
-						SizeSet setSliceSizeMax;
 						SizeSet setSliceOpen;
 						setSliceOpen.insert(sliceA);
 						SizeSet setSliceBoundA;
@@ -1149,6 +1187,7 @@ void run_act(Actor& actor)
 								std::size_t sizeA = slices[p.first].size();
 								if (sizeA > sizeMax)
 								{
+									transitionMax = 1;
 									sizeMax = sizeA;
 									setSliceSizeMax.clear();
 									setSliceSizeMax.insert(p.first);
@@ -1157,11 +1196,11 @@ void run_act(Actor& actor)
 									setSliceSizeMax.insert(p.first);
 							}
 						}
-						std::size_t	transitionA = 0;
-						while (transitionA < actor._mode014TransitionMax && setSliceBoundA.size())
+						std::size_t	transitionA = 2;
+						while (transitionA <= actor._mode014TransitionMax && setSliceBoundA.size())
 						{
 							for (auto sliceC : setSliceBoundA)
-								for (auto& ev : slices[sliceC])
+								for (auto ev : slices[sliceC])
 								{
 									auto j = ev + (ev >= y ? 0 : z)  + 1;	
 									if (j < y+z && (!cont || !disc.count(j%z)))
@@ -1176,11 +1215,12 @@ void run_act(Actor& actor)
 												std::size_t sizeA = slices[sliceB].size();
 												if (sizeA > sizeMax)
 												{
+													transitionMax = transitionA;
 													sizeMax = sizeA;
 													setSliceSizeMax.clear();
 													setSliceSizeMax.insert(sliceB);
 												}		
-												else if (sizeA == sizeMax)
+												else if (sizeA == sizeMax && transitionA <= transitionMax)
 													setSliceSizeMax.insert(sliceB);
 											}
 										}
@@ -1190,9 +1230,15 @@ void run_act(Actor& actor)
 							setSliceBoundB.clear();
 							transitionA++;
 						}							
-						
-					}	
-				
+							
+					}
+					std::size_t sliceGoal = setSliceSizeMax.size() ? *setSliceSizeMax.rbegin() : 0;
+					if (actor._modeTracing)
+					{
+						EVAL(setSliceSizeMax.size());
+						EVAL(sliceGoal);
+					}
+					
 					
 
 				}
@@ -1213,7 +1259,7 @@ void run_act(Actor& actor)
 					if (active)
 					{
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds:" << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG
+						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG
 					}
 					else
 					{
