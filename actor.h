@@ -91,8 +91,9 @@ public:
 	double _configDeviationMax;
 	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _locationsSlicesStepCount;
 	std::set<std::size_t> _neighbours;
+	std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> _neighboursActionsCount;
 	std::set<std::size_t> _neighbourLeasts;
-	std::size_t _sliceLocA;
+	std::size_t _slicePrevious;
 	std::size_t _transistionSuccessCount;
 	std::size_t _transistionNullCount;
 	double _transistionExpectedSuccessCount;
