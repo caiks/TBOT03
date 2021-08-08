@@ -1147,17 +1147,18 @@ void run_act(Actor& actor)
 					auto& mm = actor._ur->mapVarSize();
 					auto& mvv = hr->mapVarInt();
 					auto motor = mvv[mm[Variable("motor")]];
+					auto over = activeA.historyOverflow;
 					auto n = hr->dimension;
 					auto z = hr->size;
 					auto y = activeA.historyEvent;
 					auto rr = hr->arr;	
 					auto rs = hs.arr;
 					auto& setEventA = slices[sliceA];
-					std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> slicesActionsCountNext;
-					slicesActionsCountNext.reserve(setEventA.size());
+					std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> neighboursActionsCount;
+					neighboursActionsCount.reserve(setEventA.size());
 					for (auto ev : setEventA)
 					{
-						auto j = ev + (ev >= y ? 0 : z)  + 1;	
+						auto j = ev + (ev >= y ? 0 : z) + 1;	
 						if (j < y+z && (!cont || !disc.count(j%z)))
 						{
 							auto sliceB = rs[j%z];
@@ -1165,20 +1166,24 @@ void run_act(Actor& actor)
 							{
 								auto actionA = rr[(j%z)*n+motor];
 								if (!blockedAhead || actionA != ahead)
-									slicesActionsCountNext[sliceB][actionA]++;
+									neighboursActionsCount[sliceB][actionA]++;
 							}
 						}
 					}	
-					SizeSet setSliceSizeMax;
-					if (slicesActionsCountNext.size() >= 2)
+					if (actor._modeTracing)
 					{
-						std::size_t transitionMax = 0;
-						std::size_t sizeMax = 0;
+						EVAL(neighboursActionsCount.size());
+					}	
+					SizeSet setSliceSizeMax;
+					std::size_t transitionMax = 0;
+					std::size_t sizeMax = 0;
+					if (neighboursActionsCount.size() >= 2)
+					{
 						SizeSet setSliceOpen;
 						setSliceOpen.insert(sliceA);
 						SizeSet setSliceBoundA;
 						SizeSet setSliceBoundB;
-						for (auto& p : slicesActionsCountNext)
+						for (auto& p : neighboursActionsCount)
 						{
 							setSliceOpen.insert(p.first);							
 							setSliceBoundA.insert(p.first);		
@@ -1230,20 +1235,118 @@ void run_act(Actor& actor)
 							setSliceBoundB.clear();
 							transitionA++;
 						}							
-							
 					}
 					std::size_t sliceGoal = setSliceSizeMax.size() ? *setSliceSizeMax.rbegin() : 0;
 					if (actor._modeTracing)
 					{
-						EVAL(setSliceSizeMax.size());
 						EVAL(sliceGoal);
+					}	
+					if (actor._modeTracing && sliceGoal)
+					{
+						EVAL(setSliceSizeMax.size());
+						EVAL(transitionMax);
+						EVAL(sizeMax);
+					}						
+					SizeUSet neighbourLeasts;
+					neighbourLeasts.reserve(neighboursActionsCount.size());
+					if (sliceGoal && neighboursActionsCount.count(sliceGoal))
+						neighbourLeasts.insert(sliceGoal);
+					else if (sliceGoal)
+					{
+						SizeSet setSliceOpen;
+						setSliceOpen.insert(sliceGoal);
+						SizeSet setSliceBoundA;
+						setSliceBoundA.insert(sliceGoal);
+						SizeSet setSliceBoundB;
+						std::size_t	transitionA = 1;
+						while (transitionA <= actor._mode014TransitionMax 
+							&& !neighbourLeasts.size() && setSliceBoundA.size())
+						{
+							for (auto sliceC : setSliceBoundA)
+								for (auto ev : slices[sliceC])
+								{
+									auto j = ev + (ev >= y ? 0 : z) - 1;	
+									if (j >= y && (over || j >= z) && (!cont || !disc.count(ev)))
+									{
+										auto sliceB = rs[j%z];
+										if (sliceB != sliceC && !setSliceOpen.count(sliceB))
+										{
+											setSliceBoundB.insert(sliceB);
+											setSliceOpen.insert(sliceB);
+										}
+									}
+								}
+							for (auto& p : neighboursActionsCount)
+								if (setSliceBoundB.count(p.first))
+									neighbourLeasts.insert(p.first);
+							setSliceBoundA = setSliceBoundB;
+							setSliceBoundB.clear();
+							transitionA++;
+						}							
 					}
-					
-					
-
+					if (actor._modeTracing && sliceGoal)
+					{
+						EVAL(neighbourLeasts.size());
+					}	
+					if (neighbourLeasts.size() && neighbourLeasts.size() < neighboursActionsCount.size())
+					{
+						std::map<Actor::Status, double> distributionA;
+						for (auto sliceB : neighbourLeasts)
+						{
+							distributionA[Actor::LEFT] += neighboursActionsCount[sliceB][turn_left];
+							distributionA[Actor::AHEAD] += neighboursActionsCount[sliceB][ahead];
+							distributionA[Actor::RIGHT] += neighboursActionsCount[sliceB][turn_right];
+						}
+						{
+							double norm = 0.0;
+							for (auto& p : distributionA)
+								norm += p.second;	
+							for (auto& p : distributionA)
+								distributionA[p.first] /= norm;	
+						}
+						if (actor._modeTracing)
+						{
+							EVAL(distributionA);
+						}
+						actor._status = Actor::AHEAD;
+						{
+							auto r = (double) rand() / (RAND_MAX);
+							double accum = 0.0;
+							for (auto& p : distributionA)
+							{
+								accum += p.second;
+								if (r < accum)
+								{
+									actor._status = p.first;
+									break;
+								}
+							}						
+						}						
+					}
+					else if (blockedAhead)
+					{
+						actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+					}	
+					else
+					{
+						actor._status = Actor::AHEAD;
+						{
+							auto r = (double) rand() / (RAND_MAX);
+							double accum = 0.0;
+							for (auto& p : actor._distribution)
+							{
+								accum += p.second;
+								if (r < accum)
+								{
+									actor._status = p.first;
+									break;
+								}
+							}						
+						}						
+					}
 				}
 				actor._actionPrevious = actor._status;
-				if (actor._updateLogging)
+				if (actor._updateLogging || actor._modeTracing)
 				{
 					string statusString;
 					switch(actor._status)
@@ -1388,7 +1491,7 @@ Actor::Actor(const std::string& args_filename)
 	_modeLogging = ARGS_BOOL(logging_mode);
 	_modeLoggingFactor = ARGS_INT(logging_mode_factor); 
 	_modeTracing = ARGS_BOOL(tracing_mode);
-	_mode014TransitionMax = ARGS_INT_DEF(transition_maximum,10); 
+	_mode014TransitionMax = ARGS_INT_DEF(transition_maximum,8); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
