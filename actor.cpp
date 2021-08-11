@@ -1083,6 +1083,12 @@ void run_act(Actor& actor)
 						EVAL(sliceA);							
 						EVAL(actor.eventsRecord(historyEventA));
 					}
+					// check for hits
+					if (actor._hitLogging)
+					{
+						if (actor._setSliceGoal.count(sliceA))
+							actor._setSliceHit.insert(sliceA);
+					}					
 					// check if a transition and record the transition stats if so
 					if (actor._slicePrevious && sliceA 
 						&& sliceA != actor._slicePrevious)
@@ -1175,9 +1181,10 @@ void run_act(Actor& actor)
 					auto y = activeA.historyEvent;
 					auto rr = hr->arr;	
 					auto rs = hs.arr;
-					// determine neighboursActionsCount and neighbourLeasts
+					// determine goal slice, neighboursActionsCount and neighbourLeasts
 					std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> neighboursActionsCount;
 					SizeSet neighbourLeasts;
+					std::size_t sliceGoal = 0;
 					if (actor._slicePrevious && sliceA == actor._slicePrevious)
 					{
 						neighboursActionsCount = actor._neighboursActionsCount;
@@ -1235,7 +1242,9 @@ void run_act(Actor& actor)
 								}
 							}
 							std::size_t	transitionA = 2;
-							while (transitionA <= actor._mode014TransitionMax && setSliceBoundA.size())
+							while (transitionA <= actor._mode014TransitionMax 
+								&& setSliceOpen.size() <= actor._mode014OpenSlicesMax 
+								&& setSliceBoundA.size())
 							{
 								for (auto sliceC : setSliceBoundA)
 									for (auto ev : slices[sliceC])
@@ -1269,7 +1278,8 @@ void run_act(Actor& actor)
 								transitionA++;
 							}							
 						}
-						std::size_t sliceGoal = setSliceSizeMax.size() ? *setSliceSizeMax.rbegin() : 0;
+						if (setSliceSizeMax.size())
+							sliceGoal = *setSliceSizeMax.rbegin();
 						if (actor._modeTracing)
 						{
 							EVAL(sliceGoal);
@@ -1291,8 +1301,10 @@ void run_act(Actor& actor)
 							setSliceBoundA.insert(sliceGoal);
 							SizeSet setSliceBoundB;
 							std::size_t	transitionA = 1;
-							while (transitionA <= actor._mode014TransitionMax 
-								&& !neighbourLeasts.size() && setSliceBoundA.size())
+							while (transitionA <= actor._mode014TransitionMax
+								&& setSliceOpen.size() <= actor._mode014OpenSlicesMax							
+								&& !neighbourLeasts.size() 
+								&& setSliceBoundA.size())
 							{
 								for (auto sliceC : setSliceBoundA)
 									for (auto ev : slices[sliceC])
@@ -1335,7 +1347,12 @@ void run_act(Actor& actor)
 							distributionA[Actor::LEFT] += neighboursActionsCount[sliceB][turn_left];
 							distributionA[Actor::AHEAD] += neighboursActionsCount[sliceB][ahead];
 							distributionA[Actor::RIGHT] += neighboursActionsCount[sliceB][turn_right];
-						}	
+						}
+						// add to goals for hit logging
+						if (actor._hitLogging)
+						{
+							actor._setSliceGoal.insert(sliceGoal);
+						}						
 						if (actor._modeTracing)
 						{
 							LOG "action: " << "decidable" UNLOG
@@ -1406,11 +1423,18 @@ void run_act(Actor& actor)
 				{
 					if (active)
 					{
-							double transition_success_rate = actor._transistionCount ? (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
-							double transition_expected_success_rate = actor._transistionCount ? (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
-							double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_success_rate = actor._transistionCount ? (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_expected_success_rate = actor._transistionCount ? (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess rate: " << transition_success_rate << "\expected rate: " << transition_expected_success_rate << "\tnull rate: " << transition_null_rate UNLOG
+						if (actor._hitLogging)
+						{
+							LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess rate: " << transition_success_rate << "\texpected rate: " << transition_expected_success_rate << "\tnull rate: " << transition_null_rate << "\tgoals: " << actor._setSliceGoal.size() << "\thits: " << actor._setSliceHit.size() UNLOG
+						}
+						else
+						{
+							LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess rate: " << transition_success_rate << "\texpected rate: " << transition_expected_success_rate << "\tnull rate: " << transition_null_rate UNLOG
+						}
 					}
 					else
 					{
@@ -1539,7 +1563,9 @@ Actor::Actor(const std::string& args_filename)
 	_modeLogging = ARGS_BOOL(logging_mode);
 	_modeLoggingFactor = ARGS_INT(logging_mode_factor); 
 	_modeTracing = ARGS_BOOL(tracing_mode);
+	_hitLogging = ARGS_BOOL(logging_hit);
 	_mode014TransitionMax = ARGS_INT_DEF(transition_maximum,8); 
+	_mode014OpenSlicesMax = ARGS_INT_DEF(open_slices_maximum,100); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);

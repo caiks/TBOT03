@@ -101,7 +101,11 @@ public:
 	bool _modeLogging;
 	std::size_t _modeLoggingFactor;
 	bool _modeTracing;
+	bool _hitLogging;
+	std::set<std::size_t> _setSliceGoal;
+	std::set<std::size_t> _setSliceHit;
 	std::size_t _mode014TransitionMax;
+	std::size_t _mode014OpenSlicesMax;
 	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
