@@ -1059,9 +1059,10 @@ void run_act(Actor& actor)
 				const char turn_left = 0;
 				const char ahead = 1;
 				const char turn_right = 2;
-				std::map<std::size_t, std::size_t> actionsCount;
 				auto& activeA = *actor._level2.front();
 				bool active = !activeA.terminate && (activeA.historyOverflow || activeA.historyEvent);
+				// get current slice actions
+				std::map<std::size_t, std::size_t> actionsCount;
 				if (active)
 				{			
 					std::lock_guard<std::mutex> guard(activeA.mutex);
@@ -1077,6 +1078,12 @@ void run_act(Actor& actor)
 					auto z = hr->size;
 					auto y = activeA.historyEvent;
 					auto rr = hr->arr;	
+					if (actor._modeTracing)
+					{
+						EVAL(sliceA);							
+						EVAL(actor.eventsRecord(historyEventA));
+					}
+					// check if a transition and record the transition stats if so
 					if (actor._slicePrevious && sliceA 
 						&& sliceA != actor._slicePrevious)
 					{
@@ -1102,11 +1109,7 @@ void run_act(Actor& actor)
 							EVAL(transition_null_rate);
 						}
 					}
-					if (actor._modeTracing)
-					{
-						EVAL(sliceA);							
-						EVAL(actor.eventsRecord(historyEventA));
-					}
+					// get actions
 					for (auto ev : activeA.historySlicesSetEvent[sliceA])
 					{
 						auto j = ev + (ev >= y ? 0 : z)  + 1;	
@@ -1118,6 +1121,9 @@ void run_act(Actor& actor)
 				{
 					EVAL(actionsCount);
 				}				
+				// determine the distribution of actions
+				std::map<Actor::Status, double> distributionA;
+				// handle blocked and some ineffective turns
 				if (blockedAhead 
 					&& (!actionsCount[turn_left] || !actionsCount[turn_right]))
 				{
@@ -1125,39 +1131,30 @@ void run_act(Actor& actor)
 						actor._turnBiasRight = false;
 					else if (actionsCount[turn_left] && !actionsCount[turn_right])
 						actor._turnBiasRight = true;
-					actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+					if (actor._turnBiasRight)
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					else
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+					if (actor._modeTracing)
+					{
+						LOG "action: " << "blocked and some ineffective turns" UNLOG
+					}
 				}	
+				// handle not blocked and some ineffective
 				else if (!blockedAhead && actionsCount.size() < 3)
 				{
-					std::map<Actor::Status, double> distributionA;
 					if (!actionsCount[turn_left])
 						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
 					if (!actionsCount[ahead])
 						distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
 					if (!actionsCount[turn_right])
 						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					if (actor._modeTracing)
 					{
-						double norm = 0.0;
-						for (auto& p : distributionA)
-							norm += p.second;	
-						for (auto& p : distributionA)
-							distributionA[p.first] /= norm;	
-					}
-					actor._status = Actor::AHEAD;
-					{
-						auto r = (double) rand() / (RAND_MAX);
-						double accum = 0.0;
-						for (auto& p : distributionA)
-						{
-							accum += p.second;
-							if (r < accum)
-							{
-								actor._status = p.first;
-								break;
-							}
-						}						
-					}
+						LOG "action: " << "not blocked and some ineffective" UNLOG
+					}					
 				}				
+				// handle no ineffective
 				else if (active)
 				{		
 					std::lock_guard<std::mutex> guard(activeA.mutex);
@@ -1178,6 +1175,7 @@ void run_act(Actor& actor)
 					auto y = activeA.historyEvent;
 					auto rr = hr->arr;	
 					auto rs = hs.arr;
+					// determine neighboursActionsCount and neighbourLeasts
 					std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> neighboursActionsCount;
 					SizeSet neighbourLeasts;
 					if (actor._slicePrevious && sliceA == actor._slicePrevious)
@@ -1188,6 +1186,7 @@ void run_act(Actor& actor)
 					else
 					{
 						auto& setEventA = slices[sliceA];
+						// get neighboursActionsCount
 						neighboursActionsCount.reserve(setEventA.size());
 						for (auto ev : setEventA)
 						{
@@ -1207,6 +1206,7 @@ void run_act(Actor& actor)
 						{
 							EVAL(neighboursActionsCount.size());
 						}	
+						// get sliceGoal
 						SizeSet setSliceSizeMax;
 						std::size_t transitionMax = 0;
 						std::size_t sizeMax = 0;
@@ -1218,7 +1218,7 @@ void run_act(Actor& actor)
 							SizeSet setSliceBoundB;
 							for (auto& p : neighboursActionsCount)
 							{
-								setSliceOpen.insert(p.first);							
+								setSliceOpen.insert(p.first);
 								setSliceBoundA.insert(p.first);		
 								if (!fails.count(p.first))
 								{
@@ -1280,6 +1280,7 @@ void run_act(Actor& actor)
 							EVAL(transitionMax);
 							EVAL(sizeMax);
 						}						
+						// get neighbourLeasts
 						if (sliceGoal && neighboursActionsCount.count(sliceGoal))
 							neighbourLeasts.insert(sliceGoal);
 						else if (sliceGoal)
@@ -1326,63 +1327,69 @@ void run_act(Actor& actor)
 							actor._neighboursActionsCount = neighboursActionsCount;
 						}
 					}				
+					// determine the distribution if least is a proper subset
 					if (neighbourLeasts.size() && neighbourLeasts.size() < neighboursActionsCount.size())
 					{
-						std::map<Actor::Status, double> distributionA;
 						for (auto sliceB : neighbourLeasts)
 						{
 							distributionA[Actor::LEFT] += neighboursActionsCount[sliceB][turn_left];
 							distributionA[Actor::AHEAD] += neighboursActionsCount[sliceB][ahead];
 							distributionA[Actor::RIGHT] += neighboursActionsCount[sliceB][turn_right];
-						}
-						{
-							double norm = 0.0;
-							for (auto& p : distributionA)
-								norm += p.second;	
-							for (auto& p : distributionA)
-								distributionA[p.first] /= norm;	
-						}
+						}	
 						if (actor._modeTracing)
 						{
-							EVAL(distributionA);
-						}
-						actor._status = Actor::AHEAD;
-						{
-							auto r = (double) rand() / (RAND_MAX);
-							double accum = 0.0;
-							for (auto& p : distributionA)
-							{
-								accum += p.second;
-								if (r < accum)
-								{
-									actor._status = p.first;
-									break;
-								}
-							}						
-						}						
+							LOG "action: " << "decidable" UNLOG
+						}					
 					}
+					// else determine the distribution if blocked
 					else if (blockedAhead)
 					{
-						actor._status = actor._turnBiasRight ? Actor::RIGHT : Actor::LEFT;
+						if (actor._turnBiasRight)
+							distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+						else
+							distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+						if (actor._modeTracing)
+						{
+							LOG "action: " << "not decidable and blocked" UNLOG
+						}											
 					}	
+					// else default the distribution
 					else
 					{
-						actor._status = Actor::AHEAD;
+						distributionA = actor._distribution;
+						if (actor._modeTracing)
 						{
-							auto r = (double) rand() / (RAND_MAX);
-							double accum = 0.0;
-							for (auto& p : actor._distribution)
-							{
-								accum += p.second;
-								if (r < accum)
-								{
-									actor._status = p.first;
-									break;
-								}
-							}						
-						}						
+							LOG "action: " << "not decidable" UNLOG
+						}		
 					}
 				}
+				// normalise distributionA
+				{
+					double norm = 0.0;
+					for (auto& p : distributionA)
+						norm += p.second;	
+					for (auto& p : distributionA)
+						distributionA[p.first] /= norm;	
+				}
+				if (actor._modeTracing)
+				{
+					EVAL(distributionA);
+				}
+				// select from distributionA
+				actor._status = Actor::AHEAD;
+				{
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : distributionA)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}				
 				actor._actionPrevious = actor._status;
 				if (actor._updateLogging || actor._modeTracing)
 				{
@@ -1399,8 +1406,11 @@ void run_act(Actor& actor)
 				{
 					if (active)
 					{
+							double transition_success_rate = actor._transistionCount ? (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
+							double transition_expected_success_rate = actor._transistionCount ? (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
+							double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA UNLOG
+						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess rate: " << transition_success_rate << "\expected rate: " << transition_expected_success_rate << "\tnull rate: " << transition_null_rate UNLOG
 					}
 					else
 					{
