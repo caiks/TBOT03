@@ -103,7 +103,8 @@ public:
 	bool _modeTracing;
 	bool _hitLogging;
 	std::set<std::size_t> _setSliceGoal;
-	std::set<std::size_t> _setSliceHit;
+	std::size_t _goalCount;
+	std::size_t _hitCount;
 	std::size_t _mode014TransitionMax;
 	std::size_t _mode014OpenSlicesMax;
 	

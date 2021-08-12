@@ -1087,7 +1087,10 @@ void run_act(Actor& actor)
 					if (actor._hitLogging)
 					{
 						if (actor._setSliceGoal.count(sliceA))
-							actor._setSliceHit.insert(sliceA);
+						{
+							actor._setSliceGoal.erase(sliceA);
+							actor._hitCount++;
+						}
 					}					
 					// check if a transition and record the transition stats if so
 					if (actor._slicePrevious && sliceA 
@@ -1351,7 +1354,11 @@ void run_act(Actor& actor)
 						// add to goals for hit logging
 						if (actor._hitLogging)
 						{
-							actor._setSliceGoal.insert(sliceGoal);
+							if (!actor._setSliceGoal.count(sliceGoal))
+							{
+								actor._setSliceGoal.insert(sliceGoal);
+								actor._goalCount++;
+							}
 						}						
 						if (actor._modeTracing)
 						{
@@ -1426,15 +1433,9 @@ void run_act(Actor& actor)
 						double transition_success_rate = actor._transistionCount ? (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_expected_success_rate = actor._transistionCount ? (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_margin_rate = (transition_success_rate - transition_expected_success_rate) / (1.0 - transition_null_rate/100.0);
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						if (actor._hitLogging)
-						{
-							LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess rate: " << transition_success_rate << "\texpected rate: " << transition_expected_success_rate << "\tnull rate: " << transition_null_rate << "\tgoals: " << actor._setSliceGoal.size() << "\thits: " << actor._setSliceHit.size() UNLOG
-						}
-						else
-						{
-							LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/size/threshold: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess rate: " << transition_success_rate << "\texpected rate: " << transition_expected_success_rate << "\tnull rate: " << transition_null_rate UNLOG
-						}
+						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess: " << transition_success_rate << "\texpected: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmargin: " << transition_margin_rate << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount UNLOG
 					}
 					else
 					{
@@ -1564,6 +1565,8 @@ Actor::Actor(const std::string& args_filename)
 	_modeLoggingFactor = ARGS_INT(logging_mode_factor); 
 	_modeTracing = ARGS_BOOL(tracing_mode);
 	_hitLogging = ARGS_BOOL(logging_hit);
+	_goalCount = 0;
+	_hitCount = 0;
 	_mode014TransitionMax = ARGS_INT_DEF(transition_maximum,8); 
 	_mode014OpenSlicesMax = ARGS_INT_DEF(open_slices_maximum,100); 
 	{
