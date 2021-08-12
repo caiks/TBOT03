@@ -1435,7 +1435,7 @@ void run_act(Actor& actor)
 						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_margin_rate = (transition_success_rate - transition_expected_success_rate) / (1.0 - transition_null_rate/100.0);
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA  << "\tsuccess: " << transition_success_rate << "\texpected: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmargin: " << transition_margin_rate << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount UNLOG
+						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount UNLOG
 					}
 					else
 					{
