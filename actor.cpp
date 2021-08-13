@@ -1047,15 +1047,18 @@ void run_act(Actor& actor)
 				// if any ineffective choose randomly from the ineffective, setting the turn bias if blocked
 				// else if goal slice choose action by neighbourhood or turn by neighbourhood if blocked
 				// else choose randomly or by turn bias if blocked
+				actor._actCount++;
 				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
 					actor._turnBiasRight = !actor._turnBiasRight;
 				bool blockedAhead = false;
 				for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
+				{
 					if (actor._scan[i%360] <= actor._collisionRange)
 					{
 						blockedAhead = true;
 						break;					
-					}	
+					}						
+				}
 				const char turn_left = 0;
 				const char ahead = 1;
 				const char turn_right = 2;
@@ -1166,6 +1169,7 @@ void run_act(Actor& actor)
 				// handle no ineffective
 				else if (active)
 				{		
+					actor._effectiveCount++;
 					std::lock_guard<std::mutex> guard(activeA.mutex);
 					auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
 					auto sliceA = activeA.historySparse->arr[historyEventA];
@@ -1340,6 +1344,12 @@ void run_act(Actor& actor)
 							actor._slicePrevious = sliceA;
 							actor._neighbourLeasts = neighbourLeasts;
 							actor._neighboursActionsCount = neighboursActionsCount;
+							actor._decidableCount++;
+							if (actor._modeTracing)
+							{
+								double decidable_rate = (double) actor._decidableCount * 100.0 / (double) actor._effectiveCount;
+								EVAL(decidable_rate);
+							}
 						}
 					}				
 					// determine the distribution if least is a proper subset
@@ -1430,12 +1440,14 @@ void run_act(Actor& actor)
 				{
 					if (active)
 					{
+						double effective_rate = (double) actor._effectiveCount * 100.0 / (double) actor._actCount;
+						double decidable_rate = (double) actor._decidableCount * 100.0 / (double) actor._effectiveCount;
 						double transition_success_rate = actor._transistionCount ? (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_expected_success_rate = actor._transistionCount ? (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_margin_rate = (transition_success_rate - transition_expected_success_rate) / (1.0 - transition_null_rate/100.0);
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount UNLOG
+						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\teff: " << effective_rate << "\tdec: " << decidable_rate << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount UNLOG
 					}
 					else
 					{

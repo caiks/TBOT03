@@ -98,6 +98,9 @@ public:
 	std::size_t _transistionNullCount;
 	double _transistionExpectedSuccessCount;
 	std::size_t _transistionCount;
+	std::size_t _actCount;
+	std::size_t _effectiveCount;
+	std::size_t _decidableCount;
 	bool _modeLogging;
 	std::size_t _modeLoggingFactor;
 	bool _modeTracing;

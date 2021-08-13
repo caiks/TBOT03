@@ -1977,6 +1977,10 @@ The `location`-configuration deviation is now very small, but that is obviously 
 
 
 
+TBOT03 hit is usually checked before induce, although there is a small window
+
+
+		
 problems with the topology - measure of deviation rather than configuration entropy
 
 calculate room entropy - model 77 has considerably higher room label entropy than the similar TBOT02 model 65 - we will need slice-room transitions - add to README. 
