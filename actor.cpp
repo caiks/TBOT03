@@ -1165,6 +1165,8 @@ void run_act(Actor& actor)
 				// handle blocked if biasing when blocked as in mode 13
 				else if (blockedAhead && actor._biasIfBlocked)
 				{
+					if (actionsCount.size() == 3)
+						actor._effectiveCount++;
 					if (actor._turnBiasRight)
 						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
 					else
