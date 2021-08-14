@@ -1162,6 +1162,14 @@ void run_act(Actor& actor)
 						LOG "action: " << "blocked and some ineffective turns" UNLOG
 					}
 				}	
+				// handle blocked if biasing when blocked as in mode 13
+				else if (blockedAhead && actor._biasIfBlocked)
+				{
+					if (actor._turnBiasRight)
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					else
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+				}
 				// handle not blocked and some ineffective
 				else if (!blockedAhead && actionsCount.size() < 3)
 				{
@@ -1603,6 +1611,7 @@ Actor::Actor(const std::string& args_filename)
 	_openSlicesMax = ARGS_INT_DEF(open_slices_maximum,100); 
 	_goalSizeMax = ARGS_INT(goal_size_maximum); 
 	_setSliceSizeMaxRandom = ARGS_BOOL(random_max_slice);
+	_biasIfBlocked = ARGS_BOOL(bias_if_blocked);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
