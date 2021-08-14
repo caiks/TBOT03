@@ -111,7 +111,8 @@ public:
 	std::size_t _transitionMax;
 	std::size_t _openSlicesMax;
 	std::size_t _goalSizeMax;
-	
+	bool _setSliceSizeMaxRandom;
+
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
 

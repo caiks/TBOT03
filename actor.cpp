@@ -1287,7 +1287,15 @@ void run_act(Actor& actor)
 							}							
 						}
 						if (setSliceSizeMax.size())
-							sliceGoal = *setSliceSizeMax.rbegin();
+						{
+							if (actor._setSliceSizeMaxRandom)
+							{
+								SizeList ll(setSliceSizeMax.begin(), setSliceSizeMax.end());
+								sliceGoal = ll[rand() % ll.size()];
+							}
+							else
+								sliceGoal = *setSliceSizeMax.rbegin();
+						}
 						if (actor._modeTracing)
 						{
 							EVAL(sliceGoal);
@@ -1583,6 +1591,7 @@ Actor::Actor(const std::string& args_filename)
 	_transitionMax = ARGS_INT_DEF(transition_maximum,8); 
 	_openSlicesMax = ARGS_INT_DEF(open_slices_maximum,100); 
 	_goalSizeMax = ARGS_INT(goal_size_maximum); 
+	_setSliceSizeMaxRandom = ARGS_BOOL(random_max_slice);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
