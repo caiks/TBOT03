@@ -108,8 +108,9 @@ public:
 	std::set<std::size_t> _setSliceGoal;
 	std::size_t _goalCount;
 	std::size_t _hitCount;
-	std::size_t _mode014TransitionMax;
-	std::size_t _mode014OpenSlicesMax;
+	std::size_t _transitionMax;
+	std::size_t _openSlicesMax;
+	std::size_t _goalSizeMax;
 	
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;

@@ -1249,8 +1249,9 @@ void run_act(Actor& actor)
 								}
 							}
 							std::size_t	transitionA = 2;
-							while (transitionA <= actor._mode014TransitionMax 
-								&& setSliceOpen.size() <= actor._mode014OpenSlicesMax 
+							while (transitionA <= actor._transitionMax 
+								&& setSliceOpen.size() <= actor._openSlicesMax 
+								&& (!actor._goalSizeMax || sizeMax < actor._goalSizeMax)
 								&& setSliceBoundA.size())
 							{
 								for (auto sliceC : setSliceBoundA)
@@ -1308,8 +1309,8 @@ void run_act(Actor& actor)
 							setSliceBoundA.insert(sliceGoal);
 							SizeSet setSliceBoundB;
 							std::size_t	transitionA = 1;
-							while (transitionA <= actor._mode014TransitionMax
-								&& setSliceOpen.size() <= actor._mode014OpenSlicesMax							
+							while (transitionA <= actor._transitionMax
+								&& setSliceOpen.size() <= actor._openSlicesMax							
 								&& !neighbourLeasts.size() 
 								&& setSliceBoundA.size())
 							{
@@ -1579,8 +1580,9 @@ Actor::Actor(const std::string& args_filename)
 	_hitLogging = ARGS_BOOL(logging_hit);
 	_goalCount = 0;
 	_hitCount = 0;
-	_mode014TransitionMax = ARGS_INT_DEF(transition_maximum,8); 
-	_mode014OpenSlicesMax = ARGS_INT_DEF(open_slices_maximum,100); 
+	_transitionMax = ARGS_INT_DEF(transition_maximum,8); 
+	_openSlicesMax = ARGS_INT_DEF(open_slices_maximum,100); 
+	_goalSizeMax = ARGS_INT(goal_size_maximum); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
