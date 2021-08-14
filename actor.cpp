@@ -1051,13 +1051,23 @@ void run_act(Actor& actor)
 				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
 					actor._turnBiasRight = !actor._turnBiasRight;
 				bool blockedAhead = false;
-				for (std::size_t i = 360 - actor._collisionFOV; i < 360 + actor._collisionFOV; i++)
-				{
-					if (actor._scan[i%360] <= actor._collisionRange)
+				{	
+					auto rect = actor._collisionRectangular;
+					auto fov = actor._collisionFOV;
+					double r = actor._collisionRange;
+					double w = r * std::sin(fov*DEG2RAD);
+					for (std::size_t i = 360 - (rect ? 90 : fov); !blockedAhead && i < 360 + (rect ? 90 : fov); i++)
 					{
-						blockedAhead = true;
-						break;					
-					}						
+						if (i >= 360 - fov && i < 360 + fov 
+							&& actor._scan[i%360] <= r)
+							blockedAhead = true;
+						else if (rect && i < 360
+							&& actor._scan[i%360] <= w / std::sin((360-i)*DEG2RAD))
+							blockedAhead = true;
+						else if (rect 
+							&& actor._scan[i%360] <= w / std::sin((i-360)*DEG2RAD))
+							blockedAhead = true;
+					}					
 				}
 				const char turn_left = 0;
 				const char ahead = 1;
@@ -1578,6 +1588,7 @@ Actor::Actor(const std::string& args_filename)
 	}
 	_collisionRange = ARGS_DOUBLE_DEF(collision_range, 1.0);
 	_collisionFOV = ARGS_INT_DEF(collision_field_of_view, 20);
+	_collisionRectangular = ARGS_INT(collision_rectangular); 
 	_collisionRangeAngle = ARGS_DOUBLE_DEF(collision_range_angle, 0.7);
 	_turnBiasRight = ARGS_BOOL(turn_bias_right);	
 	_turnBiasFactor = ARGS_INT_DEF(turn_bias_factor,20);

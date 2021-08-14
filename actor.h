@@ -84,6 +84,7 @@ public:
 	std::map<Status, double> _distributionTurn;
 	double _collisionRange;
 	std::size_t _collisionFOV;
+	bool _collisionRectangular;	
 	bool _turnBiasRight;	
 	std::size_t _turnBiasFactor;
 	double _collisionRangeAngle;
