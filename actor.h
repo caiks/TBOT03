@@ -114,6 +114,7 @@ public:
 	std::size_t _goalSizeMax;
 	bool _setSliceSizeMaxRandom;
 	bool _biasIfBlocked;
+	bool _randomOverride;
 
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;

@@ -1383,11 +1383,25 @@ void run_act(Actor& actor)
 					// determine the distribution if least is a proper subset
 					if (neighbourLeasts.size() && neighbourLeasts.size() < neighboursActionsCount.size())
 					{
-						for (auto sliceB : neighbourLeasts)
+						if (!actor._randomOverride)
 						{
-							distributionA[Actor::LEFT] += neighboursActionsCount[sliceB][turn_left];
-							distributionA[Actor::AHEAD] += neighboursActionsCount[sliceB][ahead];
-							distributionA[Actor::RIGHT] += neighboursActionsCount[sliceB][turn_right];
+							for (auto sliceB : neighbourLeasts)
+							{
+								distributionA[Actor::LEFT] += neighboursActionsCount[sliceB][turn_left];
+								distributionA[Actor::AHEAD] += neighboursActionsCount[sliceB][ahead];
+								distributionA[Actor::RIGHT] += neighboursActionsCount[sliceB][turn_right];
+							}							
+						}
+						else if (blockedAhead)
+						{
+							if (actor._turnBiasRight)
+								distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+							else
+								distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+						}
+						else
+						{
+							distributionA = actor._distribution;
 						}
 						// add to goals for hit logging
 						if (actor._hitLogging)
@@ -1613,6 +1627,7 @@ Actor::Actor(const std::string& args_filename)
 	_goalSizeMax = ARGS_INT(goal_size_maximum); 
 	_setSliceSizeMaxRandom = ARGS_BOOL(random_max_slice);
 	_biasIfBlocked = ARGS_BOOL(bias_if_blocked);
+	_randomOverride = ARGS_BOOL(random_override);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
