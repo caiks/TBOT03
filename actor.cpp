@@ -1104,6 +1104,33 @@ void run_act(Actor& actor)
 							actor._setSliceGoal.erase(sliceA);
 							actor._hitCount++;
 						}
+						if (sliceA)
+						{
+							actor._sliceCount++;
+							auto& slices = activeA.historySlicesSetEvent;
+							auto sliceSize = slices[sliceA].size();
+							actor._sliceSizeTotal += sliceSize;
+							auto& dr = activeA.decomp;
+							auto& vi = dr->mapVarInt();
+							auto& cv = dr->mapVarParent();
+							auto& fs = dr->fuds[vi[cv[sliceA]]];
+							std::size_t parentSize = 0;
+							for (auto sliceB : fs.children)
+								parentSize += slices[sliceB].size();
+							actor._parentSizeTotal += parentSize;
+							double wmax = (double)actor._induceParameters.wmax;
+							double likelihood = (std::log(sliceSize) - std::log(parentSize) + std::log(wmax))/std::log(wmax);
+							if (likelihood >= 0.0)
+								actor._likelihoodPositiveTotal += likelihood;
+							else
+								actor._likelihoodNegativeTotal += likelihood;
+							if (actor._modeTracing)
+							{
+								EVAL(sliceSize);							
+								EVAL(parentSize);
+								EVAL(likelihood);
+							}							
+						}
 					}					
 					// check if a transition and record the transition stats if so
 					if (actor._slicePrevious && sliceA 
@@ -1489,7 +1516,11 @@ void run_act(Actor& actor)
 						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_margin_rate = (transition_success_rate - transition_expected_success_rate) / (1.0 - transition_null_rate/100.0);
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
-						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\teff: " << effective_rate << "\tdec: " << decidable_rate << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount UNLOG
+						std::size_t average_slice_size = actor._sliceCount ? (double) actor._sliceSizeTotal / (double) actor._sliceCount : 0.0;
+						std::size_t average_parent_size = actor._sliceCount ? (double) actor._parentSizeTotal / (double) actor._sliceCount : 0.0;
+						std::size_t average_positive_likelihood = actor._sliceCount ? actor._likelihoodPositiveTotal / (double) actor._sliceCount : 0.0;
+						std::size_t average_negative_likelihood = actor._sliceCount ? actor._likelihoodNegativeTotal / (double) actor._sliceCount : 0.0;
+						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\teff: " << effective_rate << "\tdec: " << decidable_rate << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount << "\tsize: " << average_slice_size << "\tparent: " << average_parent_size << "\tpos: " << average_positive_likelihood << "\tpos: " << average_negative_likelihood UNLOG
 					}
 					else
 					{

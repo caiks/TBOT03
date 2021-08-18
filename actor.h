@@ -115,6 +115,11 @@ public:
 	bool _setSliceSizeMaxRandom;
 	bool _biasIfBlocked;
 	bool _randomOverride;
+	std::size_t _sliceCount;
+	std::size_t _sliceSizeTotal;
+	std::size_t _parentSizeTotal;
+	double _likelihoodPositiveTotal;
+	double _likelihoodNegativeTotal;
 
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
