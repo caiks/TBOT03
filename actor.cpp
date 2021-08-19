@@ -1099,10 +1099,11 @@ void run_act(Actor& actor)
 					// check for hits
 					if (actor._hitLogging)
 					{
-						if (actor._setSliceGoal.count(sliceA))
+						if (actor._goalsAct.count(sliceA))
 						{
-							actor._setSliceGoal.erase(sliceA);
+							actor._hitLength += actor._actCount - actor._goalsAct[sliceA];
 							actor._hitCount++;
+							actor._goalsAct.erase(sliceA);
 						}
 						if (sliceA)
 						{
@@ -1136,9 +1137,15 @@ void run_act(Actor& actor)
 							double wmax = (double)actor._induceParameters.wmax;
 							double likelihood = (std::log(sliceSize) - std::log(parentSize) + std::log(wmax))/std::log(wmax);
 							if (likelihood >= 0.0)
+							{
 								actor._likelihoodPositiveTotal += likelihood;
+								actor._positiveCount++;
+							}
 							else
+							{
 								actor._likelihoodNegativeTotal += likelihood;
+								actor._negativeCount++;
+							}
 							if (actor._modeTracing)
 							{
 								EVAL(sliceSize);							
@@ -1448,9 +1455,9 @@ void run_act(Actor& actor)
 						// add to goals for hit logging
 						if (actor._hitLogging)
 						{
-							if (!actor._setSliceGoal.count(sliceGoal))
+							if (!actor._goalsAct.count(sliceGoal))
 							{
-								actor._setSliceGoal.insert(sliceGoal);
+								actor._goalsAct[sliceGoal] = actor._actCount;
 								actor._goalCount++;
 							}
 						}						
@@ -1531,11 +1538,12 @@ void run_act(Actor& actor)
 						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
 						double transition_margin_rate = (transition_success_rate - transition_expected_success_rate) / (1.0 - transition_null_rate/100.0);
 						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						double average_hit_length = actor._hitCount ? (double) actor._hitLength / (double) actor._hitCount : 0.0;
 						double average_slice_size = actor._sliceCount ? (double) actor._sliceSizeTotal / (double) actor._sliceCount : 0.0;
 						double average_parent_size = actor._sliceCount ? (double) actor._parentSizeTotal / (double) actor._sliceCount : 0.0;
-						double average_positive_likelihood = actor._sliceCount ? actor._likelihoodPositiveTotal / (double) actor._sliceCount : 0.0;
-						double average_negative_likelihood = actor._sliceCount ? actor._likelihoodNegativeTotal / (double) actor._sliceCount : 0.0;
-						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\teff: " << effective_rate << "\tdec: " << decidable_rate << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._setSliceGoal.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount << std::fixed << std::setprecision(1) << "\tsz: " << average_slice_size << "\tpar: " << average_parent_size  << std::fixed << std::setprecision(6) << "\tpos: " << average_positive_likelihood << "\tneg: " << average_negative_likelihood << std::defaultfloat  UNLOG
+						double average_positive_likelihood = actor._positiveCount ? actor._likelihoodPositiveTotal / (double) actor._positiveCount : 0.0;
+						double average_negative_likelihood = actor._negativeCount ? actor._likelihoodNegativeTotal / (double) actor._negativeCount : 0.0;
+						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\teff: " << effective_rate << "\tdec: " << decidable_rate << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._goalsAct.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount  << std::fixed << std::setprecision(2) << "\tlen: " << average_hit_length << "\tsz: " << average_slice_size << "\tpar: " << average_parent_size  << std::fixed << std::setprecision(6) << "\tpos: " << average_positive_likelihood << "\tneg: " << average_negative_likelihood << std::defaultfloat  UNLOG
 					}
 					else
 					{

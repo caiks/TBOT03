@@ -1977,6 +1977,11 @@ The `location`-configuration deviation is now very small, but that is obviously 
 
 
 
+TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled.
+
+TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised. Conversely for disinterest choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to disinterest mode, until cannot find any with small enough fractions and then flip back
+
+
 TBOT03 hit is usually checked before induce, although there is a small window
 
 

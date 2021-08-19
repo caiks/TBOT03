@@ -106,9 +106,10 @@ public:
 	std::size_t _modeLoggingFactor;
 	bool _modeTracing;
 	bool _hitLogging;
-	std::set<std::size_t> _setSliceGoal;
+	std::map<std::size_t,std::size_t> _goalsAct;
 	std::size_t _goalCount;
 	std::size_t _hitCount;
+	std::size_t _hitLength;
 	std::size_t _transitionMax;
 	std::size_t _openSlicesMax;
 	std::size_t _goalSizeMax;
@@ -118,7 +119,9 @@ public:
 	std::size_t _sliceCount;
 	std::size_t _sliceSizeTotal;
 	std::size_t _parentSizeTotal;
+	std::size_t _positiveCount;
 	double _likelihoodPositiveTotal;
+	std::size_t _negativeCount;
 	double _likelihoodNegativeTotal;
 
 private:
