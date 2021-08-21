@@ -120,6 +120,8 @@ public:
 	std::size_t _sliceSizeTotal;
 	std::size_t _parentSizeTotal;
 	std::size_t _positiveCount;
+	double _likelihoodTotal;
+	double _likelihoodHitTotal;
 	double _likelihoodPositiveTotal;
 	std::size_t _negativeCount;
 	double _likelihoodNegativeTotal;
