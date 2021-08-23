@@ -125,6 +125,7 @@ public:
 	double _likelihoodPositiveTotal;
 	std::size_t _negativeCount;
 	double _likelihoodNegativeTotal;
+	std::size_t _level3Model;
 
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;

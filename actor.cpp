@@ -1072,7 +1072,10 @@ void run_act(Actor& actor)
 				const char turn_left = 0;
 				const char ahead = 1;
 				const char turn_right = 2;
-				auto& activeA = *actor._level2.front();
+				auto activePtr = actor._level2.front();
+				if (actor._struct=="struct002")
+					activePtr = actor._level3[actor._level3Model];
+				auto& activeA = *activePtr;
 				bool active = !activeA.terminate && (activeA.historyOverflow || activeA.historyEvent);
 				// get current slice actions
 				std::map<std::size_t, std::size_t> actionsCount;
@@ -1685,6 +1688,7 @@ Actor::Actor(const std::string& args_filename)
 	_setSliceSizeMaxRandom = ARGS_BOOL(random_max_slice);
 	_biasIfBlocked = ARGS_BOOL(bias_if_blocked);
 	_randomOverride = ARGS_BOOL(random_override);
+	_level3Model = ARGS_INT(level3_model); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
