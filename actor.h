@@ -89,6 +89,8 @@ public:
 	std::size_t _turnBiasFactor;
 	double _collisionRangeAngle;
 	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetNext;
+	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetPrev;
+	std::unordered_map<std::size_t, std::size_t> _slicesSize;
 	double _configDeviationMax;
 	std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>> _locationsSlicesStepCount;
 	std::set<std::size_t> _neighbours;
@@ -126,6 +128,8 @@ public:
 	std::size_t _negativeCount;
 	double _likelihoodNegativeTotal;
 	std::size_t _level3Model;
+	bool _sizeOverride;
+	std::size_t _scoresTop;
 
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;

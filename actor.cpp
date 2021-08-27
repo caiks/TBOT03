@@ -1558,6 +1558,477 @@ void run_act(Actor& actor)
 				}	
 				actor._statusTimestamp = Clock::now();			
 			}
+			else if (actor._mode=="mode015")
+			{
+				// check the entire field of view
+				// check to see if remaining actions are effective
+				// if any ineffective choose randomly from the ineffective, setting the turn bias if blocked
+				// else if goal slice choose action by neighbourhood or turn by neighbourhood if blocked
+				// else choose randomly or by turn bias if blocked
+				actor._actCount++;
+				if (actor._turnBiasFactor > 0 && (rand() % actor._turnBiasFactor) == 0)
+					actor._turnBiasRight = !actor._turnBiasRight;
+				bool blockedAhead = false;
+				{	
+					auto rect = actor._collisionRectangular;
+					auto fov = actor._collisionFOV;
+					double r = actor._collisionRange;
+					double w = r * std::sin(fov*DEG2RAD);
+					for (std::size_t i = 360 - (rect ? 90 : fov); !blockedAhead && i < 360 + (rect ? 90 : fov); i++)
+					{
+						if (i >= 360 - fov && i < 360 + fov 
+							&& actor._scan[i%360] <= r)
+							blockedAhead = true;
+						else if (rect && i < 360
+							&& actor._scan[i%360] <= w / std::sin((360-i)*DEG2RAD))
+							blockedAhead = true;
+						else if (rect 
+							&& actor._scan[i%360] <= w / std::sin((i-360)*DEG2RAD))
+							blockedAhead = true;
+					}					
+				}
+				const char turn_left = 0;
+				const char ahead = 1;
+				const char turn_right = 2;
+				auto activePtr = actor._level2.front();
+				if (actor._struct=="struct002")
+					activePtr = actor._level3[actor._level3Model];
+				auto& activeA = *activePtr;
+				bool active = !activeA.terminate && (activeA.historyOverflow || activeA.historyEvent);
+				// get current slice actions
+				std::map<std::size_t, std::size_t> actionsCount;
+				if (active)
+				{			
+					std::lock_guard<std::mutex> guard(activeA.mutex);
+					auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+					auto sliceA = activeA.historySparse->arr[historyEventA];
+					std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+					auto cont = activeA.continousIs;
+					auto& disc = activeA.continousHistoryEventsEvent;
+					auto& mm = actor._ur->mapVarSize();
+					auto& mvv = hr->mapVarInt();
+					auto motor = mvv[mm[Variable("motor")]];
+					auto n = hr->dimension;
+					auto z = hr->size;
+					auto y = activeA.historyEvent;
+					auto rr = hr->arr;	
+					auto& cv = activeA.decomp->mapVarParent();
+					if (actor._modeTracing)
+					{
+						EVAL(sliceA);							
+						EVAL(actor.eventsRecord(historyEventA));
+					}
+					// check for hits
+					if (sliceA)
+					{
+						actor._sliceCount++;
+						auto sliceSize = actor._slicesSize[sliceA];
+						actor._sliceSizeTotal += sliceSize;
+						std::size_t parentSize = actor._slicesSize[cv[sliceA]];
+						actor._parentSizeTotal += parentSize;
+						double lnwmax = std::log(actor._induceParameters.wmax);
+						double likelihood = (std::log(sliceSize) - std::log(parentSize) + lnwmax)/lnwmax;
+						actor._likelihoodTotal += likelihood;
+						if (likelihood >= 0.0)
+						{
+							actor._likelihoodPositiveTotal += likelihood;
+							actor._positiveCount++;
+						}
+						else
+						{
+							actor._likelihoodNegativeTotal += likelihood;
+							actor._negativeCount++;
+						}
+						if (actor._goalsAct.count(sliceA))
+						{
+							actor._hitLength += actor._actCount - actor._goalsAct[sliceA];
+							actor._hitCount++;
+							actor._likelihoodHitTotal += likelihood;
+							actor._goalsAct.erase(sliceA);
+						}
+						if (actor._modeTracing)
+						{
+							EVAL(sliceSize);							
+							EVAL(parentSize);
+							EVAL(likelihood);
+						}							
+					}					
+					// check if a transition and record the transition stats if so
+					if (actor._slicePrevious && sliceA 
+						&& sliceA != actor._slicePrevious)
+					{
+						if (!actor._neighboursActionsCount.count(sliceA))
+							actor._transistionNullCount++;
+						else 
+						{
+							if (actor._neighbourLeasts.count(sliceA))
+								actor._transistionSuccessCount++;
+							actor._transistionExpectedSuccessCount += (double) actor._neighbourLeasts.size() / (double) actor._neighboursActionsCount.size();
+						}
+						actor._transistionCount++;
+						actor._slicePrevious = 0;
+						actor._neighbourLeasts.clear();
+						actor._neighboursActionsCount.clear();
+						if (actor._modeTracing)
+						{					
+							double transition_success_rate = (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount;
+							double transition_expected_success_rate = (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount;
+							double transition_null_rate = (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount;
+							EVAL(transition_success_rate);
+							EVAL(transition_expected_success_rate);
+							EVAL(transition_null_rate);
+						}
+					}
+					// get actions
+					for (auto ev : activeA.historySlicesSetEvent[sliceA])
+					{
+						auto j = ev + (ev >= y ? 0 : z)  + 1;	
+						if (j < y+z && (!cont || !disc.count(j%z)))
+							actionsCount[rr[(j%z)*n+motor]]++;
+					}	
+				}	
+				if (actor._modeTracing)
+				{
+					EVAL(actionsCount);
+				}				
+				// determine the distribution of actions
+				std::map<Actor::Status, double> distributionA;
+				// handle blocked and some ineffective turns
+				if (blockedAhead 
+					&& (!actionsCount[turn_left] || !actionsCount[turn_right]))
+				{
+					if (!actionsCount[turn_left] && actionsCount[turn_right])
+						actor._turnBiasRight = false;
+					else if (actionsCount[turn_left] && !actionsCount[turn_right])
+						actor._turnBiasRight = true;
+					if (actor._turnBiasRight)
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					else
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+					if (actor._modeTracing)
+					{
+						LOG "action: " << "blocked and some ineffective turns" UNLOG
+					}
+				}	
+				// handle blocked if biasing when blocked as in mode 13
+				else if (blockedAhead && actor._biasIfBlocked)
+				{
+					actor._effectiveCount++;
+					if (actor._turnBiasRight)
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					else
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+				}
+				// handle not blocked and some ineffective
+				else if (!blockedAhead && actionsCount.size() < 3)
+				{
+					if (!actionsCount[turn_left])
+						distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+					if (!actionsCount[ahead])
+						distributionA[Actor::AHEAD] = actor._distribution[Actor::AHEAD];
+					if (!actionsCount[turn_right])
+						distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+					if (actor._modeTracing)
+					{
+						LOG "action: " << "not blocked and some ineffective" UNLOG
+					}					
+				}				
+				// handle no ineffective
+				else if (active)
+				{		
+					actor._effectiveCount++;
+					std::lock_guard<std::mutex> guard(activeA.mutex);
+					auto historyEventA = activeA.historyEvent ? activeA.historyEvent - 1 : activeA.historySize - 1;
+					auto sliceA = activeA.historySparse->arr[historyEventA];
+					std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
+					auto& hs = *activeA.historySparse;
+					auto& slices = activeA.historySlicesSetEvent;
+					auto& fails = activeA.induceSliceFailsSize;
+					auto cont = activeA.continousIs;
+					auto& disc = activeA.continousHistoryEventsEvent;
+					auto& mm = actor._ur->mapVarSize();
+					auto& mvv = hr->mapVarInt();
+					auto motor = mvv[mm[Variable("motor")]];
+					auto over = activeA.historyOverflow;
+					auto n = hr->dimension;
+					auto z = hr->size;
+					auto y = activeA.historyEvent;
+					auto rr = hr->arr;	
+					auto rs = hs.arr;
+					auto& cv = activeA.decomp->mapVarParent();
+					// determine goal slice, neighboursActionsCount and neighbourLeasts
+					std::unordered_map<std::size_t, std::map<std::size_t, std::size_t>> neighboursActionsCount;
+					SizeSet neighbourLeasts;
+					std::size_t sliceGoal = 0;
+					if (actor._slicePrevious && sliceA == actor._slicePrevious)
+					{
+						neighboursActionsCount = actor._neighboursActionsCount;
+						neighbourLeasts = actor._neighbourLeasts;
+					}
+					else
+					{
+						auto& setEventA = slices[sliceA];
+						// get neighboursActionsCount
+						neighboursActionsCount.reserve(setEventA.size());
+						for (auto ev : setEventA)
+						{
+							auto j = ev + (ev >= y ? 0 : z) + 1;	
+							if (j < y+z && (!cont || !disc.count(j%z)))
+							{
+								auto sliceB = rs[j%z];
+								if (sliceB != sliceA)
+								{
+									auto actionA = rr[(j%z)*n+motor];
+									if (!blockedAhead || actionA != ahead)
+										neighboursActionsCount[sliceB][actionA]++;
+								}
+							}
+						}	
+						if (actor._modeTracing)
+						{
+							EVAL(neighboursActionsCount.size());
+						}	
+						// get sliceGoal
+						std::map<std::pair<double,std::size_t>,std::size_t> scoresSlice;
+						if (neighboursActionsCount.size() >= 2)
+						{
+							SizeUSet setSliceOpen;
+							setSliceOpen.reserve(slices.size());
+							setSliceOpen.insert(sliceA);
+							SizeSet setSliceBoundA;
+							SizeSet setSliceBoundB;
+							SizeSet* setSliceBoundC = &setSliceBoundA;
+							SizeSet* setSliceBoundD = &setSliceBoundB;
+							std::size_t	transitionA = 1;
+							while (transitionA <= actor._transitionMax 
+								&& setSliceOpen.size() <= actor._openSlicesMax
+								&& setSliceBoundC->size())
+							{
+								for (auto sliceC : *setSliceBoundC)
+									for (auto sliceB : actor._slicesSliceSetNext[sliceC])
+										if (!setSliceOpen.count(sliceB))
+										{
+											setSliceBoundD->insert(sliceB);
+											setSliceOpen.insert(sliceB);
+											if (!fails.count(sliceB))
+											{
+												auto sizeA = actor._slicesSize[sliceB];
+												if (actor._sizeOverride)
+													scoresSlice.insert_or_assign(std::make_pair((double)sizeA, sliceB%127),sliceB);
+												else
+												{
+													auto sizeB = actor._slicesSize[cv[sliceB]];
+													scoresSlice.insert_or_assign(std::make_pair((double)sizeA/(double)sizeB, sliceB%127),sliceB);
+												}		
+												if (scoresSlice.size()>actor._scoresTop)
+													scoresSlice.erase(scoresSlice.begin());
+											}
+										}
+								if (transitionA % 2)
+								{
+									setSliceBoundC = &setSliceBoundB;
+									setSliceBoundD = &setSliceBoundA;
+								}
+								else
+								{
+									setSliceBoundC = &setSliceBoundA;
+									setSliceBoundD = &setSliceBoundB;
+								}									
+								setSliceBoundD->clear();
+								transitionA++;
+							}							
+						}
+						if (scoresSlice.size())
+						{
+							SizeUSet setSliceOpen;
+							setSliceOpen.reserve(slices.size());
+							for (auto it = scoresSlice.rbegin(); it != scoresSlice.rend(); it++)
+							{
+								sliceGoal = it->second;					
+								// get neighbourLeasts
+								if (sliceGoal && neighboursActionsCount.count(sliceGoal))
+									neighbourLeasts.insert(sliceGoal);
+								else if (sliceGoal)
+								{
+									setSliceOpen.clear();
+									setSliceOpen.insert(sliceGoal);
+									SizeSet setSliceBoundA;
+									setSliceBoundA.insert(sliceGoal);
+									SizeSet setSliceBoundB;
+									SizeSet* setSliceBoundC = &setSliceBoundA;
+									SizeSet* setSliceBoundD = &setSliceBoundB;
+									std::size_t	transitionA = 1;
+									while (transitionA <= actor._transitionMax
+										&& setSliceOpen.size() <= actor._openSlicesMax
+										&& !neighbourLeasts.size() 
+										&& setSliceBoundC->size())
+									{
+										for (auto sliceC : *setSliceBoundC)
+											for (auto sliceB : actor._slicesSliceSetPrev[sliceC])
+												if (!setSliceOpen.count(sliceB))
+												{
+													setSliceBoundD->insert(sliceB);
+													setSliceOpen.insert(sliceB);
+												}
+										for (auto& p : neighboursActionsCount)
+											if (setSliceBoundD->count(p.first))
+												neighbourLeasts.insert(p.first);
+										if (transitionA % 2)
+										{
+											setSliceBoundC = &setSliceBoundB;
+											setSliceBoundD = &setSliceBoundA;
+										}
+										else
+										{
+											setSliceBoundC = &setSliceBoundA;
+											setSliceBoundD = &setSliceBoundB;
+										}									
+										setSliceBoundD->clear();
+										transitionA++;
+									}							
+								}
+								if (neighbourLeasts.size() && neighbourLeasts.size() < neighboursActionsCount.size())
+								{
+									actor._slicePrevious = sliceA;
+									actor._neighbourLeasts = neighbourLeasts;
+									actor._neighboursActionsCount = neighboursActionsCount;
+									actor._decidableCount++;
+									if (actor._modeTracing)
+									{
+										EVAL(sliceGoal);
+										EVAL(neighbourLeasts.size());
+										double decidable_rate = (double) actor._decidableCount * 100.0 / (double) actor._effectiveCount;
+										EVAL(decidable_rate);
+									}
+									break;
+								}
+								neighbourLeasts.clear();
+							}
+						}
+					}				
+					// determine the distribution if least is a proper subset
+					if (neighbourLeasts.size() && neighbourLeasts.size() < neighboursActionsCount.size())
+					{
+						if (!actor._randomOverride)
+						{
+							for (auto sliceB : neighbourLeasts)
+							{
+								distributionA[Actor::LEFT] += neighboursActionsCount[sliceB][turn_left];
+								distributionA[Actor::AHEAD] += neighboursActionsCount[sliceB][ahead];
+								distributionA[Actor::RIGHT] += neighboursActionsCount[sliceB][turn_right];
+							}							
+						}
+						else if (blockedAhead)
+						{
+							if (actor._turnBiasRight)
+								distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+							else
+								distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+						}
+						else
+						{
+							distributionA = actor._distribution;
+						}
+						// add to goals for hit logging
+						if (!actor._goalsAct.count(sliceGoal))
+						{
+							actor._goalsAct[sliceGoal] = actor._actCount;
+							actor._goalCount++;
+						}
+						if (actor._modeTracing)
+						{
+							LOG "action: " << "decidable" UNLOG
+						}					
+					}
+					// else determine the distribution if blocked
+					else if (blockedAhead)
+					{
+						if (actor._turnBiasRight)
+							distributionA[Actor::RIGHT] = actor._distribution[Actor::RIGHT];
+						else
+							distributionA[Actor::LEFT] = actor._distribution[Actor::LEFT];
+						if (actor._modeTracing)
+						{
+							LOG "action: " << "not decidable and blocked" UNLOG
+						}											
+					}	
+					// else default the distribution
+					else
+					{
+						distributionA = actor._distribution;
+						if (actor._modeTracing)
+						{
+							LOG "action: " << "not decidable" UNLOG
+						}		
+					}
+				}
+				// normalise distributionA
+				{
+					double norm = 0.0;
+					for (auto& p : distributionA)
+						norm += p.second;	
+					if (norm > 0.0)
+						for (auto& p : distributionA)
+							distributionA[p.first] /= norm;	
+				}
+				if (actor._modeTracing)
+				{
+					EVAL(distributionA);
+				}
+				// select from distributionA
+				actor._status = Actor::AHEAD;
+				{
+					auto r = (double) rand() / (RAND_MAX);
+					double accum = 0.0;
+					for (auto& p : distributionA)
+					{
+						accum += p.second;
+						if (r < accum)
+						{
+							actor._status = p.first;
+							break;
+						}
+					}						
+				}				
+				actor._actionPrevious = actor._status;
+				if (actor._updateLogging || actor._modeTracing)
+				{
+					string statusString;
+					switch(actor._status)
+					{
+						case Actor::AHEAD   : statusString = "AHEAD";    break;
+						case Actor::LEFT   : statusString = "LEFT";    break;
+						case Actor::RIGHT   : statusString = "RIGHT";    break;
+					}
+					LOG "actor\t" << statusString << "\ttime " << std::fixed << std::setprecision(3) << ((Sec)(Clock::now() - actor._statusTimestamp)).count() << std::defaultfloat << "s" UNLOG	
+				}			
+				if (actor._modeLogging && (actor._modeLoggingFactor <= 1 || actor._eventId % actor._modeLoggingFactor == 0))
+				{
+					if (active)
+					{
+						double effective_rate = (double) actor._effectiveCount * 100.0 / (double) actor._actCount;
+						double decidable_rate = (double) actor._decidableCount * 100.0 / (double) actor._effectiveCount;
+						double transition_success_rate = actor._transistionCount ? (double) actor._transistionSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_expected_success_rate = actor._transistionCount ? (double) actor._transistionExpectedSuccessCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_null_rate = actor._transistionCount ? (double) actor._transistionNullCount * 100.0 / (double) actor._transistionCount : 0.0;
+						double transition_margin_rate = (transition_success_rate - transition_expected_success_rate) / (1.0 - transition_null_rate/100.0);
+						std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
+						double average_hit_length = actor._hitCount ? (double) actor._hitLength / (double) actor._hitCount : 0.0;
+						double average_slice_size = actor._sliceCount ? (double) actor._sliceSizeTotal / (double) actor._sliceCount : 0.0;
+						double average_parent_size = actor._sliceCount ? (double) actor._parentSizeTotal / (double) actor._sliceCount : 0.0;
+						double average_likelihood = actor._sliceCount ? actor._likelihoodTotal / (double) actor._sliceCount : 0.0;
+						double average_hit_likelihood = actor._hitCount ? actor._likelihoodHitTotal / (double) actor._hitCount : 0.0;
+						double average_positive_likelihood = actor._positiveCount ? actor._likelihoodPositiveTotal / (double) actor._positiveCount : 0.0;
+						double average_negative_likelihood = actor._negativeCount ? actor._likelihoodNegativeTotal / (double) actor._negativeCount : 0.0;
+						LOG activeA.name << "\tev: " << actor._eventId << "\tfuds: " << activeA.decomp->fuds.size() << "\tfuds/sz/thrshld: " << (double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA << std::fixed << std::setprecision(2) << "\teff: " << effective_rate << "\tdec: " << decidable_rate << "\tsucc: " << transition_success_rate << "\texpt: " << transition_expected_success_rate << "\tnull: " << transition_null_rate << "\tmarg: " << transition_margin_rate << std::defaultfloat << "\tlive: " << actor._goalsAct.size() << "\tgoals: " << actor._goalCount << "\thits: " << actor._hitCount  << std::fixed << std::setprecision(2) << "\tlen: " << average_hit_length << "\tsz: " << average_slice_size << "\tpar: " << average_parent_size  << std::fixed << std::setprecision(6) << "\tlike: " << average_likelihood << "\thit: " << average_hit_likelihood << "\tpos: " << average_positive_likelihood << "\tneg: " << average_negative_likelihood << std::defaultfloat  UNLOG
+					}
+					else
+					{
+						LOG activeA.name << "\tevent id: " << actor._eventId << "\tfuds:" << "0" << "\tfuds/size/threshold: " << "0.0" UNLOG
+					}
+				}	
+				actor._statusTimestamp = Clock::now();			
+			}		
 		}
 		auto t = Clock::now() - mark;
 		if (t < actor._actInterval)
@@ -1689,6 +2160,8 @@ Actor::Actor(const std::string& args_filename)
 	_biasIfBlocked = ARGS_BOOL(bias_if_blocked);
 	_randomOverride = ARGS_BOOL(random_override);
 	_level3Model = ARGS_INT(level3_model); 
+	_sizeOverride = ARGS_BOOL(size_override);
+	_scoresTop = ARGS_INT_DEF(top_scores,8); 
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
