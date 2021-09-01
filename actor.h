@@ -88,6 +88,7 @@ public:
 	bool _turnBiasRight;	
 	std::size_t _turnBiasFactor;
 	double _collisionRangeAngle;
+	std::size_t _fudsSize;
 	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetNext;
 	std::unordered_map<std::size_t, Alignment::SizeSet> _slicesSliceSetPrev;
 	std::unordered_map<std::size_t, std::size_t> _slicesSize;
