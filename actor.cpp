@@ -1624,40 +1624,50 @@ void run_act(Actor& actor)
 						EVAL(sliceA);							
 						EVAL(actor.eventsRecord(historyEventA));
 					}
-					// update cached sizes and topology
-					if (sliceA)
+					// check for new fuds
+					if (actor._fudsSize < dr.fuds.size())
 					{
 						// update cached sizes
-						actor._slicesSize[sliceA]++;
-						actor._slicesSize[cv[sliceA]]++;
-						// check for new fuds
-						if (actor._fudsSize < dr.fuds.size())
+						actor._slicesSize.clear();
+						actor._slicesSize.reserve(slices.size()*2);
+						for (auto& p : slices)
 						{
-							SizeSet parents;
-							for (std::size_t i = actor._fudsSize; i < dr.fuds.size(); i++)
-								parents.insert(dr.fuds[i].parent);
-							for (auto sliceB : parents)
+							auto sizeA = p.second.size();
+							actor._slicesSize[p.first] = sizeA;		
+							auto sliceB = p.first;
+							while (sliceB)
 							{
-								for (auto sliceC : actor._slicesSliceSetNext[sliceB])
-									actor._slicesSliceSetPrev[sliceC].erase(sliceB);
-								for (auto sliceC : actor._slicesSliceSetPrev[sliceB])
-									actor._slicesSliceSetNext[sliceC].erase(sliceB);
-								actor._slicesSliceSetPrev.erase(sliceB);
-								actor._slicesSliceSetNext.erase(sliceB);
+								sliceB = cv[sliceB];
+								actor._slicesSize[sliceB] += sizeA;
 							}
-							SizeSet leaves;
-							while (parents.size())
-							{
-								SizeSet parentsB;
-								for (auto sliceB : parents)
-									for (auto sliceC : dr.fuds[vi[sliceB]].children)
-										if (vi.count(sliceC))
-											parentsB.insert(sliceC);
-										else 
-											leaves.insert(sliceC);
-								parents = parentsB;
-							}							
-							for (auto sliceB : leaves)
+						}
+						// update cached topology
+						SizeSet parents;
+						for (std::size_t i = actor._fudsSize; i < dr.fuds.size(); i++)
+							parents.insert(dr.fuds[i].parent);
+						for (auto sliceB : parents)
+						{
+							for (auto sliceC : actor._slicesSliceSetNext[sliceB])
+								actor._slicesSliceSetPrev[sliceC].erase(sliceB);
+							for (auto sliceC : actor._slicesSliceSetPrev[sliceB])
+								actor._slicesSliceSetNext[sliceC].erase(sliceB);
+							actor._slicesSliceSetPrev.erase(sliceB);
+							actor._slicesSliceSetNext.erase(sliceB);
+						}
+						SizeSet leaves;
+						while (parents.size())
+						{
+							SizeSet parentsB;
+							for (auto sliceB : parents)
+								for (auto sliceC : dr.fuds[vi[sliceB]].children)
+									if (vi.count(sliceC))
+										parentsB.insert(sliceC);
+									else 
+										leaves.insert(sliceC);
+							parents = parentsB;
+						}							
+						for (auto sliceB : leaves)
+							if (slices.count(sliceB))
 							{
 								for (auto ev : slices[sliceB])
 								{
@@ -1673,19 +1683,29 @@ void run_act(Actor& actor)
 									}
 								}									
 							}
-							actor._fudsSize = dr.fuds.size();
-						}
-						// update with current event
-						if ((over || historyEventA) && (!cont || !disc.count(historyEventA)))
+						actor._fudsSize = dr.fuds.size();
+					}
+					else
+					{
+						// update cached sizes
+						actor._slicesSize[sliceA]++;
+						auto sliceB = sliceA;
+						while (sliceB)
 						{
-							auto sliceB = rs[(historyEventA+z-1)%z];
-							if (sliceA != sliceB)
-							{
-								actor._slicesSliceSetPrev[sliceA].insert(sliceB);
-								actor._slicesSliceSetNext[sliceB].insert(sliceA);
-							}
+							sliceB = cv[sliceB];
+							actor._slicesSize[sliceB]++;
 						}
-					}						
+					}
+					// update with current event
+					if ((over || historyEventA) && (!cont || !disc.count(historyEventA)))
+					{
+						auto sliceB = rs[(historyEventA+z-1)%z];
+						if (sliceA != sliceB)
+						{
+							actor._slicesSliceSetPrev[sliceA].insert(sliceB);
+							actor._slicesSliceSetNext[sliceB].insert(sliceA);
+						}
+					}
 					// check for hits
 					if (sliceA)
 					{
