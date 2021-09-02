@@ -1627,13 +1627,14 @@ void run_act(Actor& actor)
 					// update cached sizes and topology
 					if (sliceA)
 					{
+						// update cached sizes
 						actor._slicesSize[sliceA]++;
 						actor._slicesSize[cv[sliceA]]++;
 						// check for new fuds
 						if (actor._fudsSize < dr.fuds.size())
 						{
 							SizeSet parents;
-							for (std::size_t i = actor._fudsSize + 1; i <dr.fuds.size(); i++)
+							for (std::size_t i = actor._fudsSize; i < dr.fuds.size(); i++)
 								parents.insert(dr.fuds[i].parent);
 							for (auto sliceB : parents)
 							{
@@ -1654,8 +1655,7 @@ void run_act(Actor& actor)
 											parentsB.insert(sliceC);
 										else 
 											leaves.insert(sliceC);
-								parents.clear();
-								parents.insert(parentsB.begin(),parentsB.end());
+								parents = parentsB;
 							}							
 							for (auto sliceB : leaves)
 							{
@@ -1810,7 +1810,6 @@ void run_act(Actor& actor)
 					auto sliceA = activeA.historySparse->arr[historyEventA];
 					std::shared_ptr<HistoryRepa> hr = activeA.underlyingHistoryRepa.front();
 					auto& hs = *activeA.historySparse;
-					auto& slices = activeA.historySlicesSetEvent;
 					auto& fails = activeA.induceSliceFailsSize;
 					auto cont = activeA.continousIs;
 					auto& disc = activeA.continousHistoryEventsEvent;
@@ -1835,7 +1834,7 @@ void run_act(Actor& actor)
 					}
 					else
 					{
-						auto& setEventA = slices[sliceA];
+						auto& setEventA = activeA.historySlicesSetEvent[sliceA];
 						// get neighboursActionsCount
 						neighboursActionsCount.reserve(setEventA.size());
 						for (auto ev : setEventA)
@@ -1858,12 +1857,13 @@ void run_act(Actor& actor)
 						}	
 						// get sliceGoal
 						std::map<std::pair<double,std::size_t>,std::size_t> scoresSlice;
+						SizeUSet setSliceOpen;
 						if (neighboursActionsCount.size() >= 2)
 						{
-							SizeUSet setSliceOpen;
-							setSliceOpen.reserve(slices.size());
+							setSliceOpen.reserve(actor._slicesSliceSetNext.size());
 							setSliceOpen.insert(sliceA);
 							SizeSet setSliceBoundA;
+							setSliceBoundA.insert(sliceA);
 							SizeSet setSliceBoundB;
 							SizeSet* setSliceBoundC = &setSliceBoundA;
 							SizeSet* setSliceBoundD = &setSliceBoundB;
@@ -1888,7 +1888,7 @@ void run_act(Actor& actor)
 													auto sizeB = actor._slicesSize[cv[sliceB]];
 													scoresSlice.insert_or_assign(std::make_pair((double)sizeA/(double)sizeB, sliceB%127),sliceB);
 												}		
-												if (scoresSlice.size()>actor._scoresTop)
+												if (scoresSlice.size() > actor._scoresTop)
 													scoresSlice.erase(scoresSlice.begin());
 											}
 										}
@@ -1908,8 +1908,6 @@ void run_act(Actor& actor)
 						}
 						if (scoresSlice.size())
 						{
-							SizeUSet setSliceOpen;
-							setSliceOpen.reserve(slices.size());
 							for (auto it = scoresSlice.rbegin(); it != scoresSlice.rend(); it++)
 							{
 								sliceGoal = it->second;					
