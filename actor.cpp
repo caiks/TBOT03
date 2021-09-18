@@ -2261,6 +2261,15 @@ Actor::Actor(const std::string& args_filename)
 		_induceParametersLevel1.pmax = ARGS_INT_DEF(induceParametersLevel1.pmax,1);
 		_induceParametersLevel1.mult = ARGS_INT_DEF(induceParametersLevel1.mult,1);
 		_induceParametersLevel1.seed = ARGS_INT_DEF(induceParametersLevel1.seed,5);
+		_induceParametersLevel1.diagonalMin = ARGS_DOUBLE(induceParametersLevel1.diagonalMin);
+		if (args.HasMember("induceParametersLevel1.induceThresholds"))
+		{
+			auto& a = args["induceParametersLevel1.induceThresholds"];
+			if (a.IsArray())
+				for (auto& v : a.GetArray())
+					if (v.IsInt())
+						_induceParametersLevel1.induceThresholds.insert(v.GetInt());
+		}
 		_induceParameters.tint = _induceThreadCount;		
 		_induceParameters.wmax = ARGS_INT_DEF(induceParameters.wmax,18);
 		_induceParameters.lmax = ARGS_INT_DEF(induceParameters.lmax,8);
@@ -2272,7 +2281,16 @@ Actor::Actor(const std::string& args_filename)
 		_induceParameters.umax = ARGS_INT_DEF(induceParameters.umax,128);
 		_induceParameters.pmax = ARGS_INT_DEF(induceParameters.pmax,1);
 		_induceParameters.mult = ARGS_INT_DEF(induceParameters.mult,1);
-		_induceParameters.seed = ARGS_INT_DEF(induceParameters.seed,5);		
+		_induceParameters.seed = ARGS_INT_DEF(induceParameters.seed,5);	
+		_induceParameters.diagonalMin = ARGS_DOUBLE(induceParameters.diagonalMin);
+		if (args.HasMember("induceParameters.induceThresholds"))
+		{
+			auto& a = args["induceParameters.induceThresholds"];
+			if (a.IsArray())
+				for (auto& v : a.GetArray())
+					if (v.IsInt())
+						_induceParameters.induceThresholds.insert(v.GetInt());
+		}		
 	}
 		
 	// EVAL(_goal);
