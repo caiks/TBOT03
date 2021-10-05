@@ -186,6 +186,11 @@ void run_act(Actor& actor)
 		if (actor._status == Actor::STOP 
 			&& actor._system)
 		{
+			if (actor._eventIdMax && actor._eventId >= actor._eventIdMax)
+			{
+				actor._terminate = true;	
+				break;
+			}
 			if (actor._actionPrevious != Actor::STOP)
 			{
 				std::unique_ptr<HistoryRepa> hr;
@@ -2115,6 +2120,7 @@ void run_act(Actor& actor)
 			}	
 			else if (actor._mode=="mode016")
 			{
+				// same as mode 15 except that the active slice caches are used
 				// check the entire field of view
 				// check to see if remaining actions are effective
 				// if any ineffective choose randomly from the ineffective, setting the turn bias if blocked
@@ -2685,6 +2691,7 @@ Actor::Actor(const std::string& args_filename)
 	bool induceNot = ARGS_BOOL(no_induce);
 	_mode = ARGS_STRING_DEF(mode, "mode001");	
 	srand(ARGS_INT_DEF(mode_seed,7));
+	_eventIdMax = ARGS_INT(event_maximum);
 	_distribution[LEFT] = ARGS_DOUBLE_DEF(distribution_LEFT,1.0);
 	_distribution[AHEAD] = ARGS_DOUBLE_DEF(distribution_AHEAD,5.0);
 	_distribution[RIGHT] = ARGS_DOUBLE_DEF(distribution_RIGHT,1.0);

@@ -76,6 +76,7 @@ public:
 	Alignment::ActiveInduceParameters _induceParametersLevel1;
 	Alignment::ActiveInduceParameters _induceParameters;
 	std::size_t _eventId;
+	std::size_t _eventIdMax;
 	
 	std::shared_ptr<Alignment::System> _uu;
 	std::shared_ptr<Alignment::SystemRepa> _ur;
