@@ -2733,6 +2733,7 @@ Actor::Actor(const std::string& args_filename)
 	_level3Model = ARGS_INT(level3_model); 
 	_sizeOverride = ARGS_BOOL(size_override);
 	_scoresTop = ARGS_INT_DEF(top_scores,8); 
+	_sliceCumulative = ARGS_BOOL(cumulative_slice);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
@@ -2924,7 +2925,11 @@ Actor::Actor(const std::string& args_filename)
 			activeA.system = _system;
 			activeA.continousIs = true;
 			if (_mode=="mode016")
+			{
 				activeA.historySliceCachingIs = true;
+				if (_sliceCumulative)
+					activeA.historySliceCumulativeIs = true;
+			}
 			if (modelInitial.size())
 			{
 				ActiveIOParameters ppio;

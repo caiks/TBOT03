@@ -132,6 +132,7 @@ public:
 	std::size_t _level3Model;
 	bool _sizeOverride;
 	std::size_t _scoresTop;
+	bool _sliceCumulative;
 
 private:
 	rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _publisherCmdVel;
