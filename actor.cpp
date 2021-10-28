@@ -2734,6 +2734,8 @@ Actor::Actor(const std::string& args_filename)
 	_sizeOverride = ARGS_BOOL(size_override);
 	_scoresTop = ARGS_INT_DEF(top_scores,8); 
 	_sliceCumulative = ARGS_BOOL(cumulative_slice);
+	bool level3FrameUnderlyingDynamicIs = ARGS_BOOL(dynamic_underlying_frames);
+	bool level3FrameHistoryDynamicIs = ARGS_BOOL(dynamic_self_frames);
 	{
 		_induceParametersLevel1.tint = _induceThreadCount;
 		_induceParametersLevel1.wmax = ARGS_INT_DEF(induceParametersLevel1.wmax,9);
@@ -3138,9 +3140,11 @@ Actor::Actor(const std::string& args_filename)
 				}
 				// activeA.eventsSparse = std::make_shared<ActiveEventsArray>(1);	
 				for (auto i : under[m])
-					activeA.frameUnderlyings.insert(i);
+					activeA.frameUnderlyings.push_back(i);
 				for (auto i : self[m])
-					activeA.frameHistorys.insert(i);
+					activeA.frameHistorys.push_back(i);
+				activeA.frameUnderlyingDynamicIs = level3FrameUnderlyingDynamicIs;
+				activeA.frameHistoryDynamicIs = level3FrameHistoryDynamicIs;
 				std::size_t sizeA = activeA.historyOverflow ? activeA.historySize : activeA.historyEvent;
 				if (sizeA)
 				{
