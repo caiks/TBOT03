@@ -4,7 +4,7 @@
 
 The implementation of *slice* topologies in `TBOT02` only had a low action success rate. In `TBOT03` we will seek to improve this performance by considering the factors that increase  *model likelihood*, *slice* topology connectivity and completeness, and action responsiveness. To do this we will control the timings of scans and actions. This will allow us to manually control the turtlebot so that we can trace the action decisions that would have been taken in the various modes. In this way `TBOT03` will debug `TBOT02`.
 
-As well as the `location` goal mode of `TBOT02`, we will consider two more modes in `TBOT03`, both of which will be implemented using *slice* topologies. 
+As well as the `location` goal mode of `TBOT02`, we will consider two more modes in `TBOT03`, in order to investigate *slice* topologies. 
 
 First, in 'random' mode the turtlebot acts to match the `motor` *histogram* for each *slice* to a desired uniform distribution. In this way the turtlebot will stochastically explore the physical configuration, so improving the *slice* topology's representation. 'Random' mode is used in the action *level*, which is defined as the *level* that acts on the motor *variables*.
 

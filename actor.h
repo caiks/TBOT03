@@ -120,6 +120,7 @@ public:
 	bool _setSliceSizeMaxRandom;
 	bool _biasIfBlocked;
 	bool _randomOverride;
+	bool _unusual;
 	std::size_t _sliceCount;
 	std::size_t _sliceSizeTotal;
 	std::size_t _parentSizeTotal;

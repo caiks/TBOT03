@@ -2389,7 +2389,10 @@ void run_act(Actor& actor)
 												else
 												{
 													auto sizeB = sizes[cv[sliceB]];
-													scoresSlice.insert_or_assign(std::make_pair((double)sizeA/(double)sizeB, sliceB%127),sliceB);
+													double ratio = (double)sizeA/(double)sizeB;
+													if (actor._unusual)
+														ratio *= -1.0;
+													scoresSlice.insert_or_assign(std::make_pair(ratio, sliceB%127),sliceB);
 												}		
 												if (scoresSlice.size() > actor._scoresTop)
 													scoresSlice.erase(scoresSlice.begin());
@@ -2730,6 +2733,7 @@ Actor::Actor(const std::string& args_filename)
 	_setSliceSizeMaxRandom = ARGS_BOOL(random_max_slice);
 	_biasIfBlocked = ARGS_BOOL(bias_if_blocked);
 	_randomOverride = ARGS_BOOL(random_override);
+	_unusual = ARGS_BOOL(unusual);
 	_level3Model = ARGS_INT(level3_model); 
 	_sizeOverride = ARGS_BOOL(size_override);
 	_scoresTop = ARGS_INT_DEF(top_scores,8); 
