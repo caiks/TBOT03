@@ -10,7 +10,11 @@ First, in 'random' mode the turtlebot acts to match the `motor` *histogram* for 
 
 Second, in 'interest' mode the turtlebot acts to move towards the *slice* with the greatest *size* per parent *slice size*. The turtlebot therefore will tend to spend more time in the *slices* with the highest potential for *modelling* so far undetected *alignments*, thus improving the *model likelihood* per active *history size*. This is similar to static *induction* in which the largest *slice* is *induced* first, but avoids large *slices* with *independent substrates*. 
 
-'Interest' mode can be used at any *level*. In a action *level*, i.e. one that has motor *variables* in an *underlying substrate*, the active chooses actions that transition to the subset of neighbouring *slices* which have the fewest transitions to the goal *slice*. In higher *levels* which are not also action *levels*, i.e. they do not have actions in an *underlying substrate*, the goal *slice* of a higher *level* implies a set of goal *slices* in an *underlying* action *level*, recursing through any intermediate *underlying* *levels*. The interests of different actives may sometimes be contradictory, so some method of coordinating between them will be needed.
+'Interest' mode can be used at any *level*. In an action *level*, i.e. one that has motor *variables* in an *underlying substrate*, the active chooses actions that transition to the subset of neighbouring *slices* which have the fewest transitions to the goal *slice*. We will be examining only action *levels* for the moment.
+
+In higher *levels* which are not also action *levels*, i.e. they do not have actions in an *underlying substrate*, but consist of a set of *underlying frames* of an action *level*, the goal *slice* of a higher *level* implies a set of goal *slices* in the *underlying* action *level*. So higher *levels* could operate in 'interest' mode indirectly.
+
+In general, the interests of different actives may sometimes be contradictory, so some method of coordinating between them will be needed. In this investigation, however, we will only be examining the case where there is one action *level* active in 'interest' mode.
 
 ## Sections
 
