@@ -827,7 +827,7 @@ ros2 run TBOT03 commander AHEAD
 ros2 run TBOT03 commander RIGHT
 
 ```
-In this sequence we begin 3 steps away from room 5 approaching from right. All previous slices are ambiguous -
+In this sequence we begin 3 steps away from room 5 approaching from the right. All previous slices are ambiguous -
 ```
 actor       goal:AHEAD
 actor       AHEAD   time 3.705s
@@ -946,7 +946,7 @@ actionsCount: {}
 ```
 We can see that the first step is ambiguous but happens to be correct, the last two steps are correct. That is, there are sometimes low deviation 'tunnels' to goal in certain *slices*.
 
-This is not always the case, though - this approach from right has no luck -
+This is not always the case, though - this approach from the right has no luck -
 ```
 actor       goal:LEFT
 actor       LEFT    time 6.366s
