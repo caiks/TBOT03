@@ -792,7 +792,7 @@ goal: room4     n: 9    mean: 12087.6   std dev: 8873.8 std err: 2957.93        
 ```
 While its transition success rate is (12.3-8.3)/(1.0-0.631) = 10.8%, which is better than that of `TBOT02`, the navigation performance is very poor. This is because it frequently becomes stuck in loops or in corners. The problem is that the *model* does not have a sufficient number of low deviation *slices* always to provide a path to goal even from room 4 to room 5. 
 
-We can demonstrate that this is the case in mode 9. In this mode, the choices that would have been made are calculated and traced but the control is now done manually. A modification to the commander allows us to set the action -
+We can demonstrate that this is the case in mode 9. In this mode, the choices that would have been made are calculated and traced but the control is now done manually. In this way we can debug the *slice* topology. A modification to the commander allows us to set the action -
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -1980,14 +1980,11 @@ deviation_location: 0.0411679
 The `location`-configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That suggests that the *models* of the different *levels* are rather orthogonal - so much so, in fact, that crossing gives us little benefit. In other words, crossing the *levels* causes the map of *slice* to configuration to be far too over-fitted.
 
 
+describe each of the statistics in the log. TBOT03 measure successful transition actions. TBOT03 hit is usually checked before induce, although there is a small window
 
 TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled.
 
 TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised. Conversely for disinterest choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to disinterest mode, until cannot find any with small enough fractions and then flip back
-
-
-TBOT03 hit is usually checked before induce, although there is a small window
-
 
 		
 problems with the topology - measure of deviation rather than configuration entropy
@@ -2002,19 +1999,8 @@ can't really expect too much - need landmarks, magnetic compass, etc
 
 mustn't make unfair anthropomorphic comparisons, except between TBOT03 and a newborn
 
-TBOT03 measure successful transition actions
-
-debugging the topology
-
-mode 9 manual with mode 8 
-
-TBOT03  README in mode 9 we are essentially debugging the slice topology by manually manoeuvring the turtlebot with tracing what it would have done automatically in mode 8
-
 
 TBOT03 bigger gain from forcing an action per request mapping to a change in configuration?
-
-problem with structure 1 - if a detail is not visible across at least two the underlying actives then there are no alignments in the overlying active, and so, although, the underlying can 'see' the feature, it does not appear in the slice topology. One solution is to cross the overlying and underlying slices. 
-
 
 TBOT03 we can model configuration space clustering by making a slice tree for each dimension and then inducing. The resultant configuration model slices are the clusters. Of course this is just the same as having the odometry as substrate instead of LiDAR. No doubt we could have a very good slice topology in that case. We can compare models by rel ent so could compare the substrate induced model to the configuration induced model (with same threshold) to get a measure of the quality of the slice topology. Then can run the model without odometry knowing whether it's slice topology was better or worse than some other substrate induced model.
 
