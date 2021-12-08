@@ -1980,7 +1980,9 @@ deviation_location: 0.0411679
 The `location`-configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That suggests that the *models* of the different *levels* are rather orthogonal - so much so, in fact, that crossing gives us little benefit. In other words, crossing the *levels* causes the map of *slice* to configuration to be far too over-fitted.
 
 
-describe each of the statistics in the log. TBOT03 measure successful transition actions. TBOT03 hit is usually checked before induce, although there is a small window
+rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
+
+describe each of the statistics in the log. TBOT03 measure successful transition actions. hit rate monitor. hit is usually checked before induce, although there is a small window. marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*)
 
 TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled.
 
@@ -2005,6 +2007,8 @@ TBOT03 we can model configuration space clustering by making a slice tree for ea
 TBOT03 NB 202103081030 - essentially, we can measure the quality induced model's slice topology by inducing a model of the configuration space from the odometry, and then the clusterivity of the slice topology is the negative label entropy wrt the induced slice where the label is the configuration model slice (partition variable). The connectivity of the slice topology is the label entropy wrt the motor action where the label is the induced slice. Of course, in many cases a configuration model is infeasible. TBOT03 is also complicated by the goal depending on room. Relative entropy of motor actions between nearest and not nearest - configuration space is too large. Can compute the total motor relative entropy for each model for each goal as a comparison for the slice topology.So we should add this as a comment to the README, rather than spend much more time 'solving' the maze problem - we possibly could add orientation or odometry or dynamics, but we might still have wormholes or loops due to collision avoidance, jumping over doorways in one step, probabilistic motor actions, and so on. I think to navigate using a slice topology with these motor actions would require wide doorways and plenty of paths.
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
+
+Aim is to have complete and consistent (Godel). Complete comes from effective action distribution for each slice.
 
 <a name = "Conclusion"></a>
 
