@@ -1164,7 +1164,7 @@ slice_location_count: 35811
 slice_location_size_mean: 9.71545
 deviation_location: 0.202962
 ```
-Having determined that obstructions are not a major factor causing the high deviation, we will go on to consider whether the *model* itself might be the reason. In the default structure one configuration there are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to identify landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
+Having determined that obstructions are not a major factor causing the high deviation, we will go on to consider whether the *model* itself might be the reason. In the default structure 1 configuration there are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to identify landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
 
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
@@ -1257,7 +1257,7 @@ deviation_location: 0.204491
 ```
 Note, though, that the *fuds* per *size* per threshold has improved from 0.975224 to 1.09273, which is similar to the `TBOT02` case. We might speculate that this is because the increased angular resolution counteracts the more gridlike distribution of the turtlebot's poses in `TBOT03`.
 
-Let us continue to focus on the *model* by improving the *level* 1 *models*. In *model* 81 we increase the *level* one active *size*, increase the *induce* threshold and also increase the *induction* parameters `XMAX` and `WMAX`. We also alter the *level* two initial threshold and parameter `XMAX`,
+Let us continue to focus on the *model* by improving the *level* 1 *models*. In *model* 81 we increase the *level* 1 active *size*, increase the *induce* threshold and also increase the *induction* parameters `XMAX` and `WMAX`. We also alter the *level* 2 initial threshold and parameter `XMAX`,
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -1943,9 +1943,9 @@ slice_location_count: 96073
 slice_location_size_mean: 5.5827
 deviation_location: 0.21878
 ```
-They both turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* three *models*, however, have smaller mean *slice sizes* than the *level* two *model*, with only 5-6 *events* against 9-10 *events*. 
+They both turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* 3 *models*, however, have smaller mean *slice sizes* than the *level* 2 *model*, with only 5-6 *events* against 9-10 *events*. 
 
-The mean *slice sizes* of the *level* three *models* are already small, so we cannot expect that crossing the *level* two *model* with a *level* three *model* will produce a very useful *slice* topology -
+The mean *slice sizes* of the *level* 3 *models* are already small, so we cannot expect that crossing the *level* 2 *model* with a *level* 3 *model* will produce a very useful *slice* topology -
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ./main configuration_deviation_all_3level model089 model089_2 model089_3_00
@@ -1978,6 +1978,8 @@ slice_location_size_mean: 1.16499
 deviation_location: 0.0411679
 ```
 The `location`-configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That suggests that the *models* of the different *levels* are rather orthogonal - so much so, in fact, that crossing gives us little benefit. In other words, crossing the *levels* causes the map of *slice* to configuration to be far too over-fitted.
+
+
 
 
 rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
