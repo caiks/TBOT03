@@ -1981,7 +1981,84 @@ The `location`-configuration deviation is now very small, but that is obviously 
 
 #### Effective modes 13
 
-We have attempted to reduce configuration deviation in order to map the turtlebot's *model* close enough to the physical location to allow it to reliablly navigate it's environment. However, at this point it is clear that the various efforts to do this result in only marginal gains, presumably because the largest *alignments* in the *substrate* sensors to not capture the information that we are interested in. Instead of focussing on our interests, we turn now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek for the highest potential *alignments* and thereby find the most *likely model* that can be yielded from the sensors given the environment. To prove that this is the case, we will wish to demonstrate that the active search produces a larger *model* per *history size* then a random search by comparing the two modes.
+We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate it's environment. However, it is clear by now that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will turn now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek for the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. To prove that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
+
+To make these modes reasonably comparable we will need similar *slice* topologies in both cases, at least for similar *model* sizes. To do this we must first create a random search mode that ensures that all possible actions have been tried by the turtlebot for its current *slice*. In that way the whole immediate neighbourhood will be accessible and the topology will maximise its connectivity (edges) in both cases.
+
+Mode 13 determines the set of actions in the *events* of the current *slice*, if every possible action has occurred in the *slice*, all of the actions said to be effective and the next action is taken randomly from the given distribution. If there are any ineffective actions, i.e. those that have not occurred in this *slice*, the effective actions are removed from the distribution. The action is then selected from the normalised remainder of the distribution. In this way, the *slices* are made effective with respect to actions as quickly as possible.
+
+*Model* 92 is a copy of *model* 83, which has the new landmarks, in mode 13 effective random -
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model092.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model092",
+	"level1Count" : 36,
+	"mode" : "mode013",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"turn_bias_factor" : 10,
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode013" : true,
+	"logging_mode013_factor" : 1000	
+}
+```
+
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+./main location_entropy model092_2
+model: model092_2
+model092_2      load    file name: model092_2.ac        time 0.451896s
+activeA.historyOverflow: false
+sizeA: 386379
+activeA.decomp->fuds.size(): 4135
+activeA.decomp->fudRepasSize: 65611
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.07019
+entropyA: 388707
+entropyA/sizeA: 1.00603
+(double)sizeA * std::log(sizeA): 4.9706e+06
+std::log(sizeA): 12.8646
+
+./main configuration_deviation_all model092 
+active: model092
+model092_2      load    file name: model092_2.ac        time 0.378641s
+activeA.historyOverflow: false
+sizeA: 386379
+activeA.decomp->fuds.size(): 4135
+activeA.decomp->fudRepasSize: 65611
+(double)activeA.decomp->fuds.size() * activeA.induceThreshold / sizeA: 1.07019
+records->size(): 386379
+size: 386379
+slice_count: 13676
+slice_size_mean: 28.2523
+deviation: 0.422107
+size: 386379
+slice_location_count: 41275
+slice_location_size_mean: 9.36109
+deviation_location: 0.178327
+```
+*Model* 92 is a slightly less *likely model* than *model* 83, but it has lower `location` entropy and configuration deviation. It appears that the effective action slightly improves the map to the environment without affecting the *likelihood* of the *model*.
+
 
 
 
