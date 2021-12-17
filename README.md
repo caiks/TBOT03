@@ -1979,6 +1979,9 @@ deviation_location: 0.0411679
 ```
 The `location`-configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That suggests that the *models* of the different *levels* are rather orthogonal - so much so, in fact, that crossing gives us little benefit. In other words, crossing the *levels* causes the map of *slice* to configuration to be far too over-fitted.
 
+#### Effective modes 13
+
+We have attempted to reduce configuration deviation in order to map the turtlebot's *model* close enough to the physical location to allow it to reliablly navigate it's environment. However, at this point it is clear that the various efforts to do this result in only marginal gains, presumably because the largest *alignments* in the *substrate* sensors to not capture the information that we are interested in. Instead of focussing on our interests, we turn now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek for the highest potential *alignments* and thereby find the most *likely model* that can be yielded from the sensors given the environment. To prove that this is the case, we will wish to demonstrate that the active search produces a larger *model* per *history size* then a random search by comparing the two modes.
 
 
 
