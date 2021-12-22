@@ -1979,13 +1979,13 @@ deviation_location: 0.0411679
 ```
 The `location`-configuration deviation is now very small, but that is obviously because the mean *slice size* is now only between one and two *events*. That suggests that the *models* of the different *levels* are rather orthogonal - so much so, in fact, that crossing gives us little benefit. In other words, crossing the *levels* causes the map of *slice* to configuration to be far too over-fitted.
 
-#### Effective modes 13
+#### Effective mode 13
 
-We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate it's environment. However, it is clear by now that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will turn now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek for the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. To prove that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
+We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate it's environment. It is clear by now, however, that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will aim now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek for the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. To demonstrate that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
 
-To make these modes reasonably comparable we will need similar *slice* topologies in both cases, at least for similar *model* sizes. To do this we must first create a random search mode that ensures that all possible actions have been tried by the turtlebot for its current *slice*. In that way the whole immediate neighbourhood will be accessible and the topology will maximise its connectivity (edges) in both cases.
+To make these modes reasonably comparable we will need similar *slice* topologies in both cases, at least for similar *model* sizes. To do this we must first create a random search mode that ensures that all possible actions have been tried by the turtlebot for its current *slice*. In that way the whole immediate neighbourhood will be accessible and the topology will maximise its connectivity  in both cases.
 
-Mode 13 determines the set of actions in the *events* of the current *slice*, if every possible action has occurred in the *slice*, all of the actions said to be effective and the next action is taken randomly from the given distribution. If there are any ineffective actions, i.e. those that have not occurred in this *slice*, the effective actions are removed from the distribution. The action is then selected from the normalised remainder of the distribution. In this way, the *slices* are made effective with respect to actions as quickly as possible.
+Mode 13 first determines the past set of actions in the *events* of the current *slice*. If every possible action has occurred in the *slice*, all of the actions said to be effective and the next action is taken randomly from the given distribution. If there are any ineffective actions, i.e. those that have not been taken before in this *slice*, the effective actions are removed from the distribution. The action is then selected at random from the normalised remainder of the distribution. In this way, the *slices* are made effective with respect to actions as quickly as possible.
 
 *Model* 92 is a copy of *model* 83, which has the new landmarks, in mode 13 effective random -
 
@@ -2057,36 +2057,37 @@ slice_location_count: 41275
 slice_location_size_mean: 9.36109
 deviation_location: 0.178327
 ```
-*Model* 92 is a slightly less *likely model* than *model* 83, but it has lower `location` entropy and configuration deviation. It appears that the effective action slightly improves the map to the environment without affecting the *likelihood* of the *model*.
+*Model* 92 is a slightly less *likely model* than *model* 83, but it has lower `location` entropy and configuration deviation. It appears that the effective action slightly improves the map to the environment without affecting the *likelihood* of the *model* significantly.
 
+#### Interest modes 14-16
 
+list the various changes made, but only do a detailed description of mode 16 and its statistics
 
+if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
+
+check the entire field of view
+
+check to see if remaining actions are effective
+
+if any ineffective choose randomly from the ineffective, setting the turn bias if blocked
+
+else if goal slice choose action by neighbourhood or turn by neighbourhood if blocked
+
+else choose randomly or by turn bias if blocked
+
+TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised. Conversely for disinterest choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to disinterest mode, until cannot find any with small enough fractions and then flip back
 
 rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
 
-describe each of the statistics in the log. TBOT03 measure successful transition actions. hit rate monitor. hit is usually checked before induce, although there is a small window. marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*)
-
-TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled.
-
-TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised. Conversely for disinterest choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to disinterest mode, until cannot find any with small enough fractions and then flip back
-
 discuss the 6% shuffle alignment threshold 
 
+restricted history size
+
+
+describe each of the statistics in the log. TBOT03 measure successful transition actions. hit rate monitor. hit is usually checked before induce, although there is a small window. marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*)
+
+
 TBOT03 we are no longer interested in model likelihood, but assume that the inducer is always reasonably good. Interested in the temporal relationships between slices  or components of the model.
-		
-problems with the topology - measure of deviation rather than configuration entropy
-
-calculate room entropy - model 77 has considerably higher room label entropy than the similar TBOT02 model 65 - we will need slice-room transitions - add to README. 
-
-In model 77, of the 38k slices only 19k have 5 or more events. Around 17K have low variance. Only around 10% of larger slices have low variance. So even if we prevent loops and ambiguous slices, the slice topology is likely to be patchy. We should seek to improve both the model and the effectiveness. README
-
-In TBOT03 we are stopping between actions like a bird walking and so much more successful, but ironically this means that the turtlebot is more likely to be stuck in any loops caused by ambiguity wormholes. We must either have better maps to the configuration space or loop handling that artificially fails to go to the wormhole neighbour. Always better to have a good map because delooping is not guaranteed to be better than chance. It will help only if there are parts of the slice topology that is well mapped eg at doorways.
-
-TBOT03 bigger gain from forcing an action per request mapping to a change in configuration?
-
-TBOT03 we can model configuration space clustering by making a slice tree for each dimension and then inducing. The resultant configuration model slices are the clusters. Of course this is just the same as having the odometry as substrate instead of LiDAR. No doubt we could have a very good slice topology in that case. We can compare models by rel ent so could compare the substrate induced model to the configuration induced model (with same threshold) to get a measure of the quality of the slice topology. Then can run the model without odometry knowing whether it's slice topology was better or worse than some other substrate induced model.
-
-TBOT03 NB 202103081030 - essentially, we can measure the quality induced model's slice topology by inducing a model of the configuration space from the odometry, and then the clusterivity of the slice topology is the negative label entropy wrt the induced slice where the label is the configuration model slice (partition variable). The connectivity of the slice topology is the label entropy wrt the motor action where the label is the induced slice. Of course, in many cases a configuration model is infeasible. TBOT03 is also complicated by the goal depending on room. Relative entropy of motor actions between nearest and not nearest - configuration space is too large. Can compute the total motor relative entropy for each model for each goal as a comparison for the slice topology.So we should add this as a comment to the README, rather than spend much more time 'solving' the maze problem - we possibly could add orientation or odometry or dynamics, but we might still have wormholes or loops due to collision avoidance, jumping over doorways in one step, probabilistic motor actions, and so on. I think to navigate using a slice topology with these motor actions would require wide doorways and plenty of paths.
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
 
