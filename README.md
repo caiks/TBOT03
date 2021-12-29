@@ -1981,9 +1981,9 @@ The `location`-configuration deviation is now very small, but that is obviously 
 
 #### Effective mode 13
 
-We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate it's environment. It is clear by now, however, that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will aim now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek for the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. To demonstrate that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
+We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate it's environment. It is clear by now, however, that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will aim now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. We will assume that the parameterisation of the *induction* is reasonably good and consider only the physical search algorithm. To demonstrate that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
 
-To make these modes reasonably comparable we will need similar *slice* topologies in both cases, at least for similar *model* sizes. To do this we must first create a random search mode that ensures that all possible actions have been tried by the turtlebot for its current *slice*. In that way the whole immediate neighbourhood will be accessible and the topology will maximise its connectivity  in both cases.
+To make these modes reasonably comparable we will need similar *slice* topologies in both cases, at least for similar *model* sizes. To do this we must first create a random search mode that ensures that all possible actions have been tried by the turtlebot for its current *slice*. In that way the whole immediate neighbourhood will be accessible and the topology will maximise its connectivity or completeness in both cases.
 
 Mode 13 first determines the past set of actions in the *events* of the current *slice*. If every possible action has occurred in the *slice*, all of the actions said to be effective and the next action is taken randomly from the given distribution. If there are any ineffective actions, i.e. those that have not been taken before in this *slice*, the effective actions are removed from the distribution. The action is then selected at random from the normalised remainder of the distribution. In this way, the *slices* are made effective with respect to actions as quickly as possible.
 
@@ -2063,9 +2063,21 @@ deviation_location: 0.178327
 
 list the various changes made, but only do a detailed description of mode 16 and its statistics
 
-if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
 
-check the entire field of view
+debug frequent crashing in mode 14
+
+if still crashing run more slowly
+
+mode 14 - open_slices_maximum, goal_size_maximum
+
+In mode 14 - Try a blocking definition that scans the entire rectangular area in front of the turtlebot instead of just a wedge. Try with collision_rectangular set to true
+
+mode 14 - let's increase the FOV to 15. collision_field_of_view
+
+mode 14 - Try bias if blocked as in mode 13
+
+Spends two thirds of its time in rooms 1,2,3
+
 
 check to see if remaining actions are effective
 
@@ -2074,6 +2086,8 @@ if any ineffective choose randomly from the ineffective, setting the turn bias i
 else if goal slice choose action by neighbourhood or turn by neighbourhood if blocked
 
 else choose randomly or by turn bias if blocked
+
+if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
 
 TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised. Conversely for disinterest choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to disinterest mode, until cannot find any with small enough fractions and then flip back
 
@@ -2086,12 +2100,10 @@ restricted history size
 
 describe each of the statistics in the log. TBOT03 measure successful transition actions. hit rate monitor. hit is usually checked before induce, although there is a small window. marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*)
 
-
-TBOT03 we are no longer interested in model likelihood, but assume that the inducer is always reasonably good. Interested in the temporal relationships between slices  or components of the model.
+Improved margin rate over TBOT02 - varies from room to room, depending on wormholes.
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
 
-Aim is to have complete and consistent (Godel). Complete comes from effective action distribution for each slice.
 
 <a name = "Conclusion"></a>
 
