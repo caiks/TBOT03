@@ -2061,8 +2061,13 @@ deviation_location: 0.178327
 
 #### Interest modes 14-16
 
+Interest modes 14-16 behave in the same way as random effective mode 13, except in the case where the actions of the current *slice* are all effective, i.e. all have been tried at least once. In this case mode 13 simply chooses another action randomly according to the given distribution, but the interest modes 14-16 first look to see if there is a decidable action that can be chosen instead. To determine if a *slice* is decidable, the actor first looks at the forward *slice* transitions from the current *slice* to define its immediate neighbourhood *slice* set. It then repeats to find the neighbours of the immediate neighbourhood to find the set of *slices* connected by two *slice* transitions. The actor recurses this operation until some limit is reached, such as the total number of connected *slices*, or the number of *slice* transitions. Once it has found the set of forward connected *slices*, it then determines the connected *slice* which maximises some measure of interest. The actor then works back from this goal *slice*, recursively reversing the *slice* transitions until it finds the subset of the actor's immediate neighbourhood, i.e. those *slices* only one transition away from the current *slice*. Each of this 'nearest' subset will have the same least number of transitions to the goal *slice*. If the nearest subset of the neighbourhood is a proper subset, i.e. it is smaller than the neighbourhood itself, then the current *slice* is defined as decidable and the distribution of actions that only lead to the nearest neighbourhood is used instead of the given effective distribution. When the turtlebot has transitioned to a new *slice* (whether in its calculated neighbourhood or making an connection), the whole process is repeated. That is a new goal *slice* is determined (which may be different from the previous goal *slice*) and to see if the new *slice* is decidable. In this way, the turtlebot will tend to take the shortest route towards interesting goal *slices*. If goal are defined by interest or potential *likelihood*, the turtlebot's *model* should grow more quickly than if the turtlebot acts randomly.
+
+The differences between modes 14, 15 and 16 are differences in implementation. They all have similar functionality and the changes in implementation were made in response to the results of experimentation. In mode 14 the *slice* topology is notional and is searched by following the sequences of *events* that start at the *events* in the current *slice*. That is, the *slice* transitions are recomputed as needed. This is laborious and repetitive, and the performance decreases exponentially with transition count. In mode 15, the *slice* transitions are cached on the actor and so do not need to be recomputed for the current *slice*. This is considerably faster than mode 14, but it requires recomputing the entire *slice* transition cache whenever the *model* changes. In mode 16, the actor makes use of  *slice* transition structures that are maintained by the active during update and induce. In addition to simplifying the actor implementation and improving the performance of the cache, the active *slice* topology can optionally be cumulative so that when the active *history* overflows the transitions of the rolled off *events* are retained. (Of course if there are no longer any *events* corresponding to the transition, the actor will not know which action to take to go to a shortest route neighbour, but at least the actor knows that there exists a route to the interest goal and so can modify its behaviour accordingly, e.g. by a systematic search for a path.)
+
 list the various changes made, but only do a detailed description of mode 16 and its statistics
 
+mode 14 does the slice topology navigation manually
 
 debug frequent crashing in mode 14
 
@@ -2077,6 +2082,10 @@ mode 14 - let's increase the FOV to 15. collision_field_of_view
 mode 14 - Try bias if blocked as in mode 13
 
 Spends two thirds of its time in rooms 1,2,3
+
+mode 15 caches the slice topology up front, but doesn't update it
+
+mode 16 uses the cached active slice topology
 
 
 check to see if remaining actions are effective
