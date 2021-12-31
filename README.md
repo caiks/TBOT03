@@ -2065,7 +2065,9 @@ Interest modes 14-16 behave in the same way as random effective mode 13, except 
 
 The differences between modes 14, 15 and 16 are differences in implementation. They all have similar functionality and the changes in implementation were made in response to the results of experimentation. In mode 14 the *slice* topology is notional and is searched by following the sequences of *events* that start at the *events* in the current *slice*. That is, the *slice* transitions are recomputed as needed. This is laborious and repetitive, and the performance decreases exponentially with transition count. In mode 15, the *slice* transitions are cached on the actor and so do not need to be recomputed for the current *slice*. This is considerably faster than mode 14, but it requires recomputing the entire *slice* transition cache whenever the *model* changes. In mode 16, the actor makes use of  *slice* transition structures that are maintained by the active during update and induce. In addition to simplifying the actor implementation and improving the performance of the cache, the active *slice* topology can optionally be cumulative so that when the active *history* overflows the transitions of the rolled off *events* are retained. (Of course if there are no longer any *events* corresponding to the transition, the actor will not know which action to take to go to a shortest route neighbour, but at least the actor knows that there exists a route to the interest goal and so can modify its behaviour accordingly, e.g. by a systematic search for a path.)
 
-list the various changes made, but only do a detailed description of mode 16 and its statistics
+
+The three interest modes are all able to run as though they are in random effective mode 13 by means of a `random_override` flag set in the configuration. They still calculate the goal *slices* and the statistics, but ignore the decidable action distribution if it exists.
+
 
 mode 14 does the slice topology navigation manually
 
@@ -2083,7 +2085,195 @@ mode 14 - Try bias if blocked as in mode 13
 
 Spends two thirds of its time in rooms 1,2,3
 
+
+
+After various experiments in mode 14 ...
+
+We then run in random effective mode to compare -
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"level1Count" : 36,
+	"mode" : "mode014",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 100,
+	"goal_size_maximum" : 99,
+	"random_max_slice" : true,
+	"bias_if_blocked" : true,
+	"random_override" : true,
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 100,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+Now in mode 14 proper -
+
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"level1Count" : 36,
+	"mode" : "mode014",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 100,
+	"goal_size_maximum" : 99,
+	"random_max_slice" : true,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 100,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+
+Compare 
+```
+model_2     ev: 52700       fuds: 535       fuds/sz/thrshld: 1.01516        eff: 96.26      dec: 46.19      succ: 6.08      expt: 5.41      null: 50.61marg: 1.37       live: 402       goals: 1415     hits: 1013      len: 262.52     sz: 56.16       par: 648.90     pos: 0.617875   neg: -0.326120
+
+model_2     ev: 52700       fuds: 544       fuds/sz/thrshld: 1.03224        eff: 96.00      dec: 61.84      succ: 12.36     expt: 6.29      null: 43.31marg: 10.71      live: 388       goals: 2020     hits: 1632      len: 165.82     sz: 55.95       par: 534.67     pos: 0.593775   neg: -0.307027
+```
+We can see that fuds/sz/thrshld is higher 1.03224 versus 1.01516, and hit length is much shorter 165.82 versus 262.52. The fraction of hits is higher at 80% versus 71%. Margin is high at 10.71%. Decideable is 61.84 versus  46.19. Likelihoods are much the same, but the parent size is smaller at 534.67 versus 648.90. So, overall it appears that max size is having an effect when run from the beginning.
+
+Now compare initialised from model 92 -
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure_initial" : "struct001",
+	"model_initial" : "model092",
+	"structure" : "struct001",
+	"level1Count" : 36,
+	"mode" : "mode014",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 100,
+	"goal_size_maximum" : 99,
+	"random_max_slice" : true,
+	"bias_if_blocked" : true,
+	"random_override" : true,
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 100,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+
+Now in mode 14 proper -
+```
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure_initial" : "struct001",
+	"model_initial" : "model092",
+	"structure" : "struct001",
+	"level1Count" : 36,
+	"mode" : "mode014",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 100,
+	"goal_size_maximum" : 99,
+	"random_max_slice" : true,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 100,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+Compare - 
+```
+model_2     ev: 398500      fuds: 4276      fuds/sz/thrshld: 1.07302        eff: 93.39      dec: 49.22      succ: 2.12      expt: 2.16      null: 52.61marg: -0.08      live: 118       goals: 259      hits: 141       len: 2150.52    sz: 57.61       par: 368.25     pos: 0.634770   neg: -0.258065
+
+model_2     ev: 398500      fuds: 4274      fuds/sz/thrshld: 1.07252        eff: 92.63      dec: 56.62      succ: 5.02      expt: 1.95      null: 57.50marg: 7.22       live: 119       goals: 289      hits: 170       len: 2101.32    sz: 55.95       par: 379.68     pos: 0.621137   neg: -0.250982
+```
+Very little difference except for the margin - no benefit at this stage. Both have very long hit lengths, so there is essentially no effect.
+
+
+
+
+list the various changes made, but only do a detailed description of mode 16 and its statistics. Margin is most important.
 mode 15 caches the slice topology up front, but doesn't update it
+
+mode 15 and 16 has _sizeOverride so mode 14 only looks at the size of the slice
 
 mode 16 uses the cached active slice topology
 
@@ -2098,13 +2288,15 @@ else choose randomly or by turn bias if blocked
 
 if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
 
-TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised. Conversely for disinterest choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to disinterest mode, until cannot find any with small enough fractions and then flip back
+TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. Also because of the threshold, there are sometimes mor than one goal slice to choose from. If these are chosen at random, then the turtlebot can start off in one direction and then change its mind to go in another direction. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised or aligned. Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back
 
 rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
 
 discuss the 6% shuffle alignment threshold 
 
 restricted history size
+
+unusual slices - likely but rare. Consider other modes such as repelled by unaligned
 
 
 describe each of the statistics in the log. TBOT03 measure successful transition actions. hit rate monitor. hit is usually checked before induce, although there is a small window. marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*)
@@ -2130,5 +2322,12 @@ None of these hints to the turtlebot were sufficient to reduce the configuration
 
 The ironic thing about `TBOT03` is that its *slice* topology is now so complete and connected that it doesn't accidentally miss any wormholes or inconsistencies with physical space and so it reliably becomes lost, ending up in loops! `TBOT02` hurtled along so quickly, almost out of control, that its *slice* topology was no more than a bias or tendency, so that it usually did slighty better than random though its very inefficiency. Given that the *alignments* are such that there will always be some ambiguity in the `TBOT03` *model*, we abandoned the room navigation goal and aimed instead to explore the *slice* topology and whether it could help the turtlebot learn more quickly. 
 
+
 It turned out, after (a) restricting the min diagonal, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* by comparing the *slice* size to its parent, and (d) caching the topology on the active, that there was a marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*) that in general demonstrated an advantage of interest goal over random goal in the rate of *fud* increase in the *level* 2 active, although this difference disappears over time. The random happens to be a fairly effective form of exploration, and the interest mode decision action success rate is so low (only ~10%), that the advantage is fleeting and often not visible at all. However, if we restricted the active *history size*, we found that interest mode had a substantial advantage over random, although, of course, it could not compensate for the missing *events* with such a low margin. This signal is very strong and so is definite proof that play works as a strategy. In practice it might be the case that we are not particularly restricted memory-wise (at around 300 bytes or 30 bytes compressed per *event*, it takes a long time to run out at 4 FPS and 30m seconds/annum), but the *volume* of the action *substrate* would be much bigger than it is for turtlebots and so random can only probe a little way into the future - so little, in fact, that it might be difficult to even attain an action success margin of 10%. We might need to evolve quite a tight parameterisation of the motor *variables* to obtain a critical success rate.
+
+Future directions - TBOT04 WOTBOT we really want a test case that has high margin success and goals that are less easy to hit by chance. Interaction with another agent might be a better choice than with a fixed environment. The goal of conversing cannot be hit by chance. ELIZA? or text interface. Want an inaccessible but fruitful set of alignments, eg walking, talking, playing. 
+
+Principle of evolution by likelihood selection, or principle of most interest, or principle of sufficient interest. The big idea is that we act to maximise the model by moving to the largest slices. This cognitive goal acceleration of modelling mirrors the sexual swapping of genes which accelerates natural selection. That is, we can speed up the modelling rate in the case of CAIKS, and the rate of complex niche finding in the case of evolution. In CAIKS the technique resembles the golf ball method of iterative corrections.
+
+
 
