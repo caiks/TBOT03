@@ -2065,31 +2065,11 @@ Interest modes 14-16 behave in the same way as random effective mode 13, except 
 
 The differences between modes 14, 15 and 16 are differences in implementation. They all have similar functionality and the changes in implementation were made in response to the results of experimentation. In mode 14 the *slice* topology is notional and is searched by following the sequences of *events* that start at the *events* in the current *slice*. That is, the *slice* transitions are recomputed as needed. This is laborious and repetitive, and the performance decreases exponentially with transition count. In mode 15, the *slice* transitions are cached on the actor and so do not need to be recomputed for the current *slice*. This is considerably faster than mode 14, but it requires recomputing the entire *slice* transition cache whenever the *model* changes. In mode 16, the actor makes use of  *slice* transition structures that are maintained by the active during update and induce. In addition to simplifying the actor implementation and improving the performance of the cache, the active *slice* topology can optionally be cumulative so that when the active *history* overflows the transitions of the rolled off *events* are retained. (Of course if there are no longer any *events* corresponding to the transition, the actor will not know which action to take to go to a shortest route neighbour, but at least the actor knows that there exists a route to the interest goal and so can modify its behaviour accordingly, e.g. by a systematic search for a path.)
 
-
 The three interest modes are all able to run as though they are in random effective mode 13 by means of a `random_override` flag set in the configuration. They still calculate the goal *slices* and the statistics, but ignore the decidable action distribution if it exists.
 
+Much of the first work in mode 14 was to debug the frequent crashing. Various changes were made to such parameters as the simulation frames per second, the collision field of view, a rectangular or wedge field of view, the bias mechanism when blocked, and the goal search limits such as the maximum number of open *slices*. Eventually a degree of stability was obtained. 
 
-mode 14 does the slice topology navigation manually
-
-debug frequent crashing in mode 14
-
-if still crashing run more slowly
-
-mode 14 - open_slices_maximum, goal_size_maximum
-
-In mode 14 - Try a blocking definition that scans the entire rectangular area in front of the turtlebot instead of just a wedge. Try with collision_rectangular set to true
-
-mode 14 - let's increase the FOV to 15. collision_field_of_view
-
-mode 14 - Try bias if blocked as in mode 13
-
-Spends two thirds of its time in rooms 1,2,3
-
-
-
-After various experiments in mode 14 ...
-
-We then run in random effective mode to compare -
+In this run, the mode 14 was first set to use random effective mode -
 
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
@@ -2169,104 +2149,49 @@ ros2 run TBOT03 actor actor.json
 	"logging_hit" : true
 }
 ```
+The turtlebot logs various statistics at regular intervals of *events*. We can compare the outputs of the two runs after 52,700 *events*,
 
-Compare 
 ```
 model_2     ev: 52700       fuds: 535       fuds/sz/thrshld: 1.01516        eff: 96.26      dec: 46.19      succ: 6.08      expt: 5.41      null: 50.61marg: 1.37       live: 402       goals: 1415     hits: 1013      len: 262.52     sz: 56.16       par: 648.90     pos: 0.617875   neg: -0.326120
 
 model_2     ev: 52700       fuds: 544       fuds/sz/thrshld: 1.03224        eff: 96.00      dec: 61.84      succ: 12.36     expt: 6.29      null: 43.31marg: 10.71      live: 388       goals: 2020     hits: 1632      len: 165.82     sz: 55.95       par: 534.67     pos: 0.593775   neg: -0.307027
 ```
-We can see that fuds/sz/thrshld is higher 1.03224 versus 1.01516, and hit length is much shorter 165.82 versus 262.52. The fraction of hits is higher at 80% versus 71%. Margin is high at 10.71%. Decideable is 61.84 versus  46.19. Likelihoods are much the same, but the parent size is smaller at 534.67 versus 648.90. So, overall it appears that max size is having an effect when run from the beginning.
 
-Now compare initialised from model 92 -
+In tabular form this looks like -
 
-```
-export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
-cd ~/turtlebot3_ws/src/TBOT03_ws
-gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env017.model -s libgazebo_ros_init.so
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model_2|52700|535|1.01516|96.26|46.19|6.08|5.41|50.61|1.37|402|1415|1013|262.52|56.16|648.90|0.617875|-0.326120
+interest|model_2|52700|544|1.03224|96.00|61.84|12.36|6.29|43.31|10.71|388|2020|1632|165.82|55.95|534.67|0.593775|-0.307027
 
-```
-```
-cd ~/turtlebot3_ws/src/TBOT03_ws
-ros2 run TBOT03 actor actor.json
+The less self explanatory columns are as follows:
 
-{
-	"update_interval" : 1,
-	"linear_maximum" : 0.45,
-	"angular_maximum_lag" : 6.0,
-	"act_interval" : 1,
-	"structure_initial" : "struct001",
-	"model_initial" : "model092",
-	"structure" : "struct001",
-	"level1Count" : 36,
-	"mode" : "mode014",
-	"distribution_AHEAD" : 10.0,
-	"collision_range" : 0.85,
-	"collision_field_of_view" : 20,
-	"collision_rectangular" : false,
-	"turn_bias_factor" : 10,
-	"open_slices_maximum" : 100,
-	"goal_size_maximum" : 99,
-	"random_max_slice" : true,
-	"bias_if_blocked" : true,
-	"random_override" : true,
-	"logging_update" : false,
-	"logging_action" : false,
-	"logging_action_factor" : 100,
-	"logging_level1" : false,
-	"logging_level2" : false,
-	"summary_level1" : false,
-	"summary_level2" : false,
-	"logging_mode" : true,
-	"logging_mode_factor" : 100,
-	"tracing_mode" : false,
-	"logging_hit" : true
-}
-```
+The effective is the percentage of *slices* that have at least one *event* for each possible action (turn left, turn right or move ahead). The decidable is the percentage of *slices* for which the turtlebot could act differently from the default action distribution to better obtain its goals. 
 
-Now in mode 14 proper -
-```
-{
-	"update_interval" : 1,
-	"linear_maximum" : 0.45,
-	"angular_maximum_lag" : 6.0,
-	"act_interval" : 1,
-	"structure_initial" : "struct001",
-	"model_initial" : "model092",
-	"structure" : "struct001",
-	"level1Count" : 36,
-	"mode" : "mode014",
-	"distribution_AHEAD" : 10.0,
-	"collision_range" : 0.85,
-	"collision_field_of_view" : 20,
-	"collision_rectangular" : false,
-	"turn_bias_factor" : 10,
-	"open_slices_maximum" : 100,
-	"goal_size_maximum" : 99,
-	"random_max_slice" : true,
-	"bias_if_blocked" : true,
-	"random_override" : false,
-	"logging_update" : false,
-	"logging_action" : false,
-	"logging_action_factor" : 100,
-	"logging_level1" : false,
-	"logging_level2" : false,
-	"summary_level1" : false,
-	"summary_level2" : false,
-	"logging_mode" : true,
-	"logging_mode_factor" : 100,
-	"tracing_mode" : false,
-	"logging_hit" : true
-}
-```
-Compare - 
-```
-model_2     ev: 398500      fuds: 4276      fuds/sz/thrshld: 1.07302        eff: 93.39      dec: 49.22      succ: 2.12      expt: 2.16      null: 52.61marg: -0.08      live: 118       goals: 259      hits: 141       len: 2150.52    sz: 57.61       par: 368.25     pos: 0.634770   neg: -0.258065
+The null is the proportion as a percentage of *slice* transitions which are to a previously unknown neighbour. The successful is the proportion of *slice* transitions which are to decidable shortest route neighbours. The expected is the average of the proportion of neighbours which are shortest route neighbours, for non-null *slice* transitions. That is, the expected is the success rate for a transition to a random neighbour. The margin is the successful less the expected given non-null. So the margin is the measure of how well the turtlebot's actions obtain the goal.
 
-model_2     ev: 398500      fuds: 4274      fuds/sz/thrshld: 1.07252        eff: 92.63      dec: 56.62      succ: 5.02      expt: 1.95      null: 57.50marg: 7.22       live: 119       goals: 289      hits: 170       len: 2101.32    sz: 55.95       par: 379.68     pos: 0.621137   neg: -0.250982
-```
-Very little difference except for the margin - no benefit at this stage. Both have very long hit lengths, so there is essentially no effect.
+The goals is the number of goal *slices* ever set. The live is the current number of goal *slices* that have not been hit. The hits is the current number of goal *slices* that have been hit. Hit length is the count of *events* between a goal *slice* being set and then hit. 
 
+The *slice size* column is the average *size* of the current *slice*. Parent *size* is the same for the parent of the current *slice*. 
+
+Columns '+ve likelihood' and '-ve likelihood' depend on this *likelihood* measure `(ln(slice_size) - ln(parentSize) + ln(WMAX))/ln(WMAX)`, where `WMAX` is the maximum *derived volume*. By this measure *on-diagonal* or frequent child *slices*, i.e. those which are a large proportion of their parent, tend to one. Far *off-diagonal* or rare child *slices*, i.e. with very few *events*, are less than zero. Uninteresting child *slices* have a *likelihood* measure of around zero, i.e. where the ratio of parent *size* to child *size* is approximately `WMAX`. So interesting child *slices* on this measure are either extremely positive or extremely negative. The positive column shows the average positive and the negative column shows the average negative. For most of the runs below we will be looking at the positive extreme as our measure for interesting goal, i.e. maximising the goal *slice size*.
+
+Clearly in this run of mode 14 the turtlebot is behaving differently between random effective mode and interest mode. We can see that the interest mode is more decideable at 61.84% versus 46.19%, while being similarly effective. That means the turtlebot is more often in *slices* where there is a preferred direction to the nearest goal. Once the turtlebot begins to follow a path to a goal, it tends to stay on or near the path. Each *slice* on the path is also more likely to be decidable, so overall interest mode tends to have higher decidability than random effective mode.
+
+Also, we can see that the interest mode marginal success rate is higher at 10.71% against 1.37%. That is, the turtlebot succeeds in reaching its desired shortest route neighbours at least 9% more often than chance. 
+
+We can see that the *model* is a little larger in interest mode with the *fuds* per *size* per threshold at 1.03224 versus 1.01516. The hit length is much shorter 165.82 versus 262.52. The fraction of hits is higher at 80% versus 71%. Although a margin of around 10% is not a very high action success rate, the continuous pressure does appear to have an effect. At this stage, however, there is not enough evidence to conclude that interest mode is definitely increasing *model* growth.
+ 
+If we run for longer we often find that the effect has disappeared, for example -
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model_2|398500|4276|1.07302|93.39|49.22|2.12|2.16|52.61|-0.08|118|259|141|2150.52|57.61|368.25|0.634770|-0.258065
+interest|model_2|398500|4274|1.07252|92.63|56.62|5.02|1.95|57.50|7.22|119|289|170|2101.32|55.95|379.68|0.621137|-0.250982
+
+
+
+Spends two thirds of its time in rooms 1,2,3
 
 
 
