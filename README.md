@@ -2067,6 +2067,8 @@ The differences between modes 14, 15 and 16 are differences in implementation. T
 
 The three interest modes are all able to run as though they are in random effective mode 13 by means of a `random_override` flag set in the configuration. They still calculate the goal *slices* and the statistics, but ignore the decidable action distribution if it exists.
 
+To begin with, in mode 14, the measure of interest, which determines the goal *slice*, is merely the *size* of the *slice*. The idea is that the larger *slices* are more probably *on-diagonal* and hence have the greatest potential for future *alignments*. In this way we hope to increase the rate of *model* growth. Later on in mode 15, as we shall see, a better measure of interest is used.
+
 Much of the first work in mode 14 was to debug the frequent crashing. Various changes were made to such parameters as the simulation frames per second, the collision field of view, a rectangular or wedge field of view, the bias mechanism when blocked, and the goal search limits such as the maximum number of open *slices*. Eventually a degree of stability was obtained. 
 
 In this run, the mode 14 was first set to use random effective mode -
@@ -2189,35 +2191,35 @@ type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|n
 random|model_2|398500|4276|1.07302|93.39|49.22|2.12|2.16|52.61|-0.08|118|259|141|2150.52|57.61|368.25|0.634770|-0.258065
 interest|model_2|398500|4274|1.07252|92.63|56.62|5.02|1.95|57.50|7.22|119|289|170|2101.32|55.95|379.68|0.621137|-0.250982
 
+We then added two more of the *likelihood* measure statistics - the average *likelihood*, which is not split into positive or negative, and the hit *likelihood*, which shows the average *likelihood* for the goal *slices* as they are hit.
+
+We found that the interest runs are highly variable, e.g.
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model_2|32600|332|1.01837|96.29|45.24|7.65|6.75|46.83|1.70|254|942|688|159.94|56.09|738.17|||0.618442|-0.345272
+interest|model_2|32600|340|1.04291|96.10|60.33|14.30|7.65|39.55|10.99|243|1354|1111|98.23|56.17|624.86|||0.595199|-0.327428
+interest|model_2|32600|311|0.953958|95.99|63.88|13.08|7.56|41.31|9.40|213|1329|1116|113.58|54.42|655.84|0.351294|0.632307|0.578092|-0.329129
+interest|model_2|32600|339|1.03985|96.20|57.56|12.72|7.91|38.65|7.85|199|1272|1073|117.97|56.26|562.06|0.387543|0.627318|0.581911|-0.326883
+
+For example, the second interest run in the table has a considerably smaller *model* at 311 *fuds* than the random effective run at 332 *fuds*. This seems odd when we examine the other statistics - the larger margin, shorter hit length and higher hits compared to random effective. The hit *likelihood* at 0.632307 is much higher than the average *likelihood* of 0.351294. The third interest run, by contrast, has a *model*  that is nearly as large as the first interest run.
+
+After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. This means that the *models* are often not very complete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this in mode 15.
+
+We also experimented with the two *level* 3 actives in mode 14, but found that the results were even less conclusive than for *level* 2. 
 
 
 
-add hit likelihood and average likelihood to mode 14 before copying to mode 15. Would like to see if the likelihood of the hits is greater than average.
+list the various changes made, but only do a detailed description of mode 16 and its statistics. Margin is most important.
 
-This is worse than random - perhaps it is stuck in rooms 4,5,6. Compare to the last mode 13 (14 with random override) and mode 14 -
+mode 15 caches the slice topology up front, but doesn't update it
 
-```
-model_2     ev: 32600       fuds: 332       fuds/sz/thrshld: 1.01837        eff: 96.29      dec: 45.24      succ: 7.65      expt: 6.75      null: 46.83marg: 1.70       live: 254       goals: 942      hits: 688       len: 159.94     sz: 56.09       par: 738.17     pos: 0.618442   neg: -0.345272
-
-model_2     ev: 32600       fuds: 340       fuds/sz/thrshld: 1.04291        eff: 96.10      dec: 60.33      succ: 14.30     expt: 7.65      null: 39.55marg: 10.99      live: 243       goals: 1354     hits: 1111      len: 98.23      sz: 56.17       par: 624.86     pos: 0.595199   neg: -0.327428
-
-model_2     ev: 32600       fuds: 311       fuds/sz/thrshld: 0.953958       eff: 95.99      dec: 63.88      succ: 13.08     expt: 7.56      null: 41.31marg: 9.40       live: 213       goals: 1329     hits: 1116      len: 113.58     sz: 54.42       par: 655.84     like: 0.351294  hit: 0.632307   pos: 0.578092   neg: -0.329129
-```
-This mode 14 has longer hit len and higher parent size and lower margin, but these stats are otherwise better than for the mode 13. The hit likelihood at  0.632307 is much higher than the average likelihood of 0.351294. This suggests that it is trapped in these three rooms and has a smaller model as a consequence. Perhaps we will need to max negative likelihood to avoid autistic traps, or else have a long range goal. Of course, in practice we might avoid testing with environments with narrow paths to interesting places.
-
-Comparing the four cases at event 32600 -
-```
-model_2     ev: 32600       fuds: 332       fuds/sz/thrshld: 1.01837        eff: 96.29      dec: 45.24      succ: 7.65      expt: 6.75      null: 46.83marg: 1.70       live: 254       goals: 942      hits: 688       len: 159.94     sz: 56.09       par: 738.17     pos: 0.618442   neg: -0.345272
-
-model_2     ev: 32600       fuds: 340       fuds/sz/thrshld: 1.04291        eff: 96.10      dec: 60.33      succ: 14.30     expt: 7.65      null: 39.55marg: 10.99      live: 243       goals: 1354     hits: 1111      len: 98.23      sz: 56.17       par: 624.86     pos: 0.595199   neg: -0.327428
-
-model_2     ev: 32600       fuds: 311       fuds/sz/thrshld: 0.953958       eff: 95.99      dec: 63.88      succ: 13.08     expt: 7.56      null: 41.31marg: 9.40       live: 213       goals: 1329     hits: 1116      len: 113.58     sz: 54.42       par: 655.84     like: 0.351294  hit: 0.632307   pos: 0.578092   neg: -0.329129
-
-model_2     ev: 32600       fuds: 339       fuds/sz/thrshld: 1.03985        eff: 96.20      dec: 57.56      succ: 12.72     expt: 7.91      null: 38.65marg: 7.85       live: 199       goals: 1272     hits: 1073      len: 117.97     sz: 56.26       par: 562.06     like: 0.387543  hit: 0.627318   pos: 0.581911   neg: -0.326883
-```
+mode 15 does max likelihood as well as max size
 
 
-Spends two thirds of its time in rooms 1,2,3
+mode 15 and 16 has _sizeOverride so mode 14 only looks at the size of the slice
+
+mode 16 uses the cached active slice topology
 
 
 mode 14 behaviour is very different. Does one step ahead and then oscillates for a few actions, presumably because the goals point to the previous pose
@@ -2225,12 +2227,6 @@ mode 14 behaviour is very different. Does one step ahead and then oscillates for
 we only have a few actions so random effective does explore pretty well and we cannot expect much advantage from likelihood selection
 
 
-list the various changes made, but only do a detailed description of mode 16 and its statistics. Margin is most important.
-mode 15 caches the slice topology up front, but doesn't update it
-
-mode 15 and 16 has _sizeOverride so mode 14 only looks at the size of the slice
-
-mode 16 uses the cached active slice topology
 
 
 check to see if remaining actions are effective
@@ -2243,11 +2239,15 @@ else choose randomly or by turn bias if blocked
 
 if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
 
-TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. Also because of the threshold, there are sometimes mor than one goal slice to choose from. If these are chosen at random, then the turtlebot can start off in one direction and then change its mind to go in another direction. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised or aligned. Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back
+TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. Also because of the threshold, there are sometimes mor than one goal slice to choose from. If these are chosen at random, then the turtlebot can start off in one direction and then change its mind to go in another direction. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised or aligned. Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back. lopsided models with low alignment might have high slice/parent fraction in the large slice. Really should record the parent alignment or implied diagonal in the decomp and use that for any of its child slices - although I suppose that we are really only interested in the largest slices. Probably lopsided models are wasteful but the slice/parent fraction will still tend to accelerate model induction
+
 
 rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
 
 discuss the 6% shuffle alignment threshold 
+
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+
 
 restricted history size
 
@@ -2259,6 +2259,12 @@ describe each of the statistics in the log. TBOT03 measure successful transition
 Improved margin rate over TBOT02 - varies from room to room, depending on wormholes.
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
+
+
+dynamic frames
+
+
+
 
 
 <a name = "Conclusion"></a>
@@ -2280,9 +2286,16 @@ The ironic thing about `TBOT03` is that its *slice* topology is now so complete 
 
 It turned out, after (a) restricting the min diagonal, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* by comparing the *slice* size to its parent, and (d) caching the topology on the active, that there was a marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*) that in general demonstrated an advantage of interest goal over random goal in the rate of *fud* increase in the *level* 2 active, although this difference disappears over time. The random happens to be a fairly effective form of exploration, and the interest mode decision action success rate is so low (only ~10%), that the advantage is fleeting and often not visible at all. However, if we restricted the active *history size*, we found that interest mode had a substantial advantage over random, although, of course, it could not compensate for the missing *events* with such a low margin. This signal is very strong and so is definite proof that play works as a strategy. In practice it might be the case that we are not particularly restricted memory-wise (at around 300 bytes or 30 bytes compressed per *event*, it takes a long time to run out at 4 FPS and 30m seconds/annum), but the *volume* of the action *substrate* would be much bigger than it is for turtlebots and so random can only probe a little way into the future - so little, in fact, that it might be difficult to even attain an action success margin of 10%. We might need to evolve quite a tight parameterisation of the motor *variables* to obtain a critical success rate.
 
-Future directions - TBOT04 WOTBOT we really want a test case that has high margin success and goals that are less easy to hit by chance. Interaction with another agent might be a better choice than with a fixed environment. The goal of conversing cannot be hit by chance. ELIZA? or text interface. Want an inaccessible but fruitful set of alignments, eg walking, talking, playing. 
+Future directions - 
+
+
+the problem with TBOT03 is that random/effective is pretty good and slice map to physical configuration is pretty bad. In future try to ensure that the reverse is true, then the likelihood goal, whether gradient or topmost, should produce behaviour that we can intuit as intelligent, or at least cannot produce in any other way.
+
+
+TBOT04 WOTBOT we really want a test case that has high margin success and goals that are less easy to hit by chance. Interaction with another agent might be a better choice than with a fixed environment. The goal of conversing cannot be hit by chance. ELIZA? or text interface. Want an inaccessible but fruitful set of alignments, eg walking, talking, playing. 
 
 Principle of evolution by likelihood selection, or principle of most interest, or principle of sufficient interest. The big idea is that we act to maximise the model by moving to the largest slices. This cognitive goal acceleration of modelling mirrors the sexual swapping of genes which accelerates natural selection. That is, we can speed up the modelling rate in the case of CAIKS, and the rate of complex niche finding in the case of evolution. In CAIKS the technique resembles the golf ball method of iterative corrections.
+
 
 
 
