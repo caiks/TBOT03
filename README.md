@@ -2191,8 +2191,38 @@ interest|model_2|398500|4274|1.07252|92.63|56.62|5.02|1.95|57.50|7.22|119|289|17
 
 
 
+
+add hit likelihood and average likelihood to mode 14 before copying to mode 15. Would like to see if the likelihood of the hits is greater than average.
+
+This is worse than random - perhaps it is stuck in rooms 4,5,6. Compare to the last mode 13 (14 with random override) and mode 14 -
+
+```
+model_2     ev: 32600       fuds: 332       fuds/sz/thrshld: 1.01837        eff: 96.29      dec: 45.24      succ: 7.65      expt: 6.75      null: 46.83marg: 1.70       live: 254       goals: 942      hits: 688       len: 159.94     sz: 56.09       par: 738.17     pos: 0.618442   neg: -0.345272
+
+model_2     ev: 32600       fuds: 340       fuds/sz/thrshld: 1.04291        eff: 96.10      dec: 60.33      succ: 14.30     expt: 7.65      null: 39.55marg: 10.99      live: 243       goals: 1354     hits: 1111      len: 98.23      sz: 56.17       par: 624.86     pos: 0.595199   neg: -0.327428
+
+model_2     ev: 32600       fuds: 311       fuds/sz/thrshld: 0.953958       eff: 95.99      dec: 63.88      succ: 13.08     expt: 7.56      null: 41.31marg: 9.40       live: 213       goals: 1329     hits: 1116      len: 113.58     sz: 54.42       par: 655.84     like: 0.351294  hit: 0.632307   pos: 0.578092   neg: -0.329129
+```
+This mode 14 has longer hit len and higher parent size and lower margin, but these stats are otherwise better than for the mode 13. The hit likelihood at  0.632307 is much higher than the average likelihood of 0.351294. This suggests that it is trapped in these three rooms and has a smaller model as a consequence. Perhaps we will need to max negative likelihood to avoid autistic traps, or else have a long range goal. Of course, in practice we might avoid testing with environments with narrow paths to interesting places.
+
+Comparing the four cases at event 32600 -
+```
+model_2     ev: 32600       fuds: 332       fuds/sz/thrshld: 1.01837        eff: 96.29      dec: 45.24      succ: 7.65      expt: 6.75      null: 46.83marg: 1.70       live: 254       goals: 942      hits: 688       len: 159.94     sz: 56.09       par: 738.17     pos: 0.618442   neg: -0.345272
+
+model_2     ev: 32600       fuds: 340       fuds/sz/thrshld: 1.04291        eff: 96.10      dec: 60.33      succ: 14.30     expt: 7.65      null: 39.55marg: 10.99      live: 243       goals: 1354     hits: 1111      len: 98.23      sz: 56.17       par: 624.86     pos: 0.595199   neg: -0.327428
+
+model_2     ev: 32600       fuds: 311       fuds/sz/thrshld: 0.953958       eff: 95.99      dec: 63.88      succ: 13.08     expt: 7.56      null: 41.31marg: 9.40       live: 213       goals: 1329     hits: 1116      len: 113.58     sz: 54.42       par: 655.84     like: 0.351294  hit: 0.632307   pos: 0.578092   neg: -0.329129
+
+model_2     ev: 32600       fuds: 339       fuds/sz/thrshld: 1.03985        eff: 96.20      dec: 57.56      succ: 12.72     expt: 7.91      null: 38.65marg: 7.85       live: 199       goals: 1272     hits: 1073      len: 117.97     sz: 56.26       par: 562.06     like: 0.387543  hit: 0.627318   pos: 0.581911   neg: -0.326883
+```
+
+
 Spends two thirds of its time in rooms 1,2,3
 
+
+mode 14 behaviour is very different. Does one step ahead and then oscillates for a few actions, presumably because the goals point to the previous pose
+
+we only have a few actions so random effective does explore pretty well and we cannot expect much advantage from likelihood selection
 
 
 list the various changes made, but only do a detailed description of mode 16 and its statistics. Margin is most important.
