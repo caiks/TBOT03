@@ -2154,9 +2154,9 @@ ros2 run TBOT03 actor actor.json
 The turtlebot logs various statistics at regular intervals of *events*. We can compare the outputs of the two runs after 52,700 *events*,
 
 ```
-model_2     ev: 52700       fuds: 535       fuds/sz/thrshld: 1.01516        eff: 96.26      dec: 46.19      succ: 6.08      expt: 5.41      null: 50.61marg: 1.37       live: 402       goals: 1415     hits: 1013      len: 262.52     sz: 56.16       par: 648.90     pos: 0.617875   neg: -0.326120
+model_2     ev: 52700       fuds: 535       fuds/sz/thrshld: 1.01516        eff: 96.26      dec: 46.19      succ: 6.08      expt: 5.41      null: 50.61	marg: 1.37       live: 402       goals: 1415     hits: 1013      len: 262.52     sz: 56.16       par: 648.90     pos: 0.617875   neg: -0.326120
 
-model_2     ev: 52700       fuds: 544       fuds/sz/thrshld: 1.03224        eff: 96.00      dec: 61.84      succ: 12.36     expt: 6.29      null: 43.31marg: 10.71      live: 388       goals: 2020     hits: 1632      len: 165.82     sz: 55.95       par: 534.67     pos: 0.593775   neg: -0.307027
+model_2     ev: 52700       fuds: 544       fuds/sz/thrshld: 1.03224        eff: 96.00      dec: 61.84      succ: 12.36     expt: 6.29      null: 43.31	marg: 10.71      live: 388       goals: 2020     hits: 1632      len: 165.82     sz: 55.95       par: 534.67     pos: 0.593775   neg: -0.307027
 ```
 
 In tabular form this looks like -
@@ -2176,13 +2176,13 @@ The 'goals' is the number of goal *slices* ever set. The 'live' is the current n
 
 The '*slice size*' column is the average *size* of the current *slice*. 'Parent *size*' is the same for the parent of the current *slice*. 
 
-Columns '+ve likelihood' and '-ve likelihood' depend on the following *likelihood* measure: `(ln(slice_size) - ln(parent_size) + ln(WMAX)) / ln(WMAX)`, where `WMAX` is the maximum *derived volume*. By this measure *on-diagonal* or frequent child *slices*, i.e. those which are a large proportion of their parent, tend to one. Far *off-diagonal* or rare child *slices*, i.e. with very few *events*, are less than zero. Uninteresting child *slices* have a *likelihood* measure of around zero, i.e. where the ratio of parent *size* to child *size* is approximately `WMAX`, which is the case when *independent* or weakly *aligned*. So interesting child *slices* on this measure are either extremely positive or extremely negative. The positive column shows the average positive, and the negative column shows the average negative. For most of the runs below we will be looking at the positive extreme as our measure for interesting goal, i.e. maximising the goal *slice size* or its fraction of the parent. The idea of using this measure of *likelihood* is that highly *aligned* descendent *histograms* tend to have highly *aligned* ancestor *histograms*, and so are potential sources of new *likelihood*. Note that an alternative measure might be to recalculate the *derived alignment* of the parent *slice*, but that would treat all children *slices* as equally interesting. The alternative method, however, would avoid the phenomenon of unusual child *slices* initially becoming uninteresting as attention is turned towards them and their *count* increases.
+Columns '+ve likelihood' and '-ve likelihood' depend on the following *likelihood* measure: `(ln(slice_size) - ln(parent_size) + ln(WMAX)) / ln(WMAX)`, where `WMAX` is the maximum *derived volume*. By this measure *on-diagonal* or frequent child *slices*, i.e. those which are a large proportion of their parent's *size*, tend to one. Far *off-diagonal* or rare child *slices*, i.e. with very few *events*, are less than zero. Uninteresting child *slices* have a *likelihood* measure of around zero, i.e. where the ratio of parent *size* to child *size* is approximately `WMAX`, which is the case the when the *histogram* is *independent* or weakly *aligned*. So interesting child *slices* on this measure are either extremely positive or extremely negative. The positive column shows the average positive, and the negative column shows the average negative. For most of the runs below we will be looking at the positive extreme as our measure for interesting goal, e.g. by maximising the goal *slice size* or the fraction of its parent's *size*. The idea of using this measure of *likelihood* is that highly *aligned* descendent *histograms* tend to have highly *aligned* ancestor *histograms*, and so are potential sources of new *likelihood* in further descendents. Note that an alternative measure might be to use the recalculated *derived alignment* of the parent *slice*, but that would treat all its children *slices* as equally interesting. The alternative method, however, would avoid the phenomenon of unusual child *slices* initially becoming uninteresting as attention is turned towards them and their *count* increases.
 
-Clearly in this run of mode 14 the turtlebot is behaving differently between random effective mode and interest mode. We can see that the interest mode is more decideable at 61.84% versus 46.19%, while being similarly effective. That means the turtlebot is more often in *slices* where there is a preferred direction to the nearest goal. Once the turtlebot begins to follow a path to a goal, it tends to stay on or near the path. Each *slice* on the path is also more likely to be decidable, so overall interest mode tends to have higher decidability than random effective mode.
+Clearly in this run of mode 14 the turtlebot is behaving differently between random effective mode and interest mode. We can see that the interest mode is more decidable at 61.84% versus 46.19%, while being similarly effective. That means the turtlebot is more often in *slices* where there is a preferred direction to the nearest goal. Once the turtlebot begins to follow a path to a goal, it tends to stay on or near the path. Each *slice* on the path is also more likely to be decidable, so overall interest mode tends to have higher decidability than random effective mode.
 
 Also, we can see that the interest mode marginal success rate is higher at 10.71% against 1.37%. That is, the turtlebot succeeds in reaching its desired shortest route neighbours at least 9% more often than chance. 
 
-We can see that the *model* is a little larger in interest mode with the *fuds* per *size* per threshold at 1.03224 versus 1.01516. The hit length is much shorter 165.82 versus 262.52. The fraction of hits is higher at 80% versus 71%. Although a margin of around 10% is not a very high action success rate, the continuous pressure does appear to have an effect. At this stage, however, there is not enough evidence to conclude that interest mode is definitely increasing *model* growth.
+We can see that the *model* is a little larger in interest mode with the *fuds* per *size* per threshold at 1.03224 versus 1.01516. The hit length is much shorter 165.82 versus 262.52. The fraction of hits per goal is higher at 80% versus 71%. Although a margin of around 10% is not a very high action success rate, the continuous pressure does appear to have an effect. At this stage, however, there is not enough evidence to conclude that interest mode is definitely increasing *model* growth.
  
 If we run for longer we often find that the effect has disappeared, for example -
 
@@ -2191,9 +2191,11 @@ type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|n
 random|model_2|398500|4276|1.07302|93.39|49.22|2.12|2.16|52.61|-0.08|118|259|141|2150.52|57.61|368.25|0.634770|-0.258065
 interest|model_2|398500|4274|1.07252|92.63|56.62|5.02|1.95|57.50|7.22|119|289|170|2101.32|55.95|379.68|0.621137|-0.250982
 
-We then added two more of the *likelihood* measure statistics - the average *likelihood*, which is not split into positive or negative, and the hit *likelihood*, which shows the average *likelihood* for the goal *slices* as they are hit.
+Now at 398,500 *events* the *model* size, at 4,274 versus 4,276, is very similar, and the hit length is similar, although the hits is a little higher. The margin difference of 7.3% is not much less than at 52,700 *events*, so we can guess that the random mode has caught up with the interest mode, rather than interest mode falling behind.
 
-We found that the interest runs are highly variable, e.g.
+We then added two more *likelihood* measure statistics - the 'average *likelihood*', which is not split into positive or negative, and the 'hit *likelihood*', which shows the average *likelihood* for the goal *slices* as they are hit.
+
+As we continued testing we found that the interest runs are highly variable, e.g. if we compare at 32,600 *events* in these runs,
 
 type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
@@ -2202,24 +2204,29 @@ interest|model_2|32600|340|1.04291|96.10|60.33|14.30|7.65|39.55|10.99|243|1354|1
 interest|model_2|32600|311|0.953958|95.99|63.88|13.08|7.56|41.31|9.40|213|1329|1116|113.58|54.42|655.84|0.351294|0.632307|0.578092|-0.329129
 interest|model_2|32600|339|1.03985|96.20|57.56|12.72|7.91|38.65|7.85|199|1272|1073|117.97|56.26|562.06|0.387543|0.627318|0.581911|-0.326883
 
-For example, the second interest run in the table has a considerably smaller *model* at 311 *fuds* than the random effective run at 332 *fuds*. This seems odd when we examine the other statistics - the larger margin, shorter hit length and higher hits compared to random effective. The hit *likelihood* at 0.632307 is much higher than the average *likelihood* of 0.351294. The third interest run, by contrast, has a *model*  that is nearly as large as the first interest run.
+For example, the second interest run in the table has a considerably smaller *model* at 311 *fuds* than the random effective run at 332 *fuds* and the first interest run at 340 *fuds*. This seems odd when we examine the other statistics - the larger margin, shorter hit length and higher hits compared to random effective. The hit *likelihood* at 0.632307 is much higher than the average *likelihood* of 0.351294. The third interest run, by contrast, has a *model* at 339 *fuds* that is nearly as large as the first interest run.
 
-After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. This means that the *models* are often not very complete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this in mode 15.
+After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. We can conjecture that requiring no more than one *event* in each action, i.e. effective *slice*, is sometimes insufficient for the turtlebot to discover anything interesting along the corridor. This means that the *models* has not explored enough and so are rather incomplete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this in mode 15. Ultimately, of course, a greater weight will have to be placed on random exploration, but for the moment this restriction will do.
 
 We also experimented with the two *level* 3 actives in mode 14, but found that the results were even less conclusive than for *level* 2. 
 
+At this point we moved on to mode 15 where the *slice* topology is cached on the actor, improving performance and well as enabling greater functionality. Now we could more easily keep track of the parent *slice size* and so we could move from a goal of maximum *slice size* to one of maximum *slice size* per parent *slice size*. With maximum *slice size* we saw large gryrations in the *modelling* rate, although possibly this was also because of the corridor problem mentioned above. Initially we picked off the highest *alignments* but later we ended up accidentally boosting *slices* with low *alignments*, because these older *sizes* tended to be larger than newer *slices*, simply because of accumulation of *events*. Also, because of the induce threshold, there is sometimes more than one goal *slice* to choose from. If these are chosen at random, then the turtlebot can start off in one direction and then change its mind to go in another direction and so waste time in lower *alignments*. If we move to maximum *slice size* per parent *slice size* instread, we are maximising the *likelihood* measure described above, i.e. we tend to find the most *diagonalised* or *aligned*, and so we will improve our chances of finding potential new *alignments*. 
 
+
+rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
+
+discuss the 6% shuffle alignment threshold 
+
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+
+
+<!--
 
 list the various changes made, but only do a detailed description of mode 16 and its statistics. Margin is most important.
 
-mode 15 caches the slice topology up front, but doesn't update it
-
-mode 15 does max likelihood as well as max size
+mode 16 uses the cached active slice topology mode 15 caches the slice topology up front, but doesn't update it
 
 
-mode 15 and 16 has _sizeOverride so mode 14 only looks at the size of the slice
-
-mode 16 uses the cached active slice topology
 
 
 mode 14 behaviour is very different. Does one step ahead and then oscillates for a few actions, presumably because the goals point to the previous pose
@@ -2239,17 +2246,10 @@ else choose randomly or by turn bias if blocked
 
 if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
 
-TBOT03 with max slice we are seeing big gryrations in the modelling rate. Initially we pick off the highest alignments but then end up accidentally boosting slices with low alignments, because their sizes are higher than the recently modelled. Also because of the threshold, there are sometimes mor than one goal slice to choose from. If these are chosen at random, then the turtlebot can start off in one direction and then change its mind to go in another direction. TBOT03 instead of max size, choose max size/parent-size, ie most diagonalised or aligned. Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back. lopsided models with low alignment might have high slice/parent fraction in the large slice. Really should record the parent alignment or implied diagonal in the decomp and use that for any of its child slices - although I suppose that we are really only interested in the largest slices. Probably lopsided models are wasteful but the slice/parent fraction will still tend to accelerate model induction
-
-
-rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
-
-discuss the 6% shuffle alignment threshold 
-
-	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
-
 
 restricted history size
+
+Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back. lopsided models with low alignment might have high slice/parent fraction in the large slice. Really should record the parent alignment or implied diagonal in the decomp and use that for any of its child slices - although I suppose that we are really only interested in the largest slices. Probably lopsided models are wasteful but the slice/parent fraction will still tend to accelerate model induction
 
 unusual slices - likely but rare. Consider other modes such as repelled by unaligned
 
@@ -2263,7 +2263,9 @@ TBOT03 short term is underlying frames, medium term is active history, long term
 
 dynamic frames
 
+The fact that this advantage of interest mode over random is not very large partly explains why it has been so difficult to prove conclusively that the interest goal can increase the rate of *model* growth. 
 
+-->
 
 
 
@@ -2286,6 +2288,8 @@ The ironic thing about `TBOT03` is that its *slice* topology is now so complete 
 
 It turned out, after (a) restricting the min diagonal, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* by comparing the *slice* size to its parent, and (d) caching the topology on the active, that there was a marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*) that in general demonstrated an advantage of interest goal over random goal in the rate of *fud* increase in the *level* 2 active, although this difference disappears over time. The random happens to be a fairly effective form of exploration, and the interest mode decision action success rate is so low (only ~10%), that the advantage is fleeting and often not visible at all. However, if we restricted the active *history size*, we found that interest mode had a substantial advantage over random, although, of course, it could not compensate for the missing *events* with such a low margin. This signal is very strong and so is definite proof that play works as a strategy. In practice it might be the case that we are not particularly restricted memory-wise (at around 300 bytes or 30 bytes compressed per *event*, it takes a long time to run out at 4 FPS and 30m seconds/annum), but the *volume* of the action *substrate* would be much bigger than it is for turtlebots and so random can only probe a little way into the future - so little, in fact, that it might be difficult to even attain an action success margin of 10%. We might need to evolve quite a tight parameterisation of the motor *variables* to obtain a critical success rate.
 
+<!--
+
 Future directions - 
 
 
@@ -2296,6 +2300,6 @@ TBOT04 WOTBOT we really want a test case that has high margin success and goals 
 
 Principle of evolution by likelihood selection, or principle of most interest, or principle of sufficient interest. The big idea is that we act to maximise the model by moving to the largest slices. This cognitive goal acceleration of modelling mirrors the sexual swapping of genes which accelerates natural selection. That is, we can speed up the modelling rate in the case of CAIKS, and the rate of complex niche finding in the case of evolution. In CAIKS the technique resembles the golf ball method of iterative corrections.
 
-
+-->
 
 
