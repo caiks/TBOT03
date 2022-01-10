@@ -2206,18 +2206,23 @@ interest|model_2|32600|339|1.03985|96.20|57.56|12.72|7.91|38.65|7.85|199|1272|10
 
 For example, the second interest run in the table has a considerably smaller *model* at 311 *fuds* than the random effective run at 332 *fuds* and the first interest run at 340 *fuds*. This seems odd when we examine the other statistics - the larger margin, shorter hit length and higher hits compared to random effective. The hit *likelihood* at 0.632307 is much higher than the average *likelihood* of 0.351294. The third interest run, by contrast, has a *model* at 339 *fuds* that is nearly as large as the first interest run.
 
-After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. We can conjecture that requiring no more than one *event* in each action, i.e. effective *slice*, is sometimes insufficient for the turtlebot to discover anything interesting along the corridor. This means that the *models* has not explored enough and so are rather incomplete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this in mode 15. Ultimately, of course, a greater weight will have to be placed on random exploration, but for the moment this restriction will do.
-
 We also experimented with the two *level* 3 actives in mode 14, but found that the results were even less conclusive than for *level* 2. 
 
-At this point we moved on to mode 15 where the *slice* topology is cached on the actor, improving performance and well as enabling greater functionality. Now we could more easily keep track of the parent *slice size* and so we could move from a goal of maximum *slice size* to one of maximum *slice size* per parent *slice size*. With maximum *slice size* we saw large gryrations in the *modelling* rate, although possibly this was also because of the corridor problem mentioned above. Initially we picked off the highest *alignments* but later we ended up accidentally boosting *slices* with low *alignments*, because these older *sizes* tended to be larger than newer *slices*, simply because of accumulation of *events*. Also, because of the induce threshold, there is sometimes more than one goal *slice* to choose from. If these are chosen at random, then the turtlebot can start off in one direction and then change its mind to go in another direction and so waste time in lower *alignments*. If we move to maximum *slice size* per parent *slice size* instread, we are maximising the *likelihood* measure described above, i.e. we tend to find the most *diagonalised* or *aligned*, and so we will improve our chances of finding potential new *alignments*. 
+After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. We can conjecture that requiring no more than one *event* in each action, i.e. effective *slice*, is sometimes insufficient for the turtlebot to discover anything interesting along the corridor. This means that the *models* has not explored enough and so are rather incomplete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this from mode 15 onwards. Ultimately, of course, a greater weight will have to be placed on random exploration, but for the moment this restriction will do.
 
+At this point we moved on from mode 14 to mode 15. Here the *slice* topology is cached on the actor, improving performance and well as enabling greater functionality. Now we could more easily keep track of the parent *slice size* and so we could move from a goal of maximum *slice size* to one of maximum *slice size* per parent *slice size*. With maximum *slice size* we saw large gryrations in the *modelling* rate, although possibly this was also because of the corridor problem mentioned above. Initially we picked off the highest *alignments* but later we ended up accidentally boosting *slices* with low *alignments* because these older *slices* tended to be larger than newer *slices*, simply because of the accumulation of *events*. Also, because of the induce threshold, there is sometimes more than one goal *slice* to choose from. If one of these goals is chosen arbitrarily at each *event*, then the turtlebot can start off in one direction and then change its mind to go in another direction and so waste time oscillating in lower *alignments*. If we move to maximum *slice size* per parent *slice size* instead, we are maximising the *likelihood* measure described above. That is, we will tend to find the most *diagonalised* or *aligned* goal *slices* more quickly, and so improve our chances of finding potential new *alignments*. 
 
-rooms 4,5 and 6 - rarely transitioned to other set of rooms, because of the interaction between obstruction and interest actions
-
-discuss the 6% shuffle alignment threshold 
-
+During mode 14 and 15 *level* 3 runs we observed that sometimes the *modelling* rate, measured in *fuds* per *size* per induce threshold, would be abnormally large. After some investigation we found that the induce appeared to be recursing down a single *decomposition* path creating a *model* that was very deep but highly lopsided with many near *singletons*. We conjectured that perhaps the induce threshold of only 100 was producing quite a lot of spurious *shuffle alignment* with the result that the later parts of the *model* consisted of essentially random *partitions*. We traced the *alignments* that were obtained during the induce and found that there were quite a lot of very small *alignments*. The distribution was 'U'-shaped with a minimum at around a 6% *diagonal*. We assumed that below that minimum most of the *alignments* were caused by the coarse *shuffle*. So we added a *diagonal* threshold to the active so that it does not add *model* below that threshold, but will wait and retry later. To prevent constant retries at incremental *events* we also added a stepped sequence of thresholds on fail, e.g. this is `actor.json` with the additional configuration,
+```
+{
+...
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"induceParameters.diagonalMin" : 6.0,
 	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+...
+}
+```
 
 
 <!--
@@ -2225,8 +2230,6 @@ discuss the 6% shuffle alignment threshold
 list the various changes made, but only do a detailed description of mode 16 and its statistics. Margin is most important.
 
 mode 16 uses the cached active slice topology mode 15 caches the slice topology up front, but doesn't update it
-
-
 
 
 mode 14 behaviour is very different. Does one step ahead and then oscillates for a few actions, presumably because the goals point to the previous pose
@@ -2260,8 +2263,6 @@ Improved margin rate over TBOT02 - varies from room to room, depending on wormho
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
 
-
-dynamic frames
 
 The fact that this advantage of interest mode over random is not very large partly explains why it has been so difficult to prove conclusively that the interest goal can increase the rate of *model* growth. 
 
@@ -2299,6 +2300,10 @@ the problem with TBOT03 is that random/effective is pretty good and slice map to
 TBOT04 WOTBOT we really want a test case that has high margin success and goals that are less easy to hit by chance. Interaction with another agent might be a better choice than with a fixed environment. The goal of conversing cannot be hit by chance. ELIZA? or text interface. Want an inaccessible but fruitful set of alignments, eg walking, talking, playing. 
 
 Principle of evolution by likelihood selection, or principle of most interest, or principle of sufficient interest. The big idea is that we act to maximise the model by moving to the largest slices. This cognitive goal acceleration of modelling mirrors the sexual swapping of genes which accelerates natural selection. That is, we can speed up the modelling rate in the case of CAIKS, and the rate of complex niche finding in the case of evolution. In CAIKS the technique resembles the golf ball method of iterative corrections.
+
+dynamic frames
+
+
 
 -->
 
