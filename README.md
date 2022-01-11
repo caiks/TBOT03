@@ -2224,6 +2224,61 @@ During mode 14 and 15 *level* 3 runs we observed that sometimes the *modelling* 
 }
 ```
 
+Mode 15 results - minimum diagonal and the corridor problem
+
+Looks like convergence -
+
+Compare 
+```
+random	actor_2     ev: 36000       fuds: 360       fuds/sz/thrshld: 0.999972       eff: 96.26      dec: 46.41      succ: 8.03      expt: 7.79      null: 46.04	marg: 0.45       live: 19        goals: 437      hits: 418       len: 184.60     sz: 56.66       par: 680.04     like: 0.380548  hit: 0.862271   pos: 0.615651   neg: -0.323553
+
+random	actor_2     ev: 36000       fuds: 358       fuds/sz/thrshld: 0.994417       eff: 96.19      dec: 46.69      succ: 8.83      expt: 8.32      null: 45.24	marg: 0.93       live: 11        goals: 442      hits: 431       len: 155.04     sz: 55.48       par: 549.81     like: 0.390565  hit: 0.878057   pos: 0.615325   neg: -0.286318
+
+random	actor_2     ev: 36000       fuds: 358       fuds/sz/thrshld: 0.994417       eff: 96.21      dec: 46.66      succ: 8.37      expt: 7.96      null: 46.28	marg: 0.76       live: 13        goals: 397      hits: 384       len: 195.52     sz: 55.80       par: 528.34     like: 0.390294  hit: 0.873051   pos: 0.608259   neg: -0.312380
+
+
+likely	actor_2     ev: 36000       fuds: 401       fuds/sz/thrshld: 1.11386        eff: 95.89      dec: 70.19      succ: 14.24     expt: 8.21      null: 33.40	marg: 9.06       live: 17        goals: 555      hits: 538       len: 140.16     sz: 56.60       par: 579.13     like: 0.383769  hit: 0.897542   pos: 0.592533   neg: -0.325611
+
+likely	actor_2     ev: 36000       fuds: 372       fuds/sz/thrshld: 1.0333 		eff: 96.11      dec: 60.03      succ: 14.69     expt: 8.67      null: 36.41 marg: 9.46  	 live: 27        goals: 618      hits: 591       len: 112.68     sz: 56.55       par: 579.68     like: 0.386420  hit: 0.892925   pos: 0.596425   neg: -0.325404
+
+likely	actor_2     ev: 36000       fuds: 374       fuds/sz/thrshld: 1.03886        eff: 96.01      dec: 59.88      succ: 13.52     expt: 7.94      null: 37.93	marg: 8.99       live: 20        goals: 677      hits: 657       len: 117.17     sz: 56.10       par: 615.06     like: 0.384956  hit: 0.896843   pos: 0.594560   neg: -0.332610
+```
+
+```
+random	actor_2     ev: 69000       fuds: 695       fuds/sz/thrshld: 1.00723        eff: 96.34      dec: 48.19      succ: 7.99      expt: 7.42      null: 47.96	marg: 1.09       live: 17        goals: 660      hits: 643       len: 308.09     sz: 56.09       par: 481.49     like: 0.410795  hit: 0.889171   pos: 0.617150   neg: -0.275622
+
+random	actor_2     ev: 69000       fuds: 713       fuds/sz/thrshld: 1.03332        eff: 96.29      dec: 47.74      succ: 7.62      expt: 7.24      null: 48.76	marg: 0.73       live: 22        goals: 595      hits: 573       len: 347.46     sz: 56.36       par: 480.07     like: 0.412921  hit: 0.884487   pos: 0.617248   neg: -0.295943
+
+
+likely	actor_2     ev: 69000       fuds: 751       fuds/sz/thrshld: 1.08839		eff: 95.99      dec: 61.69      succ: 13.28     expt: 7.86      null: 39.51	marg: 8.97       live: 37        goals: 830      hits: 793       len: 223.59     sz: 57.13       par: 561.76     like: 0.410579  hit: 0.901542   pos: 0.602529   neg: -0.312157
+
+likely	actor_2     ev: 69000       fuds: 737       fuds/sz/thrshld: 1.0681 		eff: 95.82      dec: 62.57      succ: 12.30     expt: 7.25      null: 40.49 marg: 8.49  	 live: 30        goals: 881      hits: 851       len: 244.61     sz: 56.31       par: 554.80     like: 0.408571  hit: 0.904610   pos: 0.598199   neg: -0.312692
+```
+
+```
+random	actor_2     ev: 100000      fuds: 1063      fuds/sz/thrshld: 1.06299        eff: 96.34      dec: 48.66      succ: 6.87      expt: 6.49      null: 49.74	marg: 0.77       live: 29        goals: 790      hits: 761       len: 522.39     sz: 56.67       par: 465.68     like: 0.422140  hit: 0.894239   pos: 0.621712   neg: -0.286731
+
+
+likely	actor_2     ev: 100000      fuds: 1070      fuds/sz/thrshld: 1.06999        eff: 95.86      dec: 65.68      succ: 11.92     expt: 6.85      null: 41.57	marg: 8.68       live: 36        goals: 1102     hits: 1066      len: 374.30     sz: 56.48       par: 532.94     like: 0.413223  hit: 0.907592   pos: 0.598660   neg: -0.301512
+```
+
+```
+random	actor_2     ev: 155000      fuds: 1663      fuds/sz/thrshld: 1.0729 		eff: 96.37      dec: 49.28      succ: 6.16      expt: 5.76      null: 50.26 marg: 0.80  	live: 36        goals: 1170     hits: 1134      len: 839.99     sz: 56.96       par: 445.41     like: 0.428965  hit: 0.902739   pos: 0.628176   neg: -0.278908
+
+
+likely	actor_2     ev: 155000      fuds: 1679      fuds/sz/thrshld: 1.08322 		eff: 96.07      dec: 64.63      succ: 11.28     expt: 6.49      null: 42.28	marg: 8.30      live: 54        goals: 1459     hits: 1405      len: 738.22     sz: 57.08       par: 467.72     like: 0.427589  hit: 0.906392   pos: 0.602969   neg: -0.280159
+
+likely	actor_2     ev: 155000      fuds: 1651      fuds/sz/thrshld: 1.06515        eff: 95.90      dec: 65.93      succ: 10.71     expt: 6.10      null: 43.61 marg: 8.17       live: 64        goals: 1505    hits: 1441      len: 706.97     sz: 56.93       par: 490.78     like: 0.420760  hit: 0.910780   pos: 0.601186   neg: -0.289404
+
+```
+```
+random	actor_2     ev: 232000      fuds: 2486      fuds/sz/thrshld: 1.07155        eff: 96.45      dec: 49.85      succ: 5.62      expt: 5.36      null: 49.88marg: 0.52       live: 43        goals: 1644     hits: 1601      len: 1276.38    sz: 57.34       par: 445.15     like: 0.434260  hit: 0.907416   pos: 0.632389   neg: -0.275920
+
+
+likely	actor_2     ev: 232000      fuds: 2498      fuds/sz/thrshld: 1.07672        eff: 95.99      dec: 67.49      succ: 9.87      expt: 5.55      null: 44.32marg: 7.77       live: 72        goals: 2025     hits: 1953      len: 1240.00    sz: 57.31       par: 490.07     like: 0.428419  hit: 0.914166   pos: 0.606430   neg: -0.282565
+```
+
+
 
 <!--
 
@@ -2265,6 +2320,13 @@ TBOT03 short term is underlying frames, medium term is active history, long term
 
 
 The fact that this advantage of interest mode over random is not very large partly explains why it has been so difficult to prove conclusively that the interest goal can increase the rate of *model* growth. 
+
+
+it may be the case that we will not be able to demonstrate likelihood goal conclusively because of poor configuration mapping, low action success, medium decidability and propensity to become stuck on one side of the corridor.
+
+random isn't much slower than likely because the motor action volume is small, so it's probable that random will converge
+
+TBOT03 evidence - behaviour looks different from random, margins, nulls, hit length, decidability, parent? auto turning at walls is another reason why the margins are low
 
 -->
 
