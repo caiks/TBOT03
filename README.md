@@ -2269,17 +2269,59 @@ It appears that random effective search is not much less efficient at *model* di
 
 Having observed a small difference in growth rates, it is interesting to note at this point that random and interesting modes look qualitatively different. In random mode, the turtlebot tends to run in a straight line until it is obstructed, with occasional turns to the left or right. This accords with the action distribution where a move ahead is 10 times more probable than either turn. The behaviour in *likely* mode appears quite different. In this mode, the turtlebot does one or two steps ahead and then oscillates, turning left and right repeatedly, for a few actions. This is probably because the uncertainty of the turtlebot's position causes wormholes for interest goals as well as for room goals. In cases where there is little configuration deviation we would expect there to be less vacillation.
 
-As mentioned above, mode 16 places the cached *slice* topology on the active. In addition, the topology information can be cumulative, retaining the transitions after the *history* overflows and *events* roll off.
+As mentioned above, mode 16 places the cached *slice* topology on the active. In addition, the topology information can be cumulative, retaining the transitions after the *history* overflows and *events* roll off. The mode 16 runs confirm the findings in mode 15, as we would expect -
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|actor_2|36,000|360|0.999972|96.26|46.41|8.03|7.79|46.04|0.45|19|437|418|184.60|56.66|680.04|0.380548|0.862271|0.615651|-0.323553
+random|actor_2|36,000|358|0.994417|96.19|46.69|8.83|8.32|45.24|0.93|11|442|431|155.04|55.48|549.81|0.390565|0.878057|0.615325|-0.286318
+random|actor_2|36,000|358|0.994417|96.21|46.66|8.37|7.96|46.28|0.76|13|397|384|195.52|55.80|528.34|0.390294|0.873051|0.608259|-0.312380
+random|model100_2|36,000|371|1.03053|96.23|46.22|11.44|10.77|46.30|1.25|11|450|439|168.88|55.92|588.18|0.382392|0.887521|0.611288|-0.304849
+random|model102_2|36,000|362|1.00553|96.24|46.20|10.50|9.94|47.65|1.07|18|417|399|182.57|55.44|469.41|0.401853|0.888562|0.607212|-0.284820
+likely|actor_2|36,000|401|1.11386|95.89|70.19|14.24|8.21|33.40|9.06|17|555|538|140.16|56.60|579.13|0.383769|0.897542|0.592533|-0.325611
+likely|actor_2|36,000|372|1.0333|96.11|60.03|14.69|8.67|36.41|9.46|27|618|591|112.68|56.55|579.68|0.386420|0.892925|0.596425|-0.325404
+likely|actor_2|36,000|374|1.03886|96.01|59.88|13.52|7.94|37.93|8.99|20|677|657|117.17|56.10|615.06|0.384956|0.896843|0.594560|-0.332610
+likely|model101_2|36,000|372|1.0333|95.99|61.81|16.16|10.42|38.41|9.31|17|681|664|138.50|55.65|552.00|0.378556|0.890606|0.585895|-0.296460
+likely|model103_2|36,000|361|1.00275|96.09|58.05|15.56|10.80|39.31|7.85|23|641|618|143.81|55.41|583.36|0.374962|0.900021|0.591339|-0.331747
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|actor_2|69,000|695|1.00723|96.34|48.19|7.99|7.42|47.96|1.09|17|660|643|308.09|56.09|481.49|0.410795|0.889171|0.617150|-0.275622
+random|actor_2|69,000|713|1.03332|96.29|47.74|7.62|7.24|48.76|0.73|22|595|573|347.46|56.36|480.07|0.412921|0.884487|0.617248|-0.295943
+random|model100_2|69,000|716|1.03767|96.24|48.27|10.50|9.91|49.55|1.17|15|595|580|279.56|56.23|523.63|0.408577|0.898077|0.618627|-0.284617
+random|model102_2|69,000|696|1.00868|96.31|47.87|10.17|9.82|50.33|0.71|19|546|527|301.03|55.81|481.50|0.411925|0.898892|0.611391|-0.274062
+likely|actor_2|69,000|751|1.08839|95.99|61.69|13.28|7.86|39.51|8.97|37|830|793|223.59|57.13|561.76|0.410579|0.901542|0.602529|-0.312157
+likely|actor_2|69,000|737|1.0681|95.82|62.57|12.30|7.25|40.49|8.49|30|881|851|244.61|56.31|554.80|0.408571|0.904610|0.598199|-0.312692
+likely|model101_2|69,000|712|1.03187|95.93|62.15|15.07|10.31|42.35|8.25|23|856|833|223.28|56.24|524.30|0.402010|0.895195|0.591345|-0.290725
+likely|model103_2|69,000|711|1.03042|96.06|61.95|14.98|10.35|42.39|8.02|35|886|851|202.73|55.94|552.03|0.392625|0.906884|0.591122|-0.312349
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|actor_2|100,000|1063|1.06299|96.34|48.66|6.87|6.49|49.74|0.77|29|790|761|522.39|56.67|465.68|0.422140|0.894239|0.621712|-0.286731
+random|model100_2|100,000|1066|1.06599|96.26|48.95|10.14|9.63|50.77|1.04|19|697|678|387.83|56.60|481.98|0.419998|0.902292|0.621421|-0.276846
+random|model102_2|100,000|1014|1.01399|96.37|48.41|9.89|9.73|51.42|0.32|28|649|621|418.98|56.10|448.83|0.418957|0.904255|0.615044|-0.267376
+likely|actor_2|100,000|1070|1.06999|95.86|65.68|11.92|6.85|41.57|8.68|36|1102|1066|374.30|56.48|532.94|0.413223|0.907592|0.598660|-0.301512
+likely|model101_2|100,000|1043|1.04299|95.89|65.92|14.27|9.76|43.70|8.01|28|1010|982|309.18|56.63|504.96|0.414278|0.899931|0.596064|-0.283803
+likely|model103_2|100,000|1059|1.05899|96.06|62.93|14.52|10.20|43.86|7.70|38|1007|969|304.78|56.49|518.10|0.407378|0.909914|0.595356|-0.306074
+
 
 <!--
 
- mode 15 caches the slice topology up front, but doesn't update it
+Usually the likely performs better for fuds/sz/thrshld than the random, but not always. Presumably it depends on chance to some extent in a well explored space. The decidability, hits, hit len, margin likely is consistently better, however. So there is good evidence that it works well README.
+
+Note that the prev transitions count is lower for likely, as expected, because the choice of transition is deliberate. So, counterintuitively, the slice topology is actually smaller with likely goal, although the model is larger.
+
+restricted history size
+
+restricted active size enhances likely over random, so we have conclusive evidence of the practicability of agent modelling or the play principle that models can be optimised by actively searching for likelihood
+
+Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back. lopsided models with low alignment might have high slice/parent fraction in the large slice. Really should record the parent alignment or implied diagonal in the decomp and use that for any of its child slices - although I suppose that we are really only interested in the largest slices. Probably lopsided models are wasteful but the slice/parent fraction will still tend to accelerate model induction
+
+unusual slices - likely but rare. Consider other modes such as repelled by unaligned
 
 
-mode 14 behaviour is very different. Does one step ahead and then oscillates for a few actions, presumably because the goals point to the previous pose .It is expected behaviour, however, in the case where the turtlebot and the goal are at opposite ends of a parallelogram - 
 
 we only have a few actions so random effective does explore pretty well and we cannot expect much advantage from likelihood selection
-
 
 note on why the expected is not zero
 
@@ -2294,28 +2336,15 @@ else choose randomly or by turn bias if blocked
 if no least neighbours, choose random, ignoring ahead if blocked, case where goal is neighbour, case of one or no neighbours, choose nearest of same max size slice goals
 
 
-restricted history size
-
-Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back. lopsided models with low alignment might have high slice/parent fraction in the large slice. Really should record the parent alignment or implied diagonal in the decomp and use that for any of its child slices - although I suppose that we are really only interested in the largest slices. Probably lopsided models are wasteful but the slice/parent fraction will still tend to accelerate model induction
-
-unusual slices - likely but rare. Consider other modes such as repelled by unaligned
-
-
-describe each of the statistics in the log. TBOT03 measure successful transition actions. hit rate monitor. hit is usually checked before induce, although there is a small window. marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*)
-
 Improved margin rate over TBOT02 - varies from room to room, depending on wormholes.
 
 TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
 
-
 The fact that this advantage of interest mode over random is not very large partly explains why it has been so difficult to prove conclusively that the interest goal can increase the rate of *model* growth. 
-
 
 it may be the case that we will not be able to demonstrate likelihood goal conclusively because of poor configuration mapping, low action success, medium decidability and propensity to become stuck on one side of the corridor.
 
 TBOT03 evidence - behaviour looks different from random, margins, nulls, hit length, decidability, parent? auto turning at walls is another reason why the margins are low
-
-restricted active size enhances likely over random, so after 13 years (28th October) we have conclusive evidence of the practicability of agent modelling or the play principle that models can be  optimised by actively searching for likelihood
 
 -->
 
