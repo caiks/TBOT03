@@ -2269,7 +2269,60 @@ It appears that random effective search is not much less efficient at *model* di
 
 Having observed a small difference in growth rates, it is interesting to note at this point that random and interesting modes look qualitatively different. In random mode, the turtlebot tends to run in a straight line until it is obstructed, with occasional turns to the left or right. This accords with the action distribution where a move ahead is 10 times more probable than either turn. The behaviour in *likely* mode appears quite different. In this mode, the turtlebot does one or two steps ahead and then oscillates, turning left and right repeatedly, for a few actions. This is probably because the uncertainty of the turtlebot's position causes wormholes for interest goals as well as for room goals. In cases where there is little configuration deviation we would expect there to be less vacillation.
 
-As mentioned above, mode 16 places the cached *slice* topology on the active. In addition, the topology information can be cumulative, retaining the transitions after the *history* overflows and *events* roll off. The mode 16 runs confirm the findings in mode 15, as we would expect -
+As mentioned above, mode 16 places the cached *slice* topology on the active. In addition, the topology information can be cumulative, retaining the transitions after the *history* overflows and *events* roll off. 
+
+The mode 16 *models* were generally saved. This is the configuration to run *model* 103, for example -
+
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env019.model -s libgazebo_ros_init.so
+
+```
+
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model103.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model103",
+	"level1Count" : 36,
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"induceParameters.diagonalMin" : 6.0,
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"mode" : "mode016",
+	"event_maximum" : 100000,
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 1000,
+	"size_override" : false,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"cumulative_slice" : true,	
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 1000,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+
+The mode 16 runs generally confirm the findings in mode 15, as we would expect. The following shows them both, side by side -
 
 type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
@@ -2304,14 +2357,80 @@ likely|actor_2|100,000|1070|1.06999|95.86|65.68|11.92|6.85|41.57|8.68|36|1102|10
 likely|model101_2|100,000|1043|1.04299|95.89|65.92|14.27|9.76|43.70|8.01|28|1010|982|309.18|56.63|504.96|0.414278|0.899931|0.596064|-0.283803
 likely|model103_2|100,000|1059|1.05899|96.06|62.93|14.52|10.20|43.86|7.70|38|1007|969|304.78|56.49|518.10|0.407378|0.909914|0.595356|-0.306074
 
+Usually the interest mode performs better than random mode for *fuds* per *size* per threshold, but not always, and the effect disappears over time. Presumably it depends on chance to some extent in this well explored space. The other statistics such as decidability, hits, hit length and margin, are consistently better for interest.
+
+Now, to see if restricting the active *history* can magnify this admittedly small effect, we re-ran with active *history size* limited to 36,000 *events*, for example -
+
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model105.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model105",
+	"level1Count" : 36,
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"activeSize" : 36000,	
+	"induceParameters.diagonalMin" : 6.0,
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"mode" : "mode016",
+	"event_maximum" : 100000,
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 1000,
+	"size_override" : false,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"cumulative_slice" : true,	
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 1000,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model104_2|36,000|354|0.983333|96.29|46.55|11.15|10.54|45.69|1.13|15|486|471|169.33|55.37|721.19|0.362385|0.878915|0.609484|-0.342496
+likely|model105_2|34,000|354|1.04115|95.99|66.54|17.59|11.41|36.16|9.67|18|536|518|152.08|56.11|570.63|0.375260|0.897357|0.584845|-0.313397
+likely|model105_2|36,000|377|1.04722|96.01|66.77|17.43|11.33|36.32|9.58|18|546|528|158.81|56.07|564.48|0.376588|0.897838|0.584558|-0.310345
+
+After 36,000 *events* the difference between interest and random modes is similar to those of the unrestricted case, as we would expect. Note that we have shown the interest mode at 34,000 *events*, when it attained the same *model* size as random mode did 2,000 *events* later. We did this to show that the hit length is considerably shorter for interest mode when compared at for similar *models*.
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model104_2|69,000|397|1.10278|96.65|48.09|10.64|10.40|49.56|0.47|15|663|648|239.85|65.04|794.20|0.390452|0.891047|0.607374|-0.324972
+likely|model105_2|39,000|397|1.10278|95.98|68.02|17.39|11.29|36.16|9.56|20|573|553|160.82|56.18|547.92|0.380543|0.899638|0.585254|-0.306455
+likely|model105_2|69,000|488|1.35556|95.77|69.10|16.30|10.99|40.20|8.88|20|729|709|254.88|62.28|583.19|0.388904|0.906130|0.574267|-0.296982
+
+After 69,000 *events* the difference is very noticeable with the interest *model* having 488*fuds* against the random *model's* 397 *fuds*. At this point we have overflowed the active *history* nearly twice. Both modes have far smaller *models* than for the unrestricted runs, which were around 700 *fuds*, but the interest mode has been affected considerably less than the random run. In fact the interest run attains the same *model* size as random mode at only 39,000 *events*. At this point the interest hit length of 160.82 *events* is much less than random's 239.85 *events*.
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model104_2|100,000|413|1.14722|96.89|48.65|10.28|9.89|50.98|0.80|16|817|801|305.50|79.49|974.56|0.398501|0.893936|0.598836|-0.319544
+likely|model105_2|41,000|416|1.15556|95.89|68.59|17.39|11.21|36.27|9.70|19|585|566|175.49|56.40|544.48|0.381425|0.900430|0.584489|-0.306270
+likely|model105_2|100,000|567|1.575|95.56|68.88|15.91|11.02|42.25|8.47|24|895|871|311.47|71.85|639.92|0.394403|0.910728|0.567270|-0.287951
+
+At 100,000 *events* the effect is still more marked, interest does considerably better than random, but both *models* are far smaller than the unrestricted case.
+
+By artificially restricting the active *history size* we have finally been able to demonstrate conclusively that the strategy of deliberately searching for new *likelihood* accelerates *model* growth.
 
 <!--
-
-Usually the likely performs better for fuds/sz/thrshld than the random, but not always. Presumably it depends on chance to some extent in a well explored space. The decidability, hits, hit len, margin likely is consistently better, however. So there is good evidence that it works well README.
-
-Note that the prev transitions count is lower for likely, as expected, because the choice of transition is deliberate. So, counterintuitively, the slice topology is actually smaller with likely goal, although the model is larger.
-
-restricted history size
 
 restricted active size enhances likely over random, so we have conclusive evidence of the practicability of agent modelling or the play principle that models can be optimised by actively searching for likelihood
 
