@@ -2188,7 +2188,7 @@ We can see that the *model* is a little larger in interest mode with the *fuds* 
  
 If we run for longer we often find that the effect has disappeared, for example -
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|model_2|398500|4276|1.07302|93.39|49.22|2.12|2.16|52.61|-0.08|118|259|141|2150.52|57.61|368.25|0.634770|-0.258065
 interest|model_2|398500|4274|1.07252|92.63|56.62|5.02|1.95|57.50|7.22|119|289|170|2101.32|55.95|379.68|0.621137|-0.250982
@@ -2199,7 +2199,7 @@ We then added two more *likelihood* measure statistics - the 'average *likelihoo
 
 As we continued testing we found that the interest runs are highly variable, e.g. if we compare at 32,600 *events* in these runs,
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|model_2|32600|332|1.01837|96.29|45.24|7.65|6.75|46.83|1.70|254|942|688|159.94|56.09|738.17|||0.618442|-0.345272
 interest|model_2|32600|340|1.04291|96.10|60.33|14.30|7.65|39.55|10.99|243|1354|1111|98.23|56.17|624.86|||0.595199|-0.327428
@@ -2212,9 +2212,11 @@ We also experimented with the two *level* 3 actives in mode 14, but found that t
 
 After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. We can conjecture that requiring no more than one *event* in each action, i.e. effective *slice*, is sometimes insufficient for the turtlebot to discover anything interesting along the corridor. This means that the *models* has not explored enough and so are rather incomplete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this from mode 15 onwards. Ultimately, of course, a greater weight will have to be placed on random exploration, but for the moment this restriction will do.
 
-At this point we moved on from mode 14 to mode 15. Here the *slice* topology is cached on the actor, improving performance and well as enabling greater functionality. Now we could more easily keep track of the parent *slice size* and so we could move from a goal of maximum *slice size* to one of maximum *slice size* per parent *slice size*. With maximum *slice size* we saw large gryrations in the *modelling* rate, although possibly this was also because of the corridor problem mentioned above. Initially we picked off the highest *alignments* but later we ended up accidentally boosting *slices* with low *alignments* because these older *slices* tended to be larger than newer *slices*, simply because of the accumulation of *events*. Also, because of the induce threshold, there is sometimes more than one goal *slice* to choose from. If one of these goals is chosen arbitrarily at each *event*, then the turtlebot can start off in one direction and then change its mind to go in another direction and so waste time oscillating in lower *alignments*. If we move to maximum *slice size* per parent *slice size* instead, we are maximising the *likelihood* measure described above. That is, we will tend to find the most *diagonalised* or *aligned* goal *slices* more quickly, and so improve our chances of finding potential new *alignments*. 
+At this point we moved on from mode 14 to mode 15. Here the *slice* topology is cached on the actor, improving performance and enabling greater functionality as well. Now we could more easily keep track of the parent *slice size* allowing us to move from a goal of maximum *slice size* to one of maximum *slice size* per parent *slice size*. With maximum *slice size* we saw large variations in the *modelling* rate, although possibly this was also because of the corridor problem mentioned above. Initially we pick off the highest *alignments* but later we end up accidentally boosting *slices* with low *alignments* because these older *slices* tended to be larger than newer *slices* simply because of the accumulation of *events*. Also, because of the induce threshold, there is sometimes more than one goal *slice* to choose from if they happen to reach the threshold at the same time. If one of these goals is chosen arbitrarily at each *event*, then the turtlebot can start off in one direction and then change its mind to go in another direction and so waste time oscillating in lower *alignments*. If we move to maximum *slice size* per parent *slice size* instead, this is less likely to occur because the parent *sizes* of different *slices* are rarely exactly the same. 
 
-During mode 14 and 15 *level* 3 runs we observed that sometimes the *modelling* rate, measured in *fuds* per *size* per induce threshold, would be abnormally large. After some investigation we found that the induce appeared to be recursing down a single *decomposition* path creating a *model* that was very deep but highly lopsided with many near *singletons*. We conjectured that perhaps the induce threshold of only 100 was producing quite a lot of spurious *shuffle alignment* with the result that the later parts of the *model* consisted of essentially random *partitions*. We traced the *alignments* that were obtained during the induce and found that there were quite a lot of very small *alignments*. The distribution was 'U'-shaped with a minimum at around a 6% *diagonal*. We assumed that below that minimum most of the *alignments* were caused by the coarse *shuffle*. So we added a *diagonal* threshold to the active so that it does not add *model* below that threshold, but will wait and retry later. To prevent constant retries at incremental *events* we also added a stepped sequence of thresholds on fail, e.g. this is `actor.json` with the additional configuration,
+The main reason to switch to maximum *slice size* per parent *slice size*, however, is that then we are maximising the *likelihood* measure described above. That is, we will tend to find the most *diagonalised* or *aligned* goal *slices* more quickly, and so improve our chances of finding potential new *alignments*. 
+
+During mode 14 and 15 *level* 3 runs we observed that sometimes the *modelling* rate, measured in *fuds* per *size* per induce threshold, would be abnormally large. After some investigation we found that the induce appeared to be recursing down a single *decomposition* path creating a *model* that was very deep but highly lopsided having many near *singletons*. We conjectured that perhaps the induce threshold of only 100 was producing quite a lot of spurious *shuffle alignments* with the result that the later parts of the *model* consisted of essentially random *partitions*. We traced the *alignments* that were obtained during *induction* and found that there were quite a lot of very small *alignments*. The distribution was 'U'-shaped with a minimum at around a 6% *diagonal*. We assumed that below that minimum most of the *alignments* were caused by the coarse *shuffle*. So we added a minimum allowed *diagonal* limit to the active. Below that limit it no longer adds a *fud*, but waits and retries later. To prevent constant retries at incremental *events* we also added a stepped sequence of induce thresholds on fail, e.g. this is `actor.json` with the additional configuration,
 ```
 {
 ...
@@ -2225,53 +2227,100 @@ During mode 14 and 15 *level* 3 runs we observed that sometimes the *modelling* 
 ...
 }
 ```
-With the minimum *diagonal* threshold set to 6% and the turtlebot limited to rooms 4, 5 and 6, we can compare some mode 15 runs at 36,000 *events* -
+With the minimum *diagonal* limit set to 6%, and the turtlebot also restricted to rooms 4, 5 and 6, we made some mode 15 runs, e.g.
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+```
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
+cd ~/turtlebot3_ws/src/TBOT03_ws
+gazebo -u --verbose ~/turtlebot3_ws/src/TBOT03_ws/env019.model -s libgazebo_ros_init.so
+
+```
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor actor.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "actor",
+	"level1Count" : 36,
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"induceParameters.diagonalMin" : 6.0,
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"mode" : "mode015",
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 1000,
+	"size_override" : false,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 1000,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+We can compare these mode 15 runs at 36,000 *events* -
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
-random|	actor_2|36,000|360|0.999972|96.26|46.41|8.03|7.79|46.04|0.45|19|437|418|184.60|56.66|680.04|0.380548|0.862271|0.615651|-0.323553
-random|	actor_2|36,000|358|0.994417|96.19|46.69|8.83|8.32|45.24|0.93|11|442|431|155.04|55.48|549.81|0.390565|0.878057|0.615325|-0.286318
-random|	actor_2|36,000|358|0.994417|96.21|46.66|8.37|7.96|46.28|0.76|13|397|384|195.52|55.80|528.34|0.390294|0.873051|0.608259|-0.312380
-likely|	actor_2|36,000|401|1.11386|95.89|70.19|14.24|8.21|33.40|9.06|17|555|538|140.16|56.60|579.13|0.383769|0.897542|0.592533|-0.325611
-likely|	actor_2|36,000|372|1.0333|96.11|60.03|14.69|8.67|36.41|9.46|27|618|591|112.68|56.55|579.68|0.386420|0.892925|0.596425|-0.325404
-likely|	actor_2|36,000|374|1.03886|96.01|59.88|13.52|7.94|37.93|8.99|20|677|657|117.17|56.10|615.06|0.384956|0.896843|0.594560|-0.332610
+random|actor_2|36,000|360|0.999972|96.26|46.41|8.03|7.79|46.04|0.45|19|437|418|184.60|56.66|680.04|0.380548|0.862271|0.615651|-0.323553
+random|actor_2|36,000|358|0.994417|96.19|46.69|8.83|8.32|45.24|0.93|11|442|431|155.04|55.48|549.81|0.390565|0.878057|0.615325|-0.286318
+random|actor_2|36,000|358|0.994417|96.21|46.66|8.37|7.96|46.28|0.76|13|397|384|195.52|55.80|528.34|0.390294|0.873051|0.608259|-0.312380
+interest|actor_2|36,000|401|1.11386|95.89|70.19|14.24|8.21|33.40|9.06|17|555|538|140.16|56.60|579.13|0.383769|0.897542|0.592533|-0.325611
+interest|actor_2|36,000|372|1.0333|96.11|60.03|14.69|8.67|36.41|9.46|27|618|591|112.68|56.55|579.68|0.386420|0.892925|0.596425|-0.325404
+interest|actor_2|36,000|374|1.03886|96.01|59.88|13.52|7.94|37.93|8.99|20|677|657|117.17|56.10|615.06|0.384956|0.896843|0.594560|-0.332610
 
 These three runs in random effective mode and then interest mode generally seem to confirm that maximising goal *slice size* per parent *slice size* does slightly increase the *model* growth rate. We can see that the average *likelihood* and hit *likelihood* are fairly constant in both modes, with hit *likelihood* considerably higher at around 0.89 versus around 0.38. In interest mode, however, the marginal success rate of around 9% is producing more decidable *slices*, higher hits, lower hit length and hence higher *fuds* per *size* per threshold.
 
 The effect continues until 69,000 *events* at least -
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|69,000|695|1.00723|96.34|48.19|7.99|7.42|47.96|1.09|17|660|643|308.09|56.09|481.49|0.410795|0.889171|0.617150|-0.275622
 random|actor_2|69,000|713|1.03332|96.29|47.74|7.62|7.24|48.76|0.73|22|595|573|347.46|56.36|480.07|0.412921|0.884487|0.617248|-0.295943
-likely|actor_2|69,000|751|1.08839|95.99|61.69|13.28|7.86|39.51|8.97|37|830|793|223.59|57.13|561.76|0.410579|0.901542|0.602529|-0.312157
-likely|actor_2|69,000|737|1.0681|95.82|62.57|12.30|7.25|40.49|8.49|30|881|851|244.61|56.31|554.80|0.408571|0.904610|0.598199|-0.312692
+interest|actor_2|69,000|751|1.08839|95.99|61.69|13.28|7.86|39.51|8.97|37|830|793|223.59|57.13|561.76|0.410579|0.901542|0.602529|-0.312157
+interest|actor_2|69,000|737|1.0681|95.82|62.57|12.30|7.25|40.49|8.49|30|881|851|244.61|56.31|554.80|0.408571|0.904610|0.598199|-0.312692
 
-But from 100,000 *events* the random and *likely* runs are beginning to converge -
+But from 100,000 *events* the random and interest runs are beginning to converge -
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|100,000|1063|1.06299|96.34|48.66|6.87|6.49|49.74|0.77|29|790|761|522.39|56.67|465.68|0.422140|0.894239|0.621712|-0.286731
-likely|actor_2|100,000|1070|1.06999|95.86|65.68|11.92|6.85|41.57|8.68|36|1102|1066|374.30|56.48|532.94|0.413223|0.907592|0.598660|-0.301512
+interest|actor_2|100,000|1070|1.06999|95.86|65.68|11.92|6.85|41.57|8.68|36|1102|1066|374.30|56.48|532.94|0.413223|0.907592|0.598660|-0.301512
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|155,000|1663|1.0729|96.37|49.28|6.16|5.76|50.26|0.80|36|1170|1134|839.99|56.96|445.41|0.428965|0.902739|0.628176|-0.278908
-likely|actor_2|155,000|1679|1.08322|96.07|64.63|11.28|6.49|42.28|8.30|54|1459|1405|738.22|57.08|467.72|0.427589|0.906392|0.602969|-0.280159
-likely|actor_2|155,000|1651|1.06515|95.90|65.93|10.71|6.10|43.61|8.17|64|1505|1441|706.97|56.93|490.78|0.420760|0.910780|0.601186|-0.289404
+interest|actor_2|155,000|1679|1.08322|96.07|64.63|11.28|6.49|42.28|8.30|54|1459|1405|738.22|57.08|467.72|0.427589|0.906392|0.602969|-0.280159
+interest|actor_2|155,000|1651|1.06515|95.90|65.93|10.71|6.10|43.61|8.17|64|1505|1441|706.97|56.93|490.78|0.420760|0.910780|0.601186|-0.289404
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|232,000|2486|1.07155|96.45|49.85|5.62|5.36|49.88|0.52|43|1644|1601|1276.38|57.34|445.15|0.434260|0.907416|0.632389|-0.275920
-likely|actor_2|232,000|2498|1.07672|95.99|67.49|9.87|5.55|44.32|7.77|72|2025|1953|1240.00|57.31|490.07|0.428419|0.914166|0.606430|-0.282565
+interest|actor_2|232,000|2498|1.07672|95.99|67.49|9.87|5.55|44.32|7.77|72|2025|1953|1240.00|57.31|490.07|0.428419|0.914166|0.606430|-0.282565
 
-It appears that random effective search is not much less efficient at *model* discovery than interest search over time because the motor action *volume* is small and so the *slice* topologies in both cases are as complete and connected as the sensor *alignments* permit.
+It appears that random effective search is not much less efficient at *model* discovery than interest search over time. We can conjecture that this is because the motor action *volume* is small and so the *slice* topologies in both cases are as complete and connected as the sensor *alignments* permit.
 
-Having observed a small difference in growth rates, it is interesting to note at this point that random and interesting modes look qualitatively different. In random mode, the turtlebot tends to run in a straight line until it is obstructed, with occasional turns to the left or right. This accords with the action distribution where a move ahead is 10 times more probable than either turn. The behaviour in *likely* mode appears quite different. In this mode, the turtlebot does one or two steps ahead and then oscillates, turning left and right repeatedly, for a few actions. This is probably because the uncertainty of the turtlebot's position causes wormholes for interest goals as well as for room goals. In cases where there is little configuration deviation we would expect there to be less vacillation.
+Having observed a small difference in growth rates, it is worth noting at this point that random and interest modes look qualitatively different. In random mode the turtlebot tends to run in a straight line, usually until it is obstructed but sometimes with occasional turns to the left or right. This accords with the action distribution where a move ahead is 10 times more probable than either turn. The behaviour in interest mode appears quite different. In this mode, the turtlebot does one or two steps ahead and then oscillates, turning left and right repeatedly for a few actions. This is probably because the uncertainty of the turtlebot's position causes wormholes for interest goals just as it does for room goals. In cases where there is little configuration deviation we would expect there to be less vacillation.
 
-As mentioned above, mode 16 places the cached *slice* topology on the active. In addition, the topology information can be cumulative, retaining the transitions after the *history* overflows and *events* roll off. 
+Now let us continue on from mode 15 to mode 16. As mentioned above, mode 16 places the cached *slice* topology on the active. In addition, the topology information can be cumulative, retaining the transitions after the *history* overflows and *events* roll off. 
 
-The mode 16 *models* were generally saved. This is the configuration to run *model* 103, for example -
+The mode 16 we usually saved the *models*. They can be loaded from the [workspace repository](https://github.com/caiks/TBOT03_ws). This is the configuration to run *model* 103, for example -
 
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
@@ -2321,45 +2370,44 @@ ros2 run TBOT03 actor model103.json
 	"logging_hit" : true
 }
 ```
-
 The mode 16 runs generally confirm the findings in mode 15, as we would expect. The following shows them both, side by side -
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|36,000|360|0.999972|96.26|46.41|8.03|7.79|46.04|0.45|19|437|418|184.60|56.66|680.04|0.380548|0.862271|0.615651|-0.323553
 random|actor_2|36,000|358|0.994417|96.19|46.69|8.83|8.32|45.24|0.93|11|442|431|155.04|55.48|549.81|0.390565|0.878057|0.615325|-0.286318
 random|actor_2|36,000|358|0.994417|96.21|46.66|8.37|7.96|46.28|0.76|13|397|384|195.52|55.80|528.34|0.390294|0.873051|0.608259|-0.312380
 random|model100_2|36,000|371|1.03053|96.23|46.22|11.44|10.77|46.30|1.25|11|450|439|168.88|55.92|588.18|0.382392|0.887521|0.611288|-0.304849
 random|model102_2|36,000|362|1.00553|96.24|46.20|10.50|9.94|47.65|1.07|18|417|399|182.57|55.44|469.41|0.401853|0.888562|0.607212|-0.284820
-likely|actor_2|36,000|401|1.11386|95.89|70.19|14.24|8.21|33.40|9.06|17|555|538|140.16|56.60|579.13|0.383769|0.897542|0.592533|-0.325611
-likely|actor_2|36,000|372|1.0333|96.11|60.03|14.69|8.67|36.41|9.46|27|618|591|112.68|56.55|579.68|0.386420|0.892925|0.596425|-0.325404
-likely|actor_2|36,000|374|1.03886|96.01|59.88|13.52|7.94|37.93|8.99|20|677|657|117.17|56.10|615.06|0.384956|0.896843|0.594560|-0.332610
-likely|model101_2|36,000|372|1.0333|95.99|61.81|16.16|10.42|38.41|9.31|17|681|664|138.50|55.65|552.00|0.378556|0.890606|0.585895|-0.296460
-likely|model103_2|36,000|361|1.00275|96.09|58.05|15.56|10.80|39.31|7.85|23|641|618|143.81|55.41|583.36|0.374962|0.900021|0.591339|-0.331747
+interest|actor_2|36,000|401|1.11386|95.89|70.19|14.24|8.21|33.40|9.06|17|555|538|140.16|56.60|579.13|0.383769|0.897542|0.592533|-0.325611
+interest|actor_2|36,000|372|1.0333|96.11|60.03|14.69|8.67|36.41|9.46|27|618|591|112.68|56.55|579.68|0.386420|0.892925|0.596425|-0.325404
+interest|actor_2|36,000|374|1.03886|96.01|59.88|13.52|7.94|37.93|8.99|20|677|657|117.17|56.10|615.06|0.384956|0.896843|0.594560|-0.332610
+interest|model101_2|36,000|372|1.0333|95.99|61.81|16.16|10.42|38.41|9.31|17|681|664|138.50|55.65|552.00|0.378556|0.890606|0.585895|-0.296460
+interest|model103_2|36,000|361|1.00275|96.09|58.05|15.56|10.80|39.31|7.85|23|641|618|143.81|55.41|583.36|0.374962|0.900021|0.591339|-0.331747
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|69,000|695|1.00723|96.34|48.19|7.99|7.42|47.96|1.09|17|660|643|308.09|56.09|481.49|0.410795|0.889171|0.617150|-0.275622
 random|actor_2|69,000|713|1.03332|96.29|47.74|7.62|7.24|48.76|0.73|22|595|573|347.46|56.36|480.07|0.412921|0.884487|0.617248|-0.295943
 random|model100_2|69,000|716|1.03767|96.24|48.27|10.50|9.91|49.55|1.17|15|595|580|279.56|56.23|523.63|0.408577|0.898077|0.618627|-0.284617
 random|model102_2|69,000|696|1.00868|96.31|47.87|10.17|9.82|50.33|0.71|19|546|527|301.03|55.81|481.50|0.411925|0.898892|0.611391|-0.274062
-likely|actor_2|69,000|751|1.08839|95.99|61.69|13.28|7.86|39.51|8.97|37|830|793|223.59|57.13|561.76|0.410579|0.901542|0.602529|-0.312157
-likely|actor_2|69,000|737|1.0681|95.82|62.57|12.30|7.25|40.49|8.49|30|881|851|244.61|56.31|554.80|0.408571|0.904610|0.598199|-0.312692
-likely|model101_2|69,000|712|1.03187|95.93|62.15|15.07|10.31|42.35|8.25|23|856|833|223.28|56.24|524.30|0.402010|0.895195|0.591345|-0.290725
-likely|model103_2|69,000|711|1.03042|96.06|61.95|14.98|10.35|42.39|8.02|35|886|851|202.73|55.94|552.03|0.392625|0.906884|0.591122|-0.312349
+interest|actor_2|69,000|751|1.08839|95.99|61.69|13.28|7.86|39.51|8.97|37|830|793|223.59|57.13|561.76|0.410579|0.901542|0.602529|-0.312157
+interest|actor_2|69,000|737|1.0681|95.82|62.57|12.30|7.25|40.49|8.49|30|881|851|244.61|56.31|554.80|0.408571|0.904610|0.598199|-0.312692
+interest|model101_2|69,000|712|1.03187|95.93|62.15|15.07|10.31|42.35|8.25|23|856|833|223.28|56.24|524.30|0.402010|0.895195|0.591345|-0.290725
+interest|model103_2|69,000|711|1.03042|96.06|61.95|14.98|10.35|42.39|8.02|35|886|851|202.73|55.94|552.03|0.392625|0.906884|0.591122|-0.312349
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|actor_2|100,000|1063|1.06299|96.34|48.66|6.87|6.49|49.74|0.77|29|790|761|522.39|56.67|465.68|0.422140|0.894239|0.621712|-0.286731
 random|model100_2|100,000|1066|1.06599|96.26|48.95|10.14|9.63|50.77|1.04|19|697|678|387.83|56.60|481.98|0.419998|0.902292|0.621421|-0.276846
 random|model102_2|100,000|1014|1.01399|96.37|48.41|9.89|9.73|51.42|0.32|28|649|621|418.98|56.10|448.83|0.418957|0.904255|0.615044|-0.267376
-likely|actor_2|100,000|1070|1.06999|95.86|65.68|11.92|6.85|41.57|8.68|36|1102|1066|374.30|56.48|532.94|0.413223|0.907592|0.598660|-0.301512
-likely|model101_2|100,000|1043|1.04299|95.89|65.92|14.27|9.76|43.70|8.01|28|1010|982|309.18|56.63|504.96|0.414278|0.899931|0.596064|-0.283803
-likely|model103_2|100,000|1059|1.05899|96.06|62.93|14.52|10.20|43.86|7.70|38|1007|969|304.78|56.49|518.10|0.407378|0.909914|0.595356|-0.306074
+interest|actor_2|100,000|1070|1.06999|95.86|65.68|11.92|6.85|41.57|8.68|36|1102|1066|374.30|56.48|532.94|0.413223|0.907592|0.598660|-0.301512
+interest|model101_2|100,000|1043|1.04299|95.89|65.92|14.27|9.76|43.70|8.01|28|1010|982|309.18|56.63|504.96|0.414278|0.899931|0.596064|-0.283803
+interest|model103_2|100,000|1059|1.05899|96.06|62.93|14.52|10.20|43.86|7.70|38|1007|969|304.78|56.49|518.10|0.407378|0.909914|0.595356|-0.306074
 
 Usually the interest mode performs better than random mode for *fuds* per *size* per threshold, but not always, and the effect disappears over time. Presumably it depends on chance to some extent in this well explored space. The other statistics such as decidability, hits, hit length and margin, are consistently better for interest.
 
-Now, to see if restricting the active *history* can magnify this admittedly small effect, we re-ran with active *history size* limited to 36,000 *events*, for example -
+Now, to see if restricting the active *history* can magnify this admittedly small effect, we re-ran with the active *history size* limited to 36,000 *events*, for example -
 
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -2404,31 +2452,244 @@ ros2 run TBOT03 actor model105.json
 }
 ```
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|model104_2|36,000|354|0.983333|96.29|46.55|11.15|10.54|45.69|1.13|15|486|471|169.33|55.37|721.19|0.362385|0.878915|0.609484|-0.342496
-likely|model105_2|34,000|354|1.04115|95.99|66.54|17.59|11.41|36.16|9.67|18|536|518|152.08|56.11|570.63|0.375260|0.897357|0.584845|-0.313397
-likely|model105_2|36,000|377|1.04722|96.01|66.77|17.43|11.33|36.32|9.58|18|546|528|158.81|56.07|564.48|0.376588|0.897838|0.584558|-0.310345
+interest|model105_2|34,000|354|1.04115|95.99|66.54|17.59|11.41|36.16|9.67|18|536|518|152.08|56.11|570.63|0.375260|0.897357|0.584845|-0.313397
+interest|model105_2|36,000|377|1.04722|96.01|66.77|17.43|11.33|36.32|9.58|18|546|528|158.81|56.07|564.48|0.376588|0.897838|0.584558|-0.310345
 
-After 36,000 *events* the difference between interest and random modes is similar to those of the unrestricted case, as we would expect. Note that we have shown the interest mode at 34,000 *events*, when it attained the same *model* size as random mode did 2,000 *events* later. We did this to show that the hit length is considerably shorter for interest mode when compared at for similar *models*.
+After 36,000 *events* the difference between interest and random modes is similar to those of the unrestricted case, as we would expect. Note that we have also shown the interest mode at 34,000 *events*, when it attained the same *model* size as random mode did 2,000 *events* later. We did this to show that the hit length is considerably shorter for interest mode when compared at for similar *model* sizes.
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|model104_2|69,000|397|1.10278|96.65|48.09|10.64|10.40|49.56|0.47|15|663|648|239.85|65.04|794.20|0.390452|0.891047|0.607374|-0.324972
-likely|model105_2|39,000|397|1.10278|95.98|68.02|17.39|11.29|36.16|9.56|20|573|553|160.82|56.18|547.92|0.380543|0.899638|0.585254|-0.306455
-likely|model105_2|69,000|488|1.35556|95.77|69.10|16.30|10.99|40.20|8.88|20|729|709|254.88|62.28|583.19|0.388904|0.906130|0.574267|-0.296982
+interest|model105_2|39,000|397|1.10278|95.98|68.02|17.39|11.29|36.16|9.56|20|573|553|160.82|56.18|547.92|0.380543|0.899638|0.585254|-0.306455
+interest|model105_2|69,000|488|1.35556|95.77|69.10|16.30|10.99|40.20|8.88|20|729|709|254.88|62.28|583.19|0.388904|0.906130|0.574267|-0.296982
 
-After 69,000 *events* the difference is very noticeable with the interest *model* having 488*fuds* against the random *model's* 397 *fuds*. At this point we have overflowed the active *history* nearly twice. Both modes have far smaller *models* than for the unrestricted runs, which were around 700 *fuds*, but the interest mode has been affected considerably less than the random run. In fact the interest run attains the same *model* size as random mode at only 39,000 *events*. At this point the interest hit length of 160.82 *events* is much less than random's 239.85 *events*.
+After 69,000 *events* the difference is very noticeable with the interest *model* having 488 *fuds* against the random *model's* 397 *fuds*. At this point we have overflowed the active *history* nearly twice. Both modes have far smaller *models* than for the unrestricted runs, which were around 700 *fuds*, but the interest mode has been affected somewhat less than the random run. In fact, the interest run attains the same *model* size as random mode does at only 39,000 *events*. At this point the interest hit length of 160.82 *events* is much less than random's 239.85 *events*.
 
-type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|marg|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
 random|model104_2|100,000|413|1.14722|96.89|48.65|10.28|9.89|50.98|0.80|16|817|801|305.50|79.49|974.56|0.398501|0.893936|0.598836|-0.319544
-likely|model105_2|41,000|416|1.15556|95.89|68.59|17.39|11.21|36.27|9.70|19|585|566|175.49|56.40|544.48|0.381425|0.900430|0.584489|-0.306270
-likely|model105_2|100,000|567|1.575|95.56|68.88|15.91|11.02|42.25|8.47|24|895|871|311.47|71.85|639.92|0.394403|0.910728|0.567270|-0.287951
+interest|model105_2|41,000|416|1.15556|95.89|68.59|17.39|11.21|36.27|9.70|19|585|566|175.49|56.40|544.48|0.381425|0.900430|0.584489|-0.306270
+interest|model105_2|100,000|567|1.575|95.56|68.88|15.91|11.02|42.25|8.47|24|895|871|311.47|71.85|639.92|0.394403|0.910728|0.567270|-0.287951
 
 At 100,000 *events* the effect is still more marked, interest does considerably better than random, but both *models* are far smaller than the unrestricted case.
 
-By artificially restricting the active *history size* we have finally been able to demonstrate conclusively that the strategy of deliberately searching for new *likelihood* accelerates *model* growth.
+Now we repeated our *level* 3 testing in mode 16 with restricted active *history*, e.g.
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model110.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct002",
+	"model" : "model110",
+	"level1Count" : 36,
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"activeSize" : 36000,	
+	"induceParameters.diagonalMin" : 6.0,
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"dynamic_underlying_frames" : true,
+	"dynamic_self_frames" : true,
+	"mode" : "mode016",
+	"event_maximum" : 100000,
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 1000,
+	"size_override" : false,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"cumulative_slice" : true,	
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 1000,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+
+Compare the *level* 3 *model* 0 results -
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model108_3_00|36,000|334|0.927778|95.74|46.13|13.80|13.14|41.73|1.15|11|394|383|197.27|50.76|622.34|0.315036|0.900853|0.508180|-0.286994
+random|model109_3_00|36,000|289|0.802778|95.86|44.50|15.77|15.25|33.54|0.79|13|408|395|207.07|81.24|1247.11|0.254427|0.887767|0.515455|-0.289640
+random|model109_3_00|36,000|303|0.841667|95.89|45.10|16.74|15.53|37.02|1.92|8|454|446|185.80|63.07|913.84|0.277610|0.897847|0.506304|-0.291926
+interest|model110_3_00|32,000|309|0.965595|94.78|62.48|13.18|11.76|46.98|2.69|24|461|437|164.87|49.08|706.87|0.273032|0.919191|0.502432|-0.314157
+interest|model110_3_00|36,000|345|0.958333|94.72|63.12|12.85|11.43|48.13|2.75|26|485|459|182.22|48.94|699.10|0.277094|0.921462|0.503640|-0.310155
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model108_3_00|69,000|371|1.03056|96.16|47.96|12.18|11.56|45.75|1.15|10|564|554|297.06|48.96|518.87|0.349512|0.919401|0.510349|-0.268770
+random|model109_3_00|69,000|336|0.933333|96.18|46.75|14.84|14.49|37.44|0.56|14|604|590|296.54|72.99|1402.47|0.285376|0.903251|0.508504|-0.281510
+random|model109_3_00|69,000|342|0.95|96.37|47.28|15.62|14.39|41.26|2.10|11|663|652|291.73|57.61|914.68|0.310189|0.912366|0.499346|-0.279625
+interest|model110_3_00|36,000|345|0.958333|94.72|63.12|12.85|11.43|48.13|2.75|26|485|459|182.22|48.94|699.10|0.277094|0.921462|0.503640|-0.310155
+interest|model110_3_00|69,000|412|1.14444|94.51|64.80|11.13|9.73|53.38|3.01|27|671|644|272.03|46.55|650.89|0.304365|0.933935|0.500293|-0.293498
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model108_3_00|100,000|383|1.06389|96.40|48.54|11.78|11.12|47.53|1.26|13|709|696|346.44|47.48|480.83|0.361820|0.927733|0.506065|-0.262147
+random|model109_3_00|100,000|346|0.961111|96.68|48.01|15.03|14.18|42.67|1.47|9|848|839|338.07|54.99|906.07|0.324826|0.916725|0.494765|-0.278084
+interest|model110_3_00|36,000|345|0.958333|94.72|63.12|12.85|11.43|48.13|2.75|26|485|459|182.22|48.94|699.10|0.277094|0.921462|0.503640|-0.310155
+interest|model110_3_00|100,000|429|1.19167|94.47|66.72|10.18|8.82|56.19|3.10|30|820|790|347.43|44.80|580.25|0.319701|0.938269|0.497233|-0.286532
+
+*Level* 3 *model* 0 also shows a gain in interest mode, although there is more variation and the difference is smaller because of the lower margin advantage (of only ~1.5%). The hit length is shorter too.
+
+This is the configuration for the *level* 3 *model* 1 run -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model112.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct002",
+	"model" : "model112",
+	"level1Count" : 36,
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"activeSize" : 36000,	
+	"induceParameters.diagonalMin" : 6.0,
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"dynamic_underlying_frames" : true,
+	"dynamic_self_frames" : true,
+	"mode" : "mode016",
+	"event_maximum" : 100000,
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 1000,
+	"size_override" : false,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"level3_model" : 1,
+	"cumulative_slice" : true,	
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 1000,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+
+Compare the *level* 3 *model* 1 results -
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model111_3_01|36,000|351|0.975|95.48|45.51|16.58|15.49|34.65|1.67|13|467|454|178.85|50.04|525.73|0.310814|0.906649|0.508665|-0.260506
+interest|model112_3_01|36,000|333|0.925|94.80|61.97|16.90|15.46|34.58|2.21|24|491|467|198.31|48.84|613.80|0.274583|0.922566|0.499403|-0.284718
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model111_3_01|69,000|407|1.13056|95.77|47.83|15.72|14.56|39.33|1.91|16|656|640|262.09|47.44|454.42|0.334764|0.922916|0.498400|-0.246804
+interest|model112_3_01|69,000|399|1.10833|94.88|64.31|16.22|14.43|38.19|2.91|24|700|676|300.59|47.78|540.97|0.312510|0.934025|0.495006|-0.272241
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model111_3_01|100,000|414|1.15|96.10|48.54|14.82|13.83|41.09|1.68|18|848|830|322.21|45.68|424.15|0.348421|0.933329|0.493750|-0.242395
+interest|model112_3_01|100,000|413|1.14722|94.83|65.48|15.84|14.05|39.69|2.97|24|895|871|360.60|46.46|524.69|0.327121|0.939560|0.491731|-0.274445
+
+This run of *level* 3 *model* 1 suggests that interest mode is worse than random mode, although interest mode appears to catch up later on. We do not have a sample size large enough for statistical analysis and the small margins may be causing the variations in the random runs to overlap with the variations in the interest runs. Perhaps, also, the *self frames* as configured here are slightly disadvantageous compared to *underlying frames*, where experience is limited.
+
+To conclude our investigation we examined the case of unusual *slices*. These are goal *slices* where the *likelihood* measure used above is extremely negative instead of extremely positive as in interest mode. That is, these *slices* were almost empty and therefore far *off-diagonal*. The idea is that these rare cases are potentially *likely*. By exploring them we hope also discover new *model alignments*.
+
+Here is the configuration of unusual mode, again with restricted active *history* -
+```
+cd ~/turtlebot3_ws/src/TBOT03_ws
+ros2 run TBOT03 actor model113.json
+
+{
+	"update_interval" : 1,
+	"linear_maximum" : 0.45,
+	"angular_maximum_lag" : 6.0,
+	"act_interval" : 1,
+	"structure" : "struct001",
+	"model" : "model113",
+	"level1Count" : 36,
+	"induceParametersLevel1.diagonalMin" : 6.0,
+	"induceParametersLevel1.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"activeSize" : 36000,	
+	"induceParameters.diagonalMin" : 6.0,
+	"induceParameters.induceThresholds" : [110,120,150,180,200,300,400,500,800,1000],
+	"mode" : "mode016",
+	"event_maximum" : 100000,
+	"distribution_AHEAD" : 10.0,
+	"collision_range" : 0.85,
+	"collision_field_of_view" : 20,
+	"collision_rectangular" : false,
+	"turn_bias_factor" : 10,
+	"open_slices_maximum" : 1000,
+	"size_override" : false,
+	"bias_if_blocked" : true,
+	"random_override" : false,
+	"unusual" : true,
+	"cumulative_slice" : true,	
+	"logging_update" : false,
+	"logging_action" : false,
+	"logging_action_factor" : 100,
+	"logging_level1" : false,
+	"logging_level2" : false,
+	"summary_level1" : false,
+	"summary_level2" : false,
+	"logging_mode" : true,
+	"logging_mode_factor" : 1000,
+	"tracing_mode" : false,
+	"logging_hit" : true
+}
+```
+Comparing random, interest and unusual modes at various stages -
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model104_2|36,000|354|0.983333|96.29|46.55|11.15|10.54|45.69|1.13|15|486|471|169.33|55.37|721.19|0.362385|0.878915|0.609484|-0.342496
+interest|model105_2|34,000|354|1.04115|95.99|66.54|17.59|11.41|36.16|9.67|18|536|518|152.08|56.11|570.63|0.375260|0.897357|0.584845|-0.313397
+interest|model105_2|36,000|377|1.04722|96.01|66.77|17.43|11.33|36.32|9.58|18|546|528|158.81|56.07|564.48|0.376588|0.897838|0.584558|-0.310345
+unusual|model113_2|34,000|356|1.04703|95.91|65.58|15.59|10.89|38.59|7.64|4|63|59|1138.80|56.10|598.65|0.385424|-1.355617|0.604146|-0.303234
+unusual|model113_2|36,000|373|1.03611|95.95|65.23|15.16|10.69|38.78|7.30|4|64|60|1123.78|56.23|590.55|0.388678|-1.354190|0.603861|-0.300429
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model104_2|69,000|397|1.10278|96.65|48.09|10.64|10.40|49.56|0.47|15|663|648|239.85|65.04|794.20|0.390452|0.891047|0.607374|-0.324972
+interest|model105_2|39,000|397|1.10278|95.98|68.02|17.39|11.29|36.16|9.56|20|573|553|160.82|56.18|547.92|0.380543|0.899638|0.585254|-0.306455
+interest|model105_2|69,000|488|1.35556|95.77|69.10|16.30|10.99|40.20|8.88|20|729|709|254.88|62.28|583.19|0.388904|0.906130|0.574267|-0.296982
+unusual|model113_2|39,000|397|1.10278|95.84|65.42|14.59|10.42|39.29|6.88|6|67|61|1169.87|56.39|589.71|0.389362|-1.353725|0.600681|-0.299106
+unusual|model113_2|69,000|506|1.40556|95.50|67.49|13.08|9.43|41.04|6.19|8|96|88|2317.35|62.55|603.17|0.406610|-1.352047|0.589237|-0.288284
+
+type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
+---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
+random|model104_2|100,000|413|1.14722|96.89|48.65|10.28|9.89|50.98|0.80|16|817|801|305.50|79.49|974.56|0.398501|0.893936|0.598836|-0.319544
+interest|model105_2|41,000|416|1.15556|95.89|68.59|17.39|11.21|36.27|9.70|19|585|566|175.49|56.40|544.48|0.381425|0.900430|0.584489|-0.306270
+interest|model105_2|100,000|567|1.575|95.56|68.88|15.91|11.02|42.25|8.47|24|895|871|311.47|71.85|639.92|0.394403|0.910728|0.567270|-0.287951
+unusual|model113_2|42,000|413|1.14722|95.76|65.93|14.61|10.17|39.48|7.32|6|69|63|1613.97|56.58|587.71|0.392572|-1.355193|0.601463|-0.298701
+unusual|model113_2|100,000|582|1.61667|95.17|68.05|13.34|9.82|42.45|6.12|11|134|123|2689.06|71.42|688.81|0.409873|-1.359421|0.578342|-0.282494
+
+Unusual mode actually seems to be better than interest mode when the *history* overflows, in spite of a smaller margin, but this is perhaps also because of the small sample size. As expected, the hit length is very large - the goal *slice* is hard to obtain by definition. Also, as expected, the hit *likelihood* is at the opposite end of the spectrum and there are fewer goal *slices* and half as many live *slices*, otherwise the *likelihoods* are about the same. For both ususual and interest modes the *slice size* is smaller than for random at comparable *fud* counts. This is because in both interest and unusual modes the turtlebot tends to spend more time traversing recently *induced slices*, i.e. in newly created *model*. 
+
+Overall, however, by artificially restricting the active *history size* we have  been able to demonstrate that the strategy of deliberately searching for new *likelihood* accelerates *model* growth. We can speculate that this is especially the case where resources for *model* search are scarce or the action space is very large.
 
 <!--
 
@@ -2436,9 +2697,7 @@ restricted active size enhances likely over random, so we have conclusive eviden
 
 Conversely for rare choose most off-diagonal ie min size/parent-size. If cannot find any of sufficient fraction in interest mode, flip to rare mode, until cannot find any with small enough fractions and then flip back. lopsided models with low alignment might have high slice/parent fraction in the large slice. Really should record the parent alignment or implied diagonal in the decomp and use that for any of its child slices - although I suppose that we are really only interested in the largest slices. Probably lopsided models are wasteful but the slice/parent fraction will still tend to accelerate model induction
 
-unusual slices - likely but rare. Consider other modes such as repelled by unaligned
-
-
+ Consider other modes such as repelled by unaligned
 
 we only have a few actions so random effective does explore pretty well and we cannot expect much advantage from likelihood selection
 
