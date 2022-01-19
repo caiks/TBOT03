@@ -2731,6 +2731,8 @@ it may be the case that we will not be able to demonstrate likelihood goal concl
 
 TBOT03 evidence - behaviour looks different from random, margins, nulls, hit length, decidability, parent? auto turning at walls is another reason why the margins are low
 
+Also consider if the interest and random models are qualitatively different. Certainly the turtlebot behaviour is different.
+
 -->
 
 
@@ -2757,6 +2759,16 @@ It turned out, after (a) restricting the min diagonal, (b) using only rooms 4,5,
 <!--
 
 Future directions - 
+
+TBOT03 WOTBOT Mostly settled the active update and induce configuration, eg with diagonal minimum, but might well need higher performance especially in vision.
+
+TBOT03 WOTBOT Mention higher motor valency and richer sensoria and environments with greater affordance. Would hope for higher action success margin. Would expect that there is a trade-off between reliability of action (following the path to goal) and exploration (requiring some random experiment into new motor values for the slice)
+
+TBOT03 WOTBOT Room goal failed but interest and unusual goal (likely goal) succeeded, most convincingly when restricted though. In future have mix of goals also affective? When experimenting with goal search algorithms will need some sort of model growth rate statistic to compare. Or perhaps ambiguity in map to configuration (entropy of configuration conditional on slice).
+
+TBOT03 WOTBOT Dealt only with a single level, will need to consider the sharing of resources between many different actives in different structures, and how they relate to the configuration/motor level. Configuration level might be broken up into separate actives cf octupus arms, will need some indirect control from higher actives.
+
+
 
 mixture of interest, unusual and random modes
 
