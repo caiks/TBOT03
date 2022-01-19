@@ -2768,6 +2768,12 @@ TBOT03 WOTBOT Room goal failed but interest and unusual goal (likely goal) succe
 
 TBOT03 WOTBOT Dealt only with a single level, will need to consider the sharing of resources between many different actives in different structures, and how they relate to the configuration/motor level. Configuration level might be broken up into separate actives cf octupus arms, will need some indirect control from higher actives.
 
+An explanation for the left-right oscillation we often see in interest mode would be that if forward motion leads to the same slice in 2.5 actions more than a transition then a goal slice at the other end of a parallelogram, which requires a forward transition is likely to oscillate between one turn and its opposite. This is because turns will nearly always cause a transition. To avoid this we should ensure that actions all have roughly the same probability of transition, preferably nearly always. Of course, this is hard to do, since the sensor model is constantly changing. An alternative is to avoid forming a mathematical group, so that actions do not have opposites. The messiness of neurobiology will generally avoid this, eg bias to right handedness. We shouldn't be too fussy or symmetrical about our motor models. Can do this by not having opposite actions or by altering the random distribution of actions. To fix the oscillation problem random mode should adjust the frequencies of each action such that the probability of transition is uniform for all. Although, note that we are assuming that the intra-slice distribution is also uniform for the action. Easiest to select actions with a granularity roughly equal to a slice transition. We probably should have deloopers in anyway, which is a pragmatic optimisation.
+
+Likely goal is in a sense predictive - we choose an action such as eye saccades that we guess will lead to something interesting. Simulation chooses probable next slice, so is also predictive in that sense. See https://www.quantamagazine.org/to-be-energy-efficient-brains-predict-their-perceptions-20211115/
+
+We can represent the level 3 average slice in a bitmap with past frames forming the vertical axis. That would give us a sense of the dynamic model. Underlying frames would be easy but self frames would require an infinite concatenation and they would overlap.
+
 
 
 mixture of interest, unusual and random modes
