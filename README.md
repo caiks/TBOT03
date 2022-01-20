@@ -2,19 +2,21 @@
 
 [TurtleBot3](http://emanual.robotis.com/docs/en/platform/turtlebot3/overview/) is a [Robot Operating System](https://www.ros.org/about-ros/) standard platform robot. Here we extend the developments in [TBOT01](https://github.com/caiks/TBOT01#readme) and  [TBOT02](https://github.com/caiks/TBOT02#readme) to examine *slice* topologies and motor actions.
 
-The implementation of *slice* topologies in `TBOT02` only had a low action success rate. The best topologies approximate closely to the physical configuration space and affordances, with diverse neighbourhoods and complete connectivity. In `TBOT02` the topologies were far from optimal! In `TBOT03` we will seek to improve this performance by considering the factors that increase *model likelihood*, *slice* topology connectivity and completeness, and action responsiveness. To do this we will control the timings of scans and actions. This will allow us to manually control the turtlebot so that we can trace the action decisions that would have been taken in the various modes. In this way `TBOT03` will debug `TBOT02`.
+The implementation of *slice* topologies in `TBOT02` only had a low action success rate. The best topologies approximate closely to the physical configuration space and affordances, with diverse neighbourhoods and complete connectivity. In `TBOT02` the topologies were far from optimal. In `TBOT03` we will seek to improve this performance by considering the factors that increase *model likelihood*, *slice* topology connectivity and completeness, and action responsiveness. To do this we will control the timings of scans and actions. This will allow us to manually control the turtlebot so that we can trace the action decisions that would have been taken in the various modes. In this way `TBOT03` will debug `TBOT02`.
 
-As well as the `location` goal mode of `TBOT02`, we will consider two more modes in `TBOT03`, in order to investigate *slice* topologies. 
+As well as the `location` goal type of `TBOT02`, we will consider three more goal types in `TBOT03`, in order to investigate *slice* topologies. 
 
 First, in 'random' mode the turtlebot acts to match the `motor` *histogram* for each *slice* to a desired uniform distribution. In this way the turtlebot will stochastically explore the physical configuration, so improving the *slice* topology's representation. 'Random' mode is used in the action *level*, which is defined as the *level* that acts on the motor *variables*.
 
 Second, in 'interest' mode the turtlebot acts to move towards the *slice* with the greatest *size* per parent *slice size*. The turtlebot therefore will tend to spend more time in the *slices* with the highest potential for *modelling* so far undetected *alignments*, thus improving the *model likelihood* per active *history size*. This is similar to static *induction* in which the largest *slice* is *induced* first, but avoids large *slices* with *independent substrates*. 
 
-'Interest' mode can be used at any *level*. In an action *level*, i.e. one that has motor *variables* in an *underlying substrate*, the active chooses actions that transition to the subset of neighbouring *slices* which have the fewest transitions to the goal *slice*. We will be examining only action *levels* for the moment.
+Last, in 'unusual' mode the turtlebot acts to move towards the *slice* with the least *size* per parent *slice size*, i.e. far *off-diagonal* rather than *on-diagonal*. These goals are by definition hard to attain. It is hoped that the turtlebot will tend to find *slices* with high potential *alignments* near to, or on the way to, 'unusual' goals.
+
+'Interest' or 'unusual' modes can be used at any *level*. In an action *level*, i.e. one that has motor *variables* in an *underlying substrate*, the active chooses actions that transition to the subset of neighbouring *slices* which have the fewest transitions to the goal *slice*. We will be examining only action *levels* for the moment.
 
 In higher *levels* which are not also action *levels*, i.e. they do not have actions in an *underlying substrate*, but consist of a set of *underlying frames* of an action *level*, the goal *slice* of a higher *level* implies a set of goal *slices* in the *underlying* action *level*. So higher *levels* could operate in 'interest' mode indirectly.
 
-In general, the interests of different actives may sometimes be contradictory, so some method of coordinating between them will be needed. In this investigation, however, we will only be examining the case where there is one action *level* active in 'interest' mode.
+Also, the interests of different actives may sometimes be contradictory, so some method of coordinating between them will be needed. In this investigation, however, we will only be examining the case where there is one action *level* active in 'interest' or 'unusual' mode.
 
 ## Sections
 
@@ -75,7 +77,7 @@ The `main` executable has various modes,
 cd ../TBOT03_ws
 ln -s ../TBOT03_build/main main
 
- ./main
+./main
 
 ```
 <a name = "controller"></a>
@@ -223,6 +225,8 @@ To run the non-ros `main` executable, create a link,
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ln -s ~/TBOT03_build/main main
 
+./main
+
 ```
 
 <a name = "Discussion"></a>
@@ -313,7 +317,7 @@ entropyA/sizeA: 0.83648
 std::log(sizeA): 12.8868
 ```
 
-Adding these 2 *models* to the earlier ones of `TBOT02` confirms that, although the `location` *entropy* decreased with *size*, these *induced models* are far from being able to to reduce it to zero -
+Adding these 2 *models* to the earlier ones of `TBOT02` confirms that, although the `location` *entropy* decreased with increasing *size*, these *induced models* are far from being able to to reduce it to zero -
 
 model|size|label entropy/size
 ---|---|---
@@ -371,9 +375,9 @@ slice_location_count: 38008
 slice_location_size_mean: 10.3945
 deviation_location: 0.191815
 ```
-In fact we calculate both the configuration deviation for the *slices* and for the cross between *slice* and `location`. In the second case, we are assuming that the room or doorway is known to the turtlebot. That, of course, probably would not be the case in practice, but it is a requirement to identify room goal *slices*.
+In fact we calculate both the configuration deviation for the *slices* and for the cross between *slice* and `location`. In the second case, we are assuming that the room or doorway of each *slice* is known to the turtlebot. Of course, that knowledge would often not be available in practice, but in this case it is required by the turtlebot in order to be able to identify room goal *slices*.
 
-Now that we have a measure of the map between *models* and the physical environments, we will experiment with various active structures and random modes, before going on to look at the goal modes.
+Now that we have a measure of the ambiguity of the map between *models* and the physical environments, we will experiment with various active structures and random modes, before going on to look at the goal modes.
 
 <a name = "Active"></a>
 
@@ -402,6 +406,20 @@ When an actor starts with an initial *model*, it pushes an empty record into the
 
 ### Actor node
 
+The `TBOT03` actor node has similar active structures to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*. By default each active's induce operation will be called at regular intervals, unless *induction* is explicity disabled.
+
+The principal differences between `TBOT02` and `TBOT03` are not in the active structures, however, but in the actor's update and its modes of action.
+
+The actor's update has been simplified in `TBOT03`. The update no longer does record collection, collision avoidance or navigation, but instead it has a simple set of state transitions. If its current state is an action state, `LEFT`, `AHEAD` or `RIGHT`, the turtlebot publishes a velocity or twist request. While moving it monitors its odometry. When the turtlebot has moved ahead the required distance, or rotated through the required angle, it publishes a stop request (zero velocity and twist), and sets its state to `WAIT_ODOM`. While in this state it continues to check its pose until it has stopped moving. It then changes its state to `WAIT_SCAN`. In this state it waits until there has been a complete scan by the lidar. This usually takes around 200 milliseconds - the lidar spins at a frequency of 5 hertz. The turtlebot then transitions to the `STOP` state where it stays until it is given a new action state. 
+
+So having started by being given an action state, the turtlebot finishes having (a) performed the action, and (b) taken a full scan while completely stationary. The time required for a complete action cycle varies but each cycle always yields only one configuration record and one active *event*. This is a change from `TBOT02` where the *events* were captured at regular intervals, regardless of the action requested or what state the actor was in. Now motor actions and sensor data are atomic and synchronised.
+
+By contrast, although `TBOT02` sometimes did find *slices* that spanned a small physical space, the *slices* were often blurry or ill-defined partly due to the smearing of the lidar data when in motion. Although the distortion of the scan while moving forward at a top speed of 30 cm per second is only a linear error of around +/- 6 cm compared to 50 cm per *event*, while rotating at 40 degrees per second there is an angular error of around +/- 8 degrees compared to 30 degrees per *event*. In `TBOT03` the turtlebot is stationary between actions. This is similar to the jerky motion of a pigeon's head as it walks. Another analogy would be a duck's motion if it were to paddle through syrup. The new update operation should improve the map between *slice* and configuration space.
+
+The update only takes a short time to process the state transitions, and so it can be called frequently. It defaults to 10 milliseconds. In this way, the turtlebot moves as quickly as possible.
+
+All of the rest of turtlebot's behaviour is controlled by the act operation, defined according to the mode. Regardless of mode, the turtlebot only acts if the current actor state is `STOP`. When it first finds that it has stopped after an action it  (a) records the configuration, (b) constructs the *event* from the lidar scan, (c) sets the *event's* motor *variable* to the previous action, i.e. the action that led to this *event*, and then (d) updates the active *levels* with the new *event*. The *levels* are updated in sequence from lowest to highest, running the active updates within a *level* in parallel threads. At this point the current *slices* are defined for each active. The actor then processes the mode if it is defined.
+
 [Test modes 1-4](#Test_modes_1_4)
 
 [Random modes 5-7](#Random_modes_5_7)
@@ -413,21 +431,6 @@ When an actor starts with an initial *model*, it pushes an empty record into the
 [Effective mode 13](#Effective_mode_13)
 
 [Interest modes 14-16](#Interest_modes_14_16)
-
-
-The `TBOT03` actor node has similar active structures to `TBOT02`. Structure `struct001` defines a two *level* active structure. There are 12 *level* one actives, each with a fixed non-overlapping field-of-view of 30 degrees, and 1 *level* two active. The *level* one active *history size* defaults to 10,000 *events*. The *level* two active *size* defaults to 1,000,000 *events*. By default each active's induce operation will be called at regular intervals, unless *induction* is explicity disabled.
-
-The principal differences between `TBOT02` and `TBOT03` are not in the active structures, however, but in the actor's update and its modes of action.
-
-The actor's update has been simplified in `TBOT03`. The update no longer does record collection, collision avoidance or navigation, but instead it has a simple set of state transitions. If it's current state is an action state, `LEFT`, `AHEAD` or `RIGHT`, the turtlebot publishes a velocity or twist request. While moving it monitors its odometry. When the turtlebot has moved ahead the required distance, or rotated through the required angle, it publishes a stop request (zero velocity and twist), and sets its state to `WAIT_ODOM`. While in this state it continues to check its pose until it has stopped moving. It then changes its state to `WAIT_SCAN`. In this state it waits until there has been a complete scan by the lidar. This usually takes around 200 milliseconds - the lidar spins at a frequency of 5 hertz. The turtlebot then transitions to the `STOP` state where it stays until it is given a new action state. 
-
-So having started by being given an action state, the turtlebot finishes having (a) performed the action, and (b) taken a full scan while completely stationary. The time required for a complete action cycle varies but each cycle always yields only one configuration record and one active *event*. This is a change from `TBOT02` where the *events* were captured at regular intervals, regardless of the action requested or what state the actor was in. Now motor actions and sensor data are atomic and synchronised.
-
-By contrast, although `TBOT02` sometimes did find *slices* that spanned a small physical space, the *slices* were often blurry or ill-defined partly due to the smearing of the lidar data when in motion. Although the distortion of the scan while moving forward at a top speed of 30 cm per second is only a linear error of around +/- 6 cm compared to 50 cm per *event*, while rotating at 40 degrees per second there is an angular error of around +/- 8 degrees compared to 30 degrees per *event*. In `TBOT03` the turtlebot is stationary between actions. This is similar to the jerky motion of a pigeon's head as it walks. Another analogy would be a duck's motion if it were to paddle through syrup. The new update operation should improve the map between *slice* and configuration space.
-
-The update only takes a short time to process the state transitions, and so it can be called frequently. It defaults to 10 milliseconds. In this way, the turtlebot moves as quickly as possible.
-
-All of the rest of turtlebot's behaviour is controlled by the act operation, defined according to the mode. Regardless of mode, the turtlebot only acts if the current actor state is `STOP`. When it first finds that it has stopped after an action it  (a) records the configuration, (b) constructs the *event* from the lidar scan, (c) sets the the *event's* motor *variables* to the previous action, i.e. the action that led to this *event*, and then (d) updates the active *levels* with the new *event*. The *levels* are updated in sequence from lowest to highest, running the active updates within a *level* in parallel threads. At this point the current *slices* are defined for each active. The actor then processes the mode if it is defined.
 
 <a name = "Test_modes_1_4"></a>
 
@@ -475,7 +478,7 @@ actor       STOP    time 0.360s
 actor       AHEAD   time 0.010s
 actor       CRASH   time 20.2777s
 ```
-The default distance travelled before the brake is applied is 0.5 metres. The turtlebot decelerates for around another 5 cm before coming to a complete halt. This distance is chosen to be equal to the 4 metre lidar range divided by a *valency* of 8.
+The default distance travelled before the brake is applied is 0.5 metres. This distance is chosen to be equal to the 4 metre lidar range divided by a *valency* of 8. The turtlebot decelerates for around another 5 cm before coming to a complete halt. 
 
 In mode 2 the turtlebot's only action is to set the actor state to `LEFT`. This is the JSON configuration in `actor.json` -
 ```json
@@ -1185,7 +1188,7 @@ slice_location_count: 35811
 slice_location_size_mean: 9.71545
 deviation_location: 0.202962
 ```
-Having determined that obstructions are not a major factor causing the high deviation, we will go on to consider whether the *model* itself might be the reason. In the default structure 1 configuration there are only 12 *underlying models* in *level* 1, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* 2. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to identify landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
+Having determined that obstructions are not a major factor causing the high deviation, we will go on to consider whether the *model* itself might be the reason. In the default structure 1 configuration there are only 12 *underlying models* in *level* one, so it may be the case that features or details with an angular resolution of less than 30 degrees might sometimes have no *alignment* at *level* two. This might explain why the turtlebot does not always distinguish between narrow and wide doorways, especially at a distance. Inability to identify landmarks could certainly increase configuration deviation. So, in *model* 80, we increased the number of *underlying* to 36, i.e. the angular resolution is decreased to 10 degrees -
 
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
@@ -1278,7 +1281,7 @@ deviation_location: 0.204491
 ```
 Note, though, that the *fuds* per *size* per threshold has improved from 0.975224 to 1.09273, which is similar to the `TBOT02` case. We might speculate that this is because the increased angular resolution counteracts the more gridlike distribution of the turtlebot's poses in `TBOT03`.
 
-Let us continue to focus on the *model* by improving the *level* 1 *models*. In *model* 81 we increase the *level* 1 active *size*, increase the *induce* threshold and also increase the *induction* parameters `XMAX` and `WMAX`. We also alter the *level* 2 initial threshold and parameter `XMAX`,
+Let us continue to focus on the *model* by improving the *level* one *models*. In *model* 81 we increase the *level* one active *size*, increase the *induce* threshold and also increase the *induction* parameters `XMAX` and `WMAX`. We also alter the *level* two initial threshold and parameter `XMAX`,
 ```
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/turtlebot3_ws/src/TBOT03_ws/gazebo_models
 cd ~/turtlebot3_ws/src/TBOT03_ws
@@ -1922,9 +1925,9 @@ slice_location_count: 57844
 slice_location_size_mean: 9.2723
 deviation_location: 0.177661
 ```
-As expected, *level* 2 *model* 89, with 536,347 *events*, is intermediate between *model* 83 (365,483 *events*) and *model* 84 (929,471 *events*).
+As expected, *level* two *model* 89, with 536,347 *events*, is intermediate between *model* 83 (365,483 *events*) and *model* 84 (929,471 *events*).
 
-Let us examine the configuration deviation of each of the *level* 3 *models* -
+Let us examine the configuration deviation of each of the *level* three *models* -
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 
@@ -1964,9 +1967,9 @@ slice_location_count: 96073
 slice_location_size_mean: 5.5827
 deviation_location: 0.21878
 ```
-They both turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* 3 *models*, however, have smaller mean *slice sizes* than the *level* 2 *model*, with only 5-6 *events* against 9-10 *events*. 
+They both turn out to be more ambiguous, although not much more, presumably because the zeroth *frame alignments* are less prominent than those of the middle *frames*. The second *model*, with two *reflexive frames*, has more *fuds* and so is a little more *likely* than the first *model*, which has only *underlying frames*. It also has a slightly better configuration deviation. Both *level* three *models*, however, have smaller mean *slice sizes* than the *level* two *model*, with only 5-6 *events* against 9-10 *events*. 
 
-The mean *slice sizes* of the *level* 3 *models* are already small, so we cannot expect that crossing the *level* 2 *model* with a *level* 3 *model* will produce a very useful *slice* topology -
+The mean *slice sizes* of the *level* three *models* are already small, so we cannot expect that crossing the *level* two *model* with a *level* three *model* will produce a very useful *slice* topology -
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ./main configuration_deviation_all_3level model089 model089_2 model089_3_00
@@ -2004,7 +2007,7 @@ The `location`-configuration deviation is now very small, but that is obviously 
 
 #### Effective mode 13
 
-We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate it's environment. It is clear by now, however, that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will aim now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. We will assume that the parameterisation of the *induction* is reasonably good and consider only the physical search algorithm. To demonstrate that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
+We have attempted to reduce the configuration deviation in various ways. We did this in the hope that the turtlebot's *model* would map to the physical location closely enough that the turtlebot would reliably navigate its environment. It is clear by now, however, that future efforts are likely to result in only marginal gains, because the largest *alignments* in the sensor *substrate* do not appear to capture the information that we need. So, instead of focussing on our interests, we will aim now to focus on the turtlebot's interests. That is, we will program the turtlebot to actively seek the highest nearby potential *alignments* and so increase the rate of growth of its *model*. In this way we aim to maximise the *model likelihood* that can be yielded from the sensors given the environment and the compute resources. We will assume that the parameterisation of the *induction* is reasonably good and consider only the physical search algorithm. To demonstrate that we have succeeded, we will demonstrate that the interest search mode produces a larger *model* per *history size* than a purely random search mode.
 
 To make these modes reasonably comparable we will need similar *slice* topologies in both cases, at least for similar *model* sizes. To do this we must first create a random search mode that ensures that all possible actions have been tried by the turtlebot for its current *slice*. In that way the whole immediate neighbourhood will be accessible and the topology will maximise its connectivity or completeness in both cases.
 
@@ -2233,7 +2236,7 @@ interest|model_2|32600|339|1.03985|96.20|57.56|12.72|7.91|38.65|7.85|199|1272|10
 
 For example, the second interest run in the table has a considerably smaller *model* at 311 *fuds* than the random effective run at 332 *fuds* and the first interest run at 340 *fuds*. This seems odd when we examine the other statistics - the larger margin, shorter hit length and higher hits compared to random effective. The hit *likelihood* at 0.632307 is much higher than the average *likelihood* of 0.351294. The third interest run, by contrast, has a *model* at 339 *fuds* that is nearly as large as the first interest run.
 
-We also experimented with the two *level* 3 actives in mode 14, but found that the results were even less conclusive than for *level* 2. 
+We also experimented with the two *level* three actives in mode 14, but found that the results were even less conclusive than for *level* two. 
 
 After some investigation we found that when the turtlebot is in interest mode it moves along the corridor between rooms 1,2,3 and 4,5,6 much less often than for random effective mode. Sometimes it remains trapped in one set of rooms for the entire run. We can conjecture that requiring no more than one *event* in each action, i.e. effective *slice*, is sometimes insufficient for the turtlebot to discover anything interesting along the corridor. This means that the *models* has not explored enough and so are rather incomplete. In order to make the modes comparable we eventually restricted the turtlebot to rooms 4,5 and 6 by blocking the corridor in environment 19. We did this from mode 15 onwards. Ultimately, of course, a greater weight will have to be placed on random exploration, but for the moment this restriction will do.
 
@@ -2241,7 +2244,7 @@ At this point we moved on from mode 14 to mode 15. Here the *slice* topology is 
 
 The main reason to switch to maximum *slice size* per parent *slice size*, however, is that then we are maximising the *likelihood* measure described above. That is, we will tend to find the most *diagonalised* or *aligned* goal *slices* more quickly, and so improve our chances of finding potential new *alignments*. 
 
-During mode 14 and 15 *level* 3 runs we observed that sometimes the *modelling* rate, measured in *fuds* per *size* per induce threshold, would be abnormally large. After some investigation we found that the induce appeared to be recursing down a single *decomposition* path creating a *model* that was very deep but highly lopsided having many near *singletons*. We conjectured that perhaps the induce threshold of only 100 was producing quite a lot of spurious *shuffle alignments* with the result that the later parts of the *model* consisted of essentially random *partitions*. We traced the *alignments* that were obtained during *induction* and found that there were quite a lot of very small *alignments*. The distribution was 'U'-shaped with a minimum at around a 6% *diagonal*. We assumed that below that minimum most of the *alignments* were caused by the coarse *shuffle*. So we added a minimum allowed *diagonal* limit to the active. Below that limit it no longer adds a *fud*, but waits and retries later. To prevent constant retries at incremental *events* we also added a stepped sequence of induce thresholds on fail, e.g. this is `actor.json` with the additional configuration,
+During mode 14 and 15 *level* three runs we observed that sometimes the *modelling* rate, measured in *fuds* per *size* per induce threshold, would be abnormally large. After some investigation we found that the induce appeared to be recursing down a single *decomposition* path creating a *model* that was very deep but highly lopsided having many near *singletons*. We conjectured that perhaps the induce threshold of only 100 was producing quite a lot of spurious *shuffle alignments* with the result that the later parts of the *model* consisted of essentially random *partitions*. We traced the *alignments* that were obtained during *induction* and found that there were quite a lot of very small *alignments*. The distribution was 'U'-shaped with a minimum at around a 6% *diagonal*. We assumed that below that minimum most of the *alignments* were caused by the coarse *shuffle*. So we added a minimum allowed *diagonal* limit to the active. Below that limit it no longer adds a *fud*, but waits and retries later. To prevent constant retries at incremental *events* we also added a stepped sequence of induce thresholds on fail, e.g. this is `actor.json` with the additional configuration,
 ```
 {
 ...
@@ -2501,7 +2504,7 @@ interest|model105_2|100,000|567|1.575|95.56|68.88|15.91|11.02|42.25|8.47|24|895|
 
 At 100,000 *events* the effect is still more marked - interest does considerably better than random, but both *models* are far smaller than the unrestricted case.
 
-Now we repeated our *level* 3 testing in mode 16 with restricted active *history*, e.g.
+Now we repeated our *level* three testing in mode 16 with restricted active *history*, e.g.
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ros2 run TBOT03 actor model110.json
@@ -2547,7 +2550,7 @@ ros2 run TBOT03 actor model110.json
 }
 ```
 
-Compare the *level* 3 *model* 0 results -
+Compare the *level* three *model* 0 results -
 
 type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
@@ -2572,9 +2575,9 @@ random|model109_3_00|100,000|346|0.961111|96.68|48.01|15.03|14.18|42.67|1.47|9|8
 interest|model110_3_00|36,000|345|0.958333|94.72|63.12|12.85|11.43|48.13|2.75|26|485|459|182.22|48.94|699.10|0.277094|0.921462|0.503640|-0.310155
 interest|model110_3_00|100,000|429|1.19167|94.47|66.72|10.18|8.82|56.19|3.10|30|820|790|347.43|44.80|580.25|0.319701|0.938269|0.497233|-0.286532
 
-*Level* 3 *model* 0 also shows a gain in interest mode, although there is more variation and the difference is smaller because of the lower margin advantage (of only ~1.5%). As well as larger *model*, the hit length is shorter at comparable *model* sizes.
+*level* three *model* 0 also shows a gain in interest mode, although there is more variation and the difference is smaller because of the lower margin advantage (of only ~1.5%). As well as larger *model*, the hit length is shorter at comparable *model* sizes.
 
-This is the configuration for the *level* 3 *model* 1 run -
+This is the configuration for the *level* three *model* 1 run -
 ```
 cd ~/turtlebot3_ws/src/TBOT03_ws
 ros2 run TBOT03 actor model112.json
@@ -2620,7 +2623,7 @@ ros2 run TBOT03 actor model112.json
 	"logging_hit" : true
 }
 ```
-Compare the *level* 3 *model* 1 results -
+Compare the *level* three *model* 1 results -
 
 type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|null|margin|live|goals|hits|hit length|slice size|parent size|likelihood|hit likelihood|+ve likelihood|-ve likelihood
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---
@@ -2637,7 +2640,7 @@ type|model|events|fuds|fuds/sz/thrshld|effective|decidable|successful|expected|n
 random|model111_3_01|100,000|414|1.15|96.10|48.54|14.82|13.83|41.09|1.68|18|848|830|322.21|45.68|424.15|0.348421|0.933329|0.493750|-0.242395
 interest|model112_3_01|100,000|413|1.14722|94.83|65.48|15.84|14.05|39.69|2.97|24|895|871|360.60|46.46|524.69|0.327121|0.939560|0.491731|-0.274445
 
-This run of *level* 3 *model* 1 suggests that interest mode is worse than random mode, although interest mode appears to catch up later on. We do not have a sample size large enough for statistical analysis and the small margins may be causing the variations in the random runs to overlap with the variations in the interest runs. Perhaps, also, the *self frames* as configured here are slightly disadvantageous compared to *underlying frames* in this case where experience is limited.
+This run of *level* three *model* 1 suggests that interest mode is worse than random mode, although interest mode appears to catch up later on. We do not have a sample size large enough for statistical analysis and the small margins may be causing the variations in the random runs to overlap with the variations in the interest runs. Perhaps, also, the *self frames* as configured here are slightly disadvantageous compared to *underlying frames* in this case where experience is limited.
 
 To conclude our investigation of interest mode we examined the case of unusual *slices*. These are goal *slices* where the *likelihood* measure is extremely negative instead of extremely positive as it is in interest mode. Unusual *slices* are almost empty and therefore far *off-diagonal*. The idea is that these rare cases are potentially *likely*. By exploring them we hope also discover new *model alignments*.
 
@@ -2747,16 +2750,18 @@ There were several explanations that were considered. First, the capture of sens
 
 In `TBOT03` the actor was rewritten to address these issues. This helped us to make more successful action decisions in interest mode and to trace the turtlebot's behaviour, but it was not sufficient to improve the configuration deviation enough to navigate from room to room.
 
-This is because the *alignments* are sometimes such that the *events* of a *slice* may have occurred in more than one physical area. Even where the *events* are contiguous they may be spread out over a very large area. Usually, however, the *slice* will tend to consist of *events* that form one or more clusters of quite similar poses. The 'view' from the *slice* always looks the same to the turtlebot, though, whichever cluster the turtlebot is in. For example, when the turtlebot is in the large central room looking 'north' at the doorway, it sometimes thinks it is looking 'south' at the other doorway, even though we can easily tell at a glance which doorway is which because of their different widths. The trick is to have only one cluster per *slice*. If the turtlebot cannot distinguish exactly where it is within a room, or which way it is pointing, it clearly cannot make a sensible decision to turn left or right or proceed ahead. In order to have a good map between the turtlebot's *model* and the physical configuration space, the turtlebot has to be able to distinguish between the clusters. To do this we tried a better resolution for the lidar scan, adding landmarks so that the clusters have different views, adding a compass to distinguish between orientations, and considering the dynamic *level* 3 *model*.
+This is because the *alignments* are sometimes such that the *events* of a *slice* may have occurred in more than one physical area. Even where the *events* are contiguous they may be spread out over a very large area. Usually, however, the *slice* will tend to consist of *events* that form one or more clusters of quite similar poses. The 'view' from the *slice* always looks the same to the turtlebot, though, whichever cluster the turtlebot is in. For example, when the turtlebot is in the large central room looking 'north' at the doorway, it sometimes thinks it is looking 'south' at the other doorway, even though we can easily tell at a glance which doorway is which because of their different widths. The trick is to have only one cluster per *slice*. If the turtlebot cannot distinguish exactly where it is within a room, or which way it is pointing, it clearly cannot make a sensible decision to turn left or right or proceed ahead. In order to have a good map between the turtlebot's *model* and the physical configuration space, the turtlebot has to be able to distinguish between the clusters. To do this we tried a better resolution for the lidar scan, adding landmarks so that the clusters have different views, adding a compass to distinguish between orientations, and considering the dynamic *level* three *model*.
 
 None of these hints to the turtlebot, however, were sufficient to reduce the configuration deviation to a low enough level. This is not very surprising if we do not make unfair anthropomorphic comparisons. `TBOT03` does not know the general grammar of room navigation. We human beings with our episodic memories have high *level models* of paths, obstructions, doorways, escalators, etc. We look around to get our bearings when we walk into an unfamiliar room. `TBOT03` has none of this, and it appears that it so happens that the largest *alignments* are not those that help it distinguish between similar views in different locations.
 
 The ironic thing about `TBOT03` is that its *slice* topology is now so complete and connected that it does not accidentally miss any of the wormholes or inconsistent mappings to its physical space that are intrinsic to its sensor *alignments*. So the turtlebot reliably becomes lost, often ending up in loops. `TBOT02` hurtled along so quickly, almost out of control, that its *slice* topology was no more than a bias or tendency, so that it usually did slighty better than random though its very inefficiency. Given that the *alignments* appear to be such that there will always be some ambiguity in the `TBOT03` *model*, we abandoned the room navigation goal and aimed instead to explore the *slice* topology and whether it could help the turtlebot learn more quickly. 
 
 
-It turned out, after (a) restricting the min diagonal, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* by comparing the *slice* size to its parent, and (d) caching the topology on the active, that there was a marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*) that in general demonstrated an advantage of interest goal over random goal in the rate of *fud* increase in the *level* 2 active, although this difference disappears over time. The random happens to be a fairly effective form of exploration, and the interest mode decision action success rate is so low (only ~10%), that the advantage is fleeting and often not visible at all. However, if we restricted the active *history size*, we found that interest mode had a substantial advantage over random, although, of course, it could not compensate for the missing *events* with such a low margin. This signal is very strong and so is definite proof that play works as a strategy. In practice it might be the case that we are not particularly restricted memory-wise (at around 300 bytes or 30 bytes compressed per *event*, it takes a long time to run out at 4 FPS and 30m seconds/annum), but the *volume* of the action *substrate* would be much bigger than it is for turtlebots and so random can only probe a little way into the future - so little, in fact, that it might be difficult to even attain an action success margin of 10%. We might need to evolve quite a tight parameterisation of the motor *variables* to obtain a critical success rate.
+It turned out, after (a) restricting the min diagonal, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* by comparing the *slice* size to its parent, and (d) caching the topology on the active, that there was a marginal action success and other statistics (decidability, hit length for comparable *fud* counts, total hits, hit *likelihood*) that in general demonstrated an advantage of interest goal over random goal in the rate of *fud* increase in the *level* two active, although this difference disappears over time. The random happens to be a fairly effective form of exploration, and the interest mode decision action success rate is so low (only ~10%), that the advantage is fleeting and often not visible at all. However, if we restricted the active *history size*, we found that interest mode had a substantial advantage over random, although, of course, it could not compensate for the missing *events* with such a low margin. This signal is very strong and so is definite proof that play works as a strategy. In practice it might be the case that we are not particularly restricted memory-wise (at around 300 bytes or 30 bytes compressed per *event*, it takes a long time to run out at 4 FPS and 30m seconds/annum), but the *volume* of the action *substrate* would be much bigger than it is for turtlebots and so random can only probe a little way into the future - so little, in fact, that it might be difficult to even attain an action success margin of 10%. We might need to evolve quite a tight parameterisation of the motor *variables* to obtain a critical success rate.
 
 <!--
+
+Note on how we improved the active functionality over TBOT02 - handling of continuous, diagonal and fail induce threshold, topology caching and cumulative, dynamic frames. No changes to underlying alignment repa.
 
 Future directions - 
 
