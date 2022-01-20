@@ -812,7 +812,7 @@ goal: room6     n: 7    mean: 13342.1   std dev: 9663.45        std err: 3652.44
 goal: room2     n: 8    mean: 12430.2   std dev: 9355.77        std err: 3307.76        running mean: 12430.2   running std dev: 9355.77        running std err: 3307.76
 goal: room4     n: 9    mean: 12087.6   std dev: 8873.8 std err: 2957.93        running mean: 12087.6   running std dev: 8873.8 running std err: 2957.93
 ```
-While its transition success rate is (12.3-8.3)/(1.0-0.631) = 10.8%, which is better than that of `TBOT02`, the navigation performance is very poor. This is because it frequently becomes stuck in loops or in corners. The problem is that the *model* does not have a sufficient number of low deviation *slices* always to provide a path to goal even from room 4 to room 5. 
+While its marginal transition success rate is (12.3-8.3)/(1.0-0.631) = 10.8%, which is better than that of `TBOT02`, the navigation performance is very poor. This is because it frequently becomes stuck in loops or in corners. The problem is that the *model* does not have a sufficient number of low deviation *slices* always to provide a path to goal even from room 4 to room 5. 
 
 We can demonstrate that this is the case in mode 9. In this mode, the choices that would have been made are calculated and traced but the control is now done manually. In this way we can debug the *slice* topology. A modification to the commander allows us to set the action -
 ```
@@ -1083,7 +1083,7 @@ locations[locA]: room5
 sliceLocA: 18855505
 actor.eventsRecord(historyEventA): (-6.27756,1.83661,84.4508)
 ```
-In the `TBOT02` discussion we said that we can think of each *slice* as a set of *events* that corresponds roughly to a particular bounded and oriented area or region of the turtlebot house. Now we can see from the experiments above that the *slices* often have several configuration clusters. Each *event* has a coordinate in physical configuration space of `x`,`y` and `yaw`. Each cluster will have a  different mean coordinate and variance or deviation. If a *slice* has more than one cluster the overall mean will not necessarily correspond to any of the cluster means and the overall deviation will be greater than the deviation of any of the clusters. If the *model* had more *events* in the *slices* away from the walls and corners, however, then the *model* might resolve into single cluster *slices*, i.e. low deviation *slices*. 
+In the `TBOT02` discussion we said that we can think of each *slice* as a set of *events* that corresponds roughly to a particular bounded and oriented area or region of the turtlebot house. Now we can see from the experiments above that the *slices* often have several configuration clusters. Each *event* has a coordinate in physical configuration space of `x`,`y` and `yaw`. Each cluster will have a  different mean coordinate and variance or deviation. If a *slice* has more than one cluster then the overall mean is likely to differ from any of the individual cluster means and the overall deviation will be greater than the deviations of any of the clusters. If the *model* had more *events* in the *slices* away from the walls and corners, however, then the *model* might resolve into single cluster *slices*, i.e. low deviation *slices*. 
 
 We will attempt to address this problem by reverting the random mode 7 back to the obstruction handling in `TBOT01` and `TBOT02`.
 
