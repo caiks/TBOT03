@@ -2720,27 +2720,7 @@ Unusual mode actually seems to be better than interest mode when the *history* o
 
 In some ways the fact that unusual mode does well is surprising - when we hit unusual goal *slices* their *size* increases towards parent *size* per `WMAX`, and soon they stop being unusual. In order for there to be *induction*, therefore, the path to these *slices* and nearby *slices* must tend to be interesting. That is, rare *events* often draw attention to interesting places. Perhaps a mixture of interest, unusual and random modes will be the optimal mix for exploration and learning in practice.
 
-Overall, however, by artificially restricting the active *history size* we have  been able to demonstrate that the strategy of deliberately searching for new *likelihood* accelerates *model* growth. We can speculate that this is especially the case where the resources for *model* search are scarce, or the action space is very large.
-
-<!--
-
-restricted active size enhances likely over random, so we have conclusive evidence of the practicability of agent modelling or the play principle that models can be optimised by actively searching for likelihood
-
-we only have a few actions so random effective does explore pretty well and we cannot expect much advantage from likelihood selection
-
-TBOT03 short term is underlying frames, medium term is active history, long term is the model and the motor/label history - what about reflexive?
-
-The fact that this advantage of interest mode over random is not very large partly explains why it has been so difficult to prove conclusively that the interest goal can increase the rate of *model* growth. 
-
-it may be the case that we will not be able to demonstrate likelihood goal conclusively because of poor configuration mapping, low action success, medium decidability and propensity to become stuck on one side of the corridor.
-
-TBOT03 evidence - behaviour looks different from random, margins, nulls, hit length, decidability, parent? auto turning at walls is another reason why the margins are low
-
-Also consider if the interest and random models are qualitatively different. Certainly the turtlebot behaviour is different.
-
--->
-
-
+Overall, however, by artificially restricting the active *history size* we have been able to demonstrate that the strategy of deliberately searching for new *likelihood* accelerates *model* growth. We can speculate that this is especially the case where the resources for *model* search are scarce, or the action space is very large.
 
 <a name = "Conclusion"></a>
 
@@ -2758,44 +2738,35 @@ None of these hints to the turtlebot, however, were sufficient to reduce the con
 
 The ironic thing about `TBOT03` is that its *slice* topology is now so complete and connected that it does not accidentally miss any of the wormholes or inconsistent mappings to its physical space that are intrinsic to its sensor *alignments*. So the turtlebot reliably becomes lost, often ending up in loops. `TBOT02` hurtled along so quickly, almost out of control, that its *slice* topology was no more than a bias or tendency, so that it usually did slighty better than random though its very inefficiency. Given that the *alignments* appear to be such that there will always be some ambiguity in the `TBOT03` *model*, we abandoned the room navigation goal and aimed instead to explore the *slice* topology and whether it could help the turtlebot learn more quickly. 
 
-After (a) restricting the minimum *diagonal*, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* as *slice* size per parent *slice* size, and (d) caching the topology on the active, we were able to distinguish clearly between random and interest modes. As well as a qualitative difference in behaviour, this was obvious in the statistics of decidability, marginal action success, hit length for comparable *fud* counts, total hits, and hit *likelihood*. We were less able to demonstrate an advantage of interest goal over random goal in the rate of *fud* increase in the *level* two active, and indeed this difference disappears over time. The random mode happens, in this case, to be a fairly efficient form of exploration, and the interest mode decision action success rate is so low, at only around 10%, that the advantage is fleeting and often not visible at all. When we went on, however, to restrict the active *history size*, we found that interest mode had a substantial advantage over random, although, of course, it could only partly compensate for the missing *events* with such a low margin. This signal is very strong and so is definite proof that play works as a strategy. In this case we are not particularly restricted by memory resources, at only around 30 bytes compressed per *event*, but if the sensor *substrate* is much larger either by *variable* cardinality or by *variable valency*, e.g. a camera rather than a lidar, then memory might well be limited. 
+After (a) restricting the minimum *diagonal*, (b) using only rooms 4,5,6 to improve the reliability of the signal, (c) calculating interest *likelihood* as *slice* size per parent *slice* size, and (d) caching the topology on the active, we were able to distinguish clearly between random and interest modes. As well as a qualitative change in behaviour, which suggests a more directed search, we found increased decidability, increased marginal action success, reduced hit length for comparable *fud* counts, and increased total hits. There also appears to be a small advantage of interest goal over random goal in the rate of *fud* increase for the *level* two active, although this difference disappears over time. Random mode happens, for turtlebot at least, to be a fairly efficient form of exploration, and the interest mode decision action success rate is so low, at only around 10%, that the advantage is fleeting and often not visible at all. 
+
+When we went on, however, to restrict the active *history size*, we found that interest mode had a substantial *model* growth rate advantage over random, in spite of the low margin. This signal is very strong and so is definite proof that play works as a strategy. In this case we are not particularly restricted by memory resources, but if the sensor *substrate* were much larger either by *variable* cardinality or by *variable valency*, e.g. if the turtlebot had a camera rather than a lidar, then memory might well be limited. 
 
 <!--
 
-Also, if the motor *volume* is much bigger than for the turtlebot, which has only three actions, e.g. in a legged robot, then effective random mode can only probe a little way into the future. 
-
- - so little, in fact, that it might be difficult to even attain an action success margin of 10%. We might need to evolve quite a tight parameterisation of the motor *variables* to obtain a critical success rate.
-
-Note on how we improved the active functionality over TBOT02 - handling of continuous, diagonal and fail induce threshold, topology caching and cumulative, dynamic frames. No changes to underlying alignment repa.
-
 Future directions - 
-
-TBOT03 WOTBOT Mostly settled the active update and induce configuration, eg with diagonal minimum, but might well need higher performance especially in vision.
-
-TBOT03 WOTBOT Mention higher motor valency and richer sensoria and environments with greater affordance. Would hope for higher action success margin. Would expect that there is a trade-off between reliability of action (following the path to goal) and exploration (requiring some random experiment into new motor values for the slice)
-
-TBOT03 WOTBOT Room goal failed but interest and unusual goal (likely goal) succeeded, most convincingly when restricted though. In future have mix of goals also affective? When experimenting with goal search algorithms will need some sort of model growth rate statistic to compare. Or perhaps ambiguity in map to configuration (entropy of configuration conditional on slice).
-
-TBOT03 WOTBOT Dealt only with a single level, will need to consider the sharing of resources between many different actives in different structures, and how they relate to the configuration/motor level. Configuration level might be broken up into separate actives cf octupus arms, will need some indirect control from higher actives.
-
-An explanation for the left-right oscillation we often see in interest mode would be that if forward motion leads to the same slice in 2.5 actions more than a transition then a goal slice at the other end of a parallelogram, which requires a forward transition is likely to oscillate between one turn and its opposite. This is because turns will nearly always cause a transition. To avoid this we should ensure that actions all have roughly the same probability of transition, preferably nearly always. Of course, this is hard to do, since the sensor model is constantly changing. An alternative is to avoid forming a mathematical group, so that actions do not have opposites. The messiness of neurobiology will generally avoid this, eg bias to right handedness. We shouldn't be too fussy or symmetrical about our motor models. Can do this by not having opposite actions or by altering the random distribution of actions. To fix the oscillation problem random mode should adjust the frequencies of each action such that the probability of transition is uniform for all. Although, note that we are assuming that the intra-slice distribution is also uniform for the action. Easiest to select actions with a granularity roughly equal to a slice transition. We probably should have deloopers in anyway, which is a pragmatic optimisation.
-
-Likely goal is in a sense predictive - we choose an action such as eye saccades that we guess will lead to something interesting. Simulation chooses probable next slice, so is also predictive in that sense. See https://www.quantamagazine.org/to-be-energy-efficient-brains-predict-their-perceptions-20211115/
-
-We can represent the level 3 average slice in a bitmap with past frames forming the vertical axis. That would give us a sense of the dynamic model. Underlying frames would be easy but self frames would require an infinite concatenation and they would overlap.
-
-
-
-mixture of interest, unusual and random modes
-
- Consider other modes such as repelled by unaligned
 
 the problem with TBOT03 is that random/effective is pretty good and slice map to physical configuration is pretty bad. In future try to ensure that the reverse is true, then the likelihood goal, whether gradient or topmost, should produce behaviour that we can intuit as intelligent, or at least cannot produce in any other way.
 
+Mostly settled the active update, induce configuration, eg with diagonal minimum, actor processing and model structure, but might well need higher performance especially in vision.
 
-TBOT04 WOTBOT we really want a test case that has high margin success and goals that are less easy to hit by chance. Interaction with another agent might be a better choice than with a fixed environment. The goal of conversing cannot be hit by chance. ELIZA? or text interface. Want an inaccessible but fruitful set of alignments, eg walking, talking, playing. 
+We really want a test case that has high margin success and goals that are less easy to hit by chance. Interaction with another agent might be a better choice than with a fixed environment. The goal of conversing cannot be hit by chance. ELIZA? or text interface. Want an inaccessible but fruitful set of alignments, eg walking, talking, playing. 
 
-Principle of evolution by likelihood selection, or principle of most interest, or principle of sufficient interest. The big idea is that we act to maximise the model by moving to the largest slices. This cognitive goal acceleration of modelling mirrors the sexual swapping of genes which accelerates natural selection. That is, we can speed up the modelling rate in the case of CAIKS, and the rate of complex niche finding in the case of evolution. In CAIKS the technique resembles the golf ball method of iterative corrections.
+Also, if the motor *volume* is much bigger than for the turtlebot, which has only three actions, e.g. in a legged robot, then effective random mode can only probe a little way into the future. 
+
+We should ensure that actions all have roughly the same probability of transition, preferably nearly always. adjust the frequencies of each action such that the probability of transition is uniform for all. Easiest to select actions with a granularity roughly equal to a slice transition.
+
+Mention higher motor valency and richer sensoria and environments with greater affordance. Would hope for higher action success margin. Would expect that there is a trade-off between reliability of action (following the path to goal) and exploration (requiring some random experiment into new motor values for the slice)
+
+Room goal failed but interest and unusual goal (likely goal) succeeded, most convincingly when restricted though. In future have mix of goals also affective? When experimenting with goal search algorithms will need some sort of model growth rate statistic to compare. Or perhaps ambiguity in map to configuration (entropy of configuration conditional on slice). mixture of interest, unusual and random modes. Consider other modes such as repelled by unaligned
+
+Dealt only with a single level, will need to consider the sharing of resources between many different actives in different structures, and how they relate to the configuration/motor level. Configuration level might be broken up into separate actives cf octupus arms, will need some indirect control from higher actives.
+
+Likely goal is in a sense predictive - we choose an action such as eye saccades that we guess will lead to something interesting. 
+
+We can represent the level 3 average slice in a bitmap with past frames forming the vertical axis. That would give us a sense of the dynamic model. Underlying frames would be easy but self frames would require an infinite concatenation and they would overlap.
+
+Principle of active search for likelihood, or principle of most interest, or play principle. The big idea is that we act to maximise the model by moving to the slices with greatest potential likelihood. The technique resembles the golf ball method of iterative corrections.
 
 dynamic frames
 
