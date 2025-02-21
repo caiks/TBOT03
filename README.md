@@ -37,16 +37,18 @@ For example, in Ubuntu bionic (18.04),
 sudo apt-get update -y && sudo apt install -y git g++ cmake
 
 ```
-Then download the zip files or use git to get the `TBOT03` repository and the underlying `rapidjson`, `AlignmentC`, `AlignmentRepaC`and `AlignmentActive`  repositories -
+Then download the zip files or use git to get the `TBOT03` repository and the underlying `rapidjson`, `AlignmentC`, `AlignmentRepaC`and `AlignmentActive` repositories -
 ```
 cd
 git clone https://github.com/Tencent/rapidjson.git
 git clone https://github.com/caiks/AlignmentC.git
 git clone https://github.com/caiks/AlignmentRepaC.git
-git clone https://github.com/caiks/AlignmentActive.git
+git clone -b v01 --single-branch https://github.com/caiks/AlignmentActive.git
 git clone https://github.com/caiks/TBOT03.git
 
 ```
+Note that the `AlignmentActive` repository should be cloned at version `v01` (which is incompatible with later versions).
+
 Then download the [TBOT03 workspace repository](https://github.com/caiks/TBOT03_ws) -
 ```
 git clone https://github.com/caiks/TBOT03_ws.git
